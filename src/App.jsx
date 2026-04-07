@@ -1,0 +1,511 @@
+import { useState, useRef, useEffect, useCallback } from 'react'
+import './App.css'
+
+// ── Sample content ──────────────────────────────────────────────────────────
+const SAMPLE_BIG = 'Handgloves'
+const SAMPLE_PARAGRAPH = `Typography is the art and technique of arranging type to make written language legible, readable, and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing, as well as adjusting the space between pairs of letters.
+
+The term typography is also applied to the style, arrangement, and appearance of the letters, numbers, and symbols created by the process. Type design is a closely related craft, sometimes considered part of typography.`
+
+const GLYPH_SETS = {
+  'Uppercase': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  'Lowercase': 'abcdefghijklmnopqrstuvwxyz',
+  'Numerals': '0123456789',
+  'Punctuation': '.,;:!?\'"-()[]{}/@#$%^&*+=<>\\|`~',
+  'Accents': 'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ',
+}
+
+// ── Slider row component ─────────────────────────────────────────────────────
+function SliderRow({ label, value, min, max, step, onChange, display }) {
+  return (
+    <div className="slider-row">
+      <div className="slider-label">
+        <span className="slider-label-text">{label}</span>
+        <input
+          type="number"
+          value={display ?? value}
+          min={min}
+          max={max}
+          step={step}
+          onChange={e => onChange(parseFloat(e.target.value))}
+        />
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={e => onChange(parseFloat(e.target.value))}
+      />
+    </div>
+  )
+}
+
+// ── Mode button ──────────────────────────────────────────────────────────────
+function ModeBtn({ active, onClick, children }) {
+  return (
+    <button className={`mode-btn ${active ? 'active' : ''}`} onClick={onClick}>
+      {children}
+    </button>
+  )
+}
+
+// ── Main App ─────────────────────────────────────────────────────────────────
+export default function App() {
+  // Font loading
+  const [fontName, setFontName] = useState(null)
+  const [fontFace, setFontFace] = useState(null)
+  const [variationAxes, setVariationAxes] = useState([]) // [{tag, name, min, max, defaultVal}]
+  const [axisValues, setAxisValues] = useState({})
+  const [isDragging, setIsDragging] = useState(false)
+  const fontObjectUrl = useRef(null)
+
+  // View mode
+  const [mode, setMode] = useState('big') // 'big' | 'paragraph' | 'glyphs'
+
+  // Text content
+  const [bigText, setBigText] = useState(SAMPLE_BIG)
+  const [paragraphText, setParagraphText] = useState(SAMPLE_PARAGRAPH)
+
+  // Typography controls
+  const [fontSize, setFontSize] = useState(120)
+  const [letterSpacing, setLetterSpacing] = useState(0)
+  const [lineHeight, setLineHeight] = useState(1.1)
+
+  // Alignment
+  const [textAlign, setTextAlign] = useState('left')
+
+  // Glyph set selection
+  const [activeGlyphSet, setActiveGlyphSet] = useState('Uppercase')
+
+  const fileInputRef = useRef(null)
+
+  // ── Font loading ───────────────────────────────────────────────────────────
+  const loadFont = useCallback(async (file) => {
+    try {
+      if (fontObjectUrl.current) {
+        URL.revokeObjectURL(fontObjectUrl.current)
+      }
+
+      const url = URL.createObjectURL(file)
+      fontObjectUrl.current = url
+
+      const name = `ProoferFont_${Date.now()}`
+      const face = new FontFace(name, `url(${url})`)
+      const loaded = await face.load()
+      document.fonts.add(loaded)
+      setFontFace(loaded)
+      setFontName(file.name.replace(/\.[^/.]+$/, ''))
+
+      // Try to read variable font axes via opentype.js style
+      // We'll use a simple approach: check if font has variation settings
+      // by using the font's internal data
+      await detectAxes(file, name)
+    } catch (err) {
+      console.error('Font load error', err)
+    }
+  }, [])
+
+  const detectAxes = async (file, fontFamilyName) => {
+    try {
+      const buffer = await file.arrayBuffer()
+      const axes = parseVariationAxes(buffer)
+      setVariationAxes(axes)
+      const defaults = {}
+      axes.forEach(a => { defaults[a.tag] = a.defaultVal })
+      setAxisValues(defaults)
+    } catch (e) {
+      setVariationAxes([])
+      setAxisValues({})
+    }
+  }
+
+  // Minimal fvar table parser
+  const parseVariationAxes = (buffer) => {
+    try {
+      const data = new DataView(buffer)
+
+      // Read SFNT header
+      const numTables = data.getUint16(4)
+      let fvarOffset = 0
+
+      for (let i = 0; i < numTables; i++) {
+        const tag = String.fromCharCode(
+          data.getUint8(12 + i * 16),
+          data.getUint8(13 + i * 16),
+          data.getUint8(14 + i * 16),
+          data.getUint8(15 + i * 16),
+        )
+        if (tag === 'fvar') {
+          fvarOffset = data.getUint32(12 + i * 16 + 8)
+          break
+        }
+      }
+
+      if (!fvarOffset) return []
+
+      const axisArrayOffset = data.getUint16(fvarOffset + 4)
+      const axisCount = data.getUint16(fvarOffset + 8)
+      const axisSize = data.getUint16(fvarOffset + 10)
+
+      const axes = []
+      for (let i = 0; i < axisCount; i++) {
+        const off = fvarOffset + axisArrayOffset + i * axisSize
+        const tag = String.fromCharCode(
+          data.getUint8(off),
+          data.getUint8(off + 1),
+          data.getUint8(off + 2),
+          data.getUint8(off + 3),
+        )
+        const minVal = data.getInt32(off + 4) / 65536
+        const defaultVal = data.getInt32(off + 8) / 65536
+        const maxVal = data.getInt32(off + 12) / 65536
+
+        const tagLabels = {
+          wght: 'Weight',
+          wdth: 'Width',
+          ital: 'Italic',
+          slnt: 'Slant',
+          opsz: 'Optical Size',
+          GRAD: 'Grade',
+          XHGT: 'X-Height',
+          YOPQ: 'Y Opacity',
+          YTUC: 'Uppercase Height',
+          YTLC: 'Lowercase Height',
+        }
+
+        axes.push({
+          tag,
+          name: tagLabels[tag] || tag,
+          min: minVal,
+          max: maxVal,
+          defaultVal,
+        })
+      }
+      return axes
+    } catch {
+      return []
+    }
+  }
+
+  // ── Drop zone ──────────────────────────────────────────────────────────────
+  const handleDrop = useCallback((e) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file) loadFont(file)
+  }, [loadFont])
+
+  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true) }
+  const handleDragLeave = () => setIsDragging(false)
+
+  useEffect(() => {
+    window.addEventListener('dragover', handleDragOver)
+    window.addEventListener('dragleave', handleDragLeave)
+    window.addEventListener('drop', handleDrop)
+    return () => {
+      window.removeEventListener('dragover', handleDragOver)
+      window.removeEventListener('dragleave', handleDragLeave)
+      window.removeEventListener('drop', handleDrop)
+    }
+  }, [handleDrop])
+
+  // ── Font variation string ─────────────────────────────────────────────────
+  const fontVariationSettings = Object.entries(axisValues)
+    .map(([tag, val]) => `"${tag}" ${val}`)
+    .join(', ') || 'normal'
+
+  const previewStyle = {
+    fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
+    fontSize: `${fontSize}px`,
+    letterSpacing: `${letterSpacing}em`,
+    lineHeight: lineHeight,
+    fontVariationSettings,
+    textAlign,
+    color: '#ffffff',
+    wordBreak: 'break-word',
+    transition: 'font-variation-settings 0.15s ease',
+  }
+
+  // ── Paragraph font size is smaller ────────────────────────────────────────
+  const paragraphStyle = {
+    ...previewStyle,
+    fontSize: `${Math.min(fontSize, 48)}px`,
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  return (
+    <div
+      className={`layout ${isDragging ? 'dragging' : ''}`}
+    >
+      {/* Drop overlay */}
+      {isDragging && (
+        <div className="drop-overlay">
+          <div className="drop-overlay-inner">
+            <span className="drop-icon">↓</span>
+            <span>Drop font file</span>
+          </div>
+        </div>
+      )}
+
+      {/* Sidebar */}
+      <aside className="sidebar">
+        {/* Logo */}
+        <div className="sidebar-logo">
+          <img src="/logo.gif" alt="Logo" className="logo-gif" />
+        </div>
+
+        {/* Font upload */}
+        <div className="sidebar-section">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".ttf,.otf,.woff,.woff2,.ttc"
+            style={{ display: 'none' }}
+            onChange={e => e.target.files[0] && loadFont(e.target.files[0])}
+          />
+          <button
+            className="upload-btn"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {fontName ? (
+              <>
+                <span className="upload-icon">↺</span>
+                <span className="upload-name">{fontName}</span>
+              </>
+            ) : (
+              <>
+                <span className="upload-icon">+</span>
+                <span>Open Font</span>
+              </>
+            )}
+          </button>
+          {!fontName && (
+            <p className="upload-hint">or drag & drop a font file</p>
+          )}
+        </div>
+
+        <div className="sidebar-divider" />
+
+        {/* Mode switcher */}
+        <div className="sidebar-section">
+          <div className="section-label">Preview Mode</div>
+          <div className="mode-group">
+            <ModeBtn active={mode === 'big'} onClick={() => setMode('big')}>
+              <BigIcon /> Big Word
+            </ModeBtn>
+            <ModeBtn active={mode === 'paragraph'} onClick={() => setMode('paragraph')}>
+              <ParaIcon /> Paragraph
+            </ModeBtn>
+            <ModeBtn active={mode === 'glyphs'} onClick={() => setMode('glyphs')}>
+              <GlyphIcon /> Glyphs
+            </ModeBtn>
+          </div>
+        </div>
+
+        <div className="sidebar-divider" />
+
+        {/* Typography controls */}
+        <div className="sidebar-section">
+          <div className="section-label">Typography</div>
+          <SliderRow
+            label="Size"
+            value={fontSize}
+            min={8}
+            max={400}
+            step={1}
+            onChange={setFontSize}
+          />
+          <SliderRow
+            label="Tracking"
+            value={letterSpacing}
+            min={-0.2}
+            max={0.5}
+            step={0.001}
+            onChange={setLetterSpacing}
+            display={letterSpacing.toFixed(3)}
+          />
+          <SliderRow
+            label="Leading"
+            value={lineHeight}
+            min={0.6}
+            max={3}
+            step={0.01}
+            onChange={setLineHeight}
+            display={lineHeight.toFixed(2)}
+          />
+        </div>
+
+        {/* Alignment */}
+        <div className="sidebar-section">
+          <div className="align-group">
+            {['left', 'center', 'right'].map(a => (
+              <button
+                key={a}
+                className={`align-btn ${textAlign === a ? 'active' : ''}`}
+                onClick={() => setTextAlign(a)}
+                title={`Align ${a}`}
+              >
+                {a === 'left' ? <AlignLeftIcon /> : a === 'center' ? <AlignCenterIcon /> : <AlignRightIcon />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Variable font axes */}
+        {variationAxes.length > 0 && (
+          <>
+            <div className="sidebar-divider" />
+            <div className="sidebar-section">
+              <div className="section-label">Variable Axes</div>
+              {variationAxes.map(axis => (
+                <SliderRow
+                  key={axis.tag}
+                  label={axis.name}
+                  value={axisValues[axis.tag] ?? axis.defaultVal}
+                  min={axis.min}
+                  max={axis.max}
+                  step={(axis.max - axis.min) > 10 ? 1 : 0.01}
+                  onChange={v => setAxisValues(prev => ({ ...prev, [axis.tag]: v }))}
+                  display={Math.round((axisValues[axis.tag] ?? axis.defaultVal))}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Glyph set tabs — only shown in glyphs mode */}
+        {mode === 'glyphs' && (
+          <>
+            <div className="sidebar-divider" />
+            <div className="sidebar-section">
+              <div className="section-label">Glyph Set</div>
+              <div className="glyph-set-group">
+                {Object.keys(GLYPH_SETS).map(k => (
+                  <button
+                    key={k}
+                    className={`glyph-set-btn ${activeGlyphSet === k ? 'active' : ''}`}
+                    onClick={() => setActiveGlyphSet(k)}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </aside>
+
+      {/* Main preview area */}
+      <main className="preview-area">
+        {!fontName && (
+          <div className="empty-state">
+            <img src="/logo.gif" alt="Logo" className="empty-logo" />
+            <p className="empty-hint">Open a font file to begin proofing</p>
+          </div>
+        )}
+
+        {fontName && mode === 'big' && (
+          <div className="preview-big">
+            <div
+              contentEditable
+              suppressContentEditableWarning
+              spellCheck={false}
+              className="editable-big"
+              style={previewStyle}
+              onInput={e => setBigText(e.currentTarget.textContent)}
+            >
+              {bigText}
+            </div>
+          </div>
+        )}
+
+        {fontName && mode === 'paragraph' && (
+          <div className="preview-paragraph">
+            <div
+              contentEditable
+              suppressContentEditableWarning
+              spellCheck={false}
+              className="editable-paragraph"
+              style={paragraphStyle}
+              onInput={e => setParagraphText(e.currentTarget.textContent)}
+            >
+              {paragraphText}
+            </div>
+          </div>
+        )}
+
+        {fontName && mode === 'glyphs' && (
+          <div className="preview-glyphs">
+            <div className="glyphs-grid" style={{
+              fontFamily: previewStyle.fontFamily,
+              fontVariationSettings,
+              fontSize: `${Math.min(fontSize, 120)}px`,
+              lineHeight: 1,
+              transition: 'font-variation-settings 0.15s ease',
+            }}>
+              {[...GLYPH_SETS[activeGlyphSet]].map((char, i) => (
+                <div key={i} className="glyph-cell">
+                  <div className="glyph-char">{char}</div>
+                  <div className="glyph-code">U+{char.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
+function BigIcon() {
+  return <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><text x="1" y="12" fontSize="13" fill="currentColor" fontFamily="serif">A</text></svg>
+}
+function ParaIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="1" y="2" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+      <rect x="1" y="5.5" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+      <rect x="1" y="9" width="8" height="1.5" rx="0.75" fill="currentColor"/>
+    </svg>
+  )
+}
+function GlyphIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+      <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+      <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+      <rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+    </svg>
+  )
+}
+function AlignLeftIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="1" y="2" width="12" height="1.4" rx="0.7" fill="currentColor"/>
+      <rect x="1" y="5.5" width="8" height="1.4" rx="0.7" fill="currentColor"/>
+      <rect x="1" y="9" width="10" height="1.4" rx="0.7" fill="currentColor"/>
+    </svg>
+  )
+}
+function AlignCenterIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="1" y="2" width="12" height="1.4" rx="0.7" fill="currentColor"/>
+      <rect x="3" y="5.5" width="8" height="1.4" rx="0.7" fill="currentColor"/>
+      <rect x="2" y="9" width="10" height="1.4" rx="0.7" fill="currentColor"/>
+    </svg>
+  )
+}
+function AlignRightIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="1" y="2" width="12" height="1.4" rx="0.7" fill="currentColor"/>
+      <rect x="5" y="5.5" width="8" height="1.4" rx="0.7" fill="currentColor"/>
+      <rect x="3" y="9" width="10" height="1.4" rx="0.7" fill="currentColor"/>
+    </svg>
+  )
+}
