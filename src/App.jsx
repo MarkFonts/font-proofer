@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
+import logoGif from '/public/logo.gif'
 
 // ── Sample content ──────────────────────────────────────────────────────────
 const SAMPLE_BIG = 'Handgloves'
@@ -253,7 +254,7 @@ export default function App() {
       <aside className="sidebar">
         {/* Logo */}
         <div className="sidebar-logo">
-          <img src="/logo.gif" alt="Logo" className="logo-gif" />
+          <img src={logoGif} alt="Logo" className="logo-gif" />
         </div>
 
         {/* Font upload */}
@@ -401,7 +402,7 @@ export default function App() {
       <main className="preview-area">
         {!fontName && (
           <div className="empty-state">
-            <img src="/logo.gif" alt="Logo" className="empty-logo" />
+            <img src={logoGif} alt="Logo" className="empty-logo" />
             <p className="empty-hint">Open a font file to begin proofing</p>
           </div>
         )}
