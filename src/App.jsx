@@ -2,6 +2,38 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
 import logoGif from '/public/logo.gif'
 
+// ── URL route parsing ────────────────────────────────────────────────────────
+const BASE = '/font-proofer'
+function parseRoute() {
+  const path = window.location.pathname.startsWith(BASE)
+    ? window.location.pathname.slice(BASE.length)
+    : window.location.pathname
+  const [, clientSlug, fontSlug] = path.split('/')
+  return { clientSlug: clientSlug || null, fontSlug: fontSlug || null }
+}
+
+function toDisplayName(slug) {
+  return slug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
+}
+
+// ── Font fuzzy matching ──────────────────────────────────────────────────────
+const fontModules = import.meta.glob('/src/fonts/*.{ttf,otf,woff,woff2}', { eager: true, query: '?url', import: 'default' })
+
+function normalize(s) {
+  return s.toLowerCase().replace(/[-_\s]/g, '').replace(/var|demo|variable|display|text/g, '')
+}
+
+function matchFont(slug) {
+  const needle = normalize(slug)
+  const entries = Object.entries(fontModules)
+  if (!entries.length) return null
+  const match = entries.find(([path]) => {
+    const name = normalize(path.split('/').pop().replace(/\.[^.]+$/, ''))
+    return name.includes(needle) || needle.includes(name)
+  })
+  return match ? { url: match[1], filename: match[0].split('/').pop() } : null
+}
+
 // ── Sample content ──────────────────────────────────────────────────────────
 const SAMPLE_BIG = 'Handgloves'
 const SAMPLE_PARAGRAPH = `Typography is the art and technique of arranging type to make written language legible, readable, and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing, as well as adjusting the space between pairs of letters.
@@ -54,6 +86,9 @@ function ModeBtn({ active, onClick, children }) {
 
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
+  const { clientSlug, fontSlug } = parseRoute()
+  const clientLabel = clientSlug ? toDisplayName(clientSlug) : null
+
   // Font loading
   const [fontName, setFontName] = useState(null)
   const [fontFace, setFontFace] = useState(null)
@@ -81,6 +116,29 @@ export default function App() {
   const [activeGlyphSet, setActiveGlyphSet] = useState('Uppercase')
 
   const fileInputRef = useRef(null)
+
+  // ── Auto-load font from URL route ──────────────────────────────────────────
+  useEffect(() => {
+    if (!fontSlug) return
+    const matched = matchFont(fontSlug)
+    if (!matched) return
+    const loadRouteFont = async () => {
+      const name = `ProoferFont_${Date.now()}`
+      const face = new FontFace(name, `url(${matched.url})`)
+      const loaded = await face.load()
+      document.fonts.add(loaded)
+      setFontFace(loaded)
+      setFontName(matched.filename.replace(/\.[^/.]+$/, ''))
+      const res = await fetch(matched.url)
+      const buffer = await res.arrayBuffer()
+      const axes = parseVariationAxes(buffer)
+      setVariationAxes(axes)
+      const defaults = {}
+      axes.forEach(a => { defaults[a.tag] = a.defaultVal })
+      setAxisValues(defaults)
+    }
+    loadRouteFont().catch(console.error)
+  }, [fontSlug])
 
   // ── Font loading ───────────────────────────────────────────────────────────
   const loadFont = useCallback(async (file) => {
@@ -255,37 +313,40 @@ export default function App() {
         {/* Logo */}
         <div className="sidebar-logo">
           <img src={logoGif} alt="Logo" className="logo-gif" />
+          {clientLabel && <span className="client-label">{clientLabel}</span>}
         </div>
 
-        {/* Font upload */}
-        <div className="sidebar-section">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".ttf,.otf,.woff,.woff2,.ttc"
-            style={{ display: 'none' }}
-            onChange={e => e.target.files[0] && loadFont(e.target.files[0])}
-          />
-          <button
-            className="upload-btn"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {fontName ? (
-              <>
-                <span className="upload-icon">↺</span>
-                <span className="upload-name">{fontName}</span>
-              </>
-            ) : (
-              <>
-                <span className="upload-icon">+</span>
-                <span>Open Font</span>
-              </>
+        {/* Font upload — hidden when font is pre-selected via URL */}
+        {!fontSlug && (
+          <div className="sidebar-section">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".ttf,.otf,.woff,.woff2,.ttc"
+              style={{ display: 'none' }}
+              onChange={e => e.target.files[0] && loadFont(e.target.files[0])}
+            />
+            <button
+              className="upload-btn"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {fontName ? (
+                <>
+                  <span className="upload-icon">↺</span>
+                  <span className="upload-name">{fontName}</span>
+                </>
+              ) : (
+                <>
+                  <span className="upload-icon">+</span>
+                  <span>Open Font</span>
+                </>
+              )}
+            </button>
+            {!fontName && (
+              <p className="upload-hint">or drag & drop a font file</p>
             )}
-          </button>
-          {!fontName && (
-            <p className="upload-hint">or drag & drop a font file</p>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="sidebar-divider" />
 
