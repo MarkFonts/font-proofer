@@ -87,7 +87,7 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-dim);
-  font-family: 'Cal Sans', system-ui, sans-serif;
+  font-family:  'CalSansUI', system-ui, sans-serif;
   margin-bottom: 2px;
 }
 
@@ -103,7 +103,7 @@
   padding: 9px 12px;
   font-size: 13px;
   color: var(--text);
-  font-family: 'Cal Sans', system-ui, sans-serif;
+  font-family:  'CalSansUI', system-ui, sans-serif;
   text-align: left;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -150,7 +150,7 @@
   padding: 8px 10px;
   border-radius: var(--radius);
   font-size: 13px;
-  font-family: 'Cal Sans', system-ui, sans-serif;
+  font-family:  'CalSansUI', system-ui, sans-serif;
   color: var(--text-muted);
   background: transparent;
   transition: background 0.12s, color 0.12s;
@@ -183,7 +183,7 @@
 .slider-label-text {
   font-size: 12px;
   color: var(--text-muted);
-  font-family: 'Cal Sans', system-ui, sans-serif;
+  font-family:  'CalSansUI', system-ui, sans-serif;
 }
 
 /* ── Alignment buttons ───────────────────────────────────────────────────── */
@@ -227,7 +227,7 @@
   padding: 6px 10px;
   border-radius: var(--radius);
   font-size: 12px;
-  font-family: 'Cal Sans', system-ui, sans-serif;
+  font-family:  'CalSansUI', system-ui, sans-serif;
   color: var(--text-muted);
   text-align: left;
   transition: background 0.12s, color 0.12s;
