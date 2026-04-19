@@ -314,6 +314,13 @@ export default function App() {
         </div>
       )}
 
+      {/* Mobile tab bar */}
+      <nav className="mobile-tabs">
+        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}>Big Word</button>
+        <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}>Paragraph</button>
+        <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}>Glyphs</button>
+      </nav>
+
       {/* Sidebar */}
       <aside className="sidebar">
         {/* Logo */}
@@ -357,7 +364,7 @@ export default function App() {
         <div className="sidebar-divider" />
 
         {/* Mode switcher */}
-        <div className="sidebar-section">
+        <div className="sidebar-section sidebar-mode-section">
           <div className="section-label">Preview Mode</div>
           <div className="mode-group">
             <ModeBtn active={mode === 'big'} onClick={() => setMode('big')}>

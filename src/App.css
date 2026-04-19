@@ -16,6 +16,84 @@
   font-family: 'CalSansUI', system-ui, sans-serif;
 }
 
+/* ── Mobile tabs (hidden on desktop) ─────────────────────────────────────── */
+.mobile-tabs {
+  display: none;
+}
+
+/* ── Mobile layout ───────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .mobile-tabs {
+    display: flex;
+    order: 1;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .mobile-tab {
+    flex: 1;
+    padding: 12px 8px;
+    font-size: 12px;
+    font-family: 'CalSansUI', system-ui, sans-serif;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.12s, border-color 0.12s;
+  }
+
+  .mobile-tab.active {
+    color: var(--text);
+    border-bottom-color: var(--text);
+  }
+
+  .preview-area {
+    order: 2;
+    flex: 1;
+    height: auto;
+    min-height: 0;
+  }
+
+  .sidebar {
+    order: 3;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    max-height: 45vh;
+    overflow-y: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: none;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .sidebar-logo,
+  .sidebar-mode-section {
+    display: none;
+  }
+
+  .sidebar-section {
+    flex: 1 1 160px;
+    min-width: 140px;
+  }
+
+  .sidebar-divider {
+    display: none;
+  }
+
+  .sidebar-footer {
+    width: 100%;
+    flex-shrink: 0;
+  }
+}
+
 /* ── Drop overlay ────────────────────────────────────────────────────────── */
 .drop-overlay {
   position: fixed;
