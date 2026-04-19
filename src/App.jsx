@@ -143,6 +143,11 @@ export default function App() {
 
   const fileInputRef = useRef(null)
   const previewAreaRef = useRef(null)
+  const bigEditorRef = useRef(null)
+  const paraEditorRef = useRef(null)
+
+  useEffect(() => { if (bigEditorRef.current) bigEditorRef.current.textContent = SAMPLE_BIG }, [])
+  useEffect(() => { if (paraEditorRef.current) paraEditorRef.current.innerText = SAMPLE_PARAGRAPH }, [])
 
   // ── Auto-fit font size to preview width ────────────────────────────────────
   const autoFitSize = useCallback((fontFamily) => {
@@ -590,30 +595,28 @@ export default function App() {
         {fontName && mode === 'big' && (
           <div className="preview-big">
             <div
+              ref={bigEditorRef}
               contentEditable
               suppressContentEditableWarning
               spellCheck={false}
               className="editable-big"
               style={previewStyle}
               onInput={e => setBigText(e.currentTarget.textContent)}
-            >
-              {bigText}
-            </div>
+            />
           </div>
         )}
 
         {fontName && mode === 'paragraph' && (
           <div className="preview-paragraph">
             <div
+              ref={paraEditorRef}
               contentEditable
               suppressContentEditableWarning
               spellCheck={false}
               className="editable-paragraph"
               style={paragraphStyle}
               onInput={e => setParagraphText(e.currentTarget.textContent)}
-            >
-              {paragraphText}
-            </div>
+            />
           </div>
         )}
 
