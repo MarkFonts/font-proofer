@@ -129,7 +129,7 @@ export default function App() {
   const [paragraphText, setParagraphText] = useState(SAMPLE_PARAGRAPH)
 
   // Typography controls
-  const [fontSize, setFontSize] = useState(120)
+  const [fontSize, setFontSize] = useState(200)
   const [letterSpacing, setLetterSpacing] = useState(0)
   const [lineHeight, setLineHeight] = useState(1.1)
 
