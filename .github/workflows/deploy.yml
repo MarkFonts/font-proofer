@@ -19,15 +19,15 @@ jobs:
 
       - name: Push to wordmark repo
         env:
-          GH_TOKEN: ${{ secrets.WORDMARK_DEPLOY_TOKEN }}
+          TOKEN: ${{ secrets.WORDMARK_DEPLOY_TOKEN2 }}
         run: |
-          gh repo clone MarkFonts/wordmark wordmark-repo
+          git clone https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git wordmark-repo
           rm -rf wordmark-repo/font-proofer
           cp -r dist wordmark-repo/font-proofer
           cd wordmark-repo
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+          git remote set-url origin https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git
           git add font-proofer/
           git diff --staged --quiet || git commit -m "Deploy font-proofer"
-          gh auth setup-git
           git push
