@@ -197,13 +197,29 @@
 .slider-label {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
 }
 
 .slider-label-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
   color: var(--text-muted);
-  font-family:  'CalSansUI', system-ui, sans-serif;
+  font-family: 'CalSansUI', system-ui, sans-serif;
+}
+
+.slider-tag {
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.5;
+  font-family: 'CalSansUI', system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  text-align: right;
+  font-feature-settings: "tnum";
 }
 
 /* ── Typography header (label + alignment inline) ───────────────────────── */

@@ -88,6 +88,7 @@ input.slider-number {
   text-align: right;
   outline: none;
   flex-shrink: 0;
+  font-feature-settings: "tnum";
 }
 
 input[type="number"]:focus,
