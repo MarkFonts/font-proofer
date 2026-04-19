@@ -144,6 +144,7 @@ export default function App() {
 
   // ── Auto-fit font size to preview width ────────────────────────────────────
   const autoFitSize = useCallback((fontFamily) => {
+    if (window.innerWidth > 768) return
     const area = previewAreaRef.current
     if (!area) return
     const availWidth = area.clientWidth - 128
