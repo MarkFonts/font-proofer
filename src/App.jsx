@@ -383,7 +383,21 @@ export default function App() {
 
         {/* Typography controls */}
         <div className="sidebar-section">
-          <div className="section-label">Typography</div>
+          <div className="typography-header">
+            <div className="section-label">Typography</div>
+            <div className="align-group">
+              {['left', 'center', 'right'].map(a => (
+                <button
+                  key={a}
+                  className={`align-btn ${textAlign === a ? 'active' : ''}`}
+                  onClick={() => setTextAlign(a)}
+                  title={`Align ${a}`}
+                >
+                  {a === 'left' ? <AlignLeftIcon /> : a === 'center' ? <AlignCenterIcon /> : <AlignRightIcon />}
+                </button>
+              ))}
+            </div>
+          </div>
           <SliderRow
             label="Size"
             value={fontSize}
@@ -410,22 +424,6 @@ export default function App() {
             onChange={setLineHeight}
             display={lineHeight.toFixed(2)}
           />
-        </div>
-
-        {/* Alignment */}
-        <div className="sidebar-section">
-          <div className="align-group">
-            {['left', 'center', 'right'].map(a => (
-              <button
-                key={a}
-                className={`align-btn ${textAlign === a ? 'active' : ''}`}
-                onClick={() => setTextAlign(a)}
-                title={`Align ${a}`}
-              >
-                {a === 'left' ? <AlignLeftIcon /> : a === 'center' ? <AlignCenterIcon /> : <AlignRightIcon />}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Variable font axes */}
