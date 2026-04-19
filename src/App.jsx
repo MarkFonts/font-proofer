@@ -41,7 +41,7 @@ function matchFont(slug) {
 }
 
 // ── Sample content ──────────────────────────────────────────────────────────
-const SAMPLE_BIG = 'Handgloves'
+const SAMPLE_BIG = 'Hand gloves'
 const SAMPLE_PARAGRAPH = `Typography is the art and technique of arranging type to make written language legible, readable, and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing, as well as adjusting the space between pairs of letters.
 
 The term typography is also applied to the style, arrangement, and appearance of the letters, numbers, and symbols created by the process. Type design is a closely related craft, sometimes considered part of typography.`
@@ -122,6 +122,23 @@ export default function App() {
   const [activeGlyphSet, setActiveGlyphSet] = useState('Uppercase')
 
   const fileInputRef = useRef(null)
+  const previewAreaRef = useRef(null)
+
+  // ── Auto-fit font size to preview width ────────────────────────────────────
+  const autoFitSize = useCallback((fontFamily) => {
+    const area = previewAreaRef.current
+    if (!area) return
+    const availWidth = area.clientWidth - 128
+    if (!availWidth) return
+    const span = document.createElement('span')
+    span.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font-family:"${fontFamily}";font-size:100px`
+    span.textContent = 'gloves'
+    document.body.appendChild(span)
+    const w = span.offsetWidth
+    document.body.removeChild(span)
+    if (!w) return
+    setFontSize(Math.min(400, Math.max(20, Math.floor(100 * availWidth / w))))
+  }, [])
 
   // ── Auto-load font from URL route ──────────────────────────────────────────
   useEffect(() => {
@@ -135,6 +152,7 @@ export default function App() {
       document.fonts.add(loaded)
       setFontFace(loaded)
       setFontName(matched.filename.replace(/\.[^/.]+$/, ''))
+      autoFitSize(name)
       const res = await fetch(matched.url)
       const buffer = await res.arrayBuffer()
       const axes = parseVariationAxes(buffer)
@@ -162,6 +180,7 @@ export default function App() {
       document.fonts.add(loaded)
       setFontFace(loaded)
       setFontName(file.name.replace(/\.[^/.]+$/, ''))
+      autoFitSize(name)
 
       // Try to read variable font axes via opentype.js style
       // We'll use a simple approach: check if font has variation settings
@@ -478,7 +497,7 @@ export default function App() {
       </aside>
 
       {/* Main preview area */}
-      <main className="preview-area">
+      <main className="preview-area" ref={previewAreaRef}>
         {!fontName && (
           <div className="empty-state">
             <img src={logoGif} alt="Logo" className="empty-logo" />

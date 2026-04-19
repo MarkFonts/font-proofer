@@ -49,6 +49,7 @@ input[type="range"] {
   background: transparent;
   cursor: pointer;
   width: 100%;
+  touch-action: none;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
