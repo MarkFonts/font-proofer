@@ -218,6 +218,10 @@
   text-overflow: ellipsis;
 }
 
+.slider-label-text--tagged {
+  flex: 0 0 105px;
+}
+
 .slider-tag {
   font-size: 10px;
   color: var(--text-muted);
