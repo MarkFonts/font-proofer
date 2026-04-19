@@ -1,21 +1,12 @@
-name: Deploy to GitHub Pages
+name: Deploy to Wordmark
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,16 +16,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/deploy-pages@v4
-        id: deployment
+      - name: Push to wordmark repo
+        env:
+          TOKEN: ${{ secrets.WORDMARK_DEPLOY_TOKEN }}
+        run: |
+          git clone https://x-access-token:${TOKEN}@github.com/MarkFonts/wordmark.git wordmark-repo
+          rm -rf wordmark-repo/font-proofer
+          cp -r dist wordmark-repo/font-proofer
+          cd wordmark-repo
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add font-proofer/
+          git diff --staged --quiet || git commit -m "Deploy font-proofer"
+          git push
