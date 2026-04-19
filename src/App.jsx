@@ -78,7 +78,7 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display }) {
     <div className="slider-row">
       <div className="slider-label">
         <span className="slider-label-left">
-          <span className="slider-label-text">{label}</span>
+          <span className={`slider-label-text${tag ? ' slider-label-text--tagged' : ''}`}>{label}</span>
           {tag && <span className="slider-tag">{tag}</span>}
         </span>
         <input
@@ -146,8 +146,15 @@ export default function App() {
   const bigEditorRef = useRef(null)
   const paraEditorRef = useRef(null)
 
-  useEffect(() => { if (bigEditorRef.current) bigEditorRef.current.textContent = SAMPLE_BIG }, [])
-  useEffect(() => { if (paraEditorRef.current) paraEditorRef.current.innerText = SAMPLE_PARAGRAPH }, [])
+  const bigEditorCallback = useCallback(el => {
+    bigEditorRef.current = el
+    if (el && !el.textContent) el.textContent = SAMPLE_BIG
+  }, [])
+
+  const paraEditorCallback = useCallback(el => {
+    paraEditorRef.current = el
+    if (el && !el.innerText) el.innerText = SAMPLE_PARAGRAPH
+  }, [])
 
   // ── Auto-fit font size to preview width ────────────────────────────────────
   const autoFitSize = useCallback((fontFamily) => {
@@ -595,7 +602,7 @@ export default function App() {
         {fontName && mode === 'big' && (
           <div className="preview-big">
             <div
-              ref={bigEditorRef}
+              ref={bigEditorCallback}
               contentEditable
               suppressContentEditableWarning
               spellCheck={false}
@@ -609,7 +616,7 @@ export default function App() {
         {fontName && mode === 'paragraph' && (
           <div className="preview-paragraph">
             <div
-              ref={paraEditorRef}
+              ref={paraEditorCallback}
               contentEditable
               suppressContentEditableWarning
               spellCheck={false}

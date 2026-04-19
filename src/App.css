@@ -220,8 +220,7 @@
 
 .slider-tag {
   font-size: 10px;
-  color: var(--text-dim);
-  opacity: 0.7;
+  color: var(--text-muted);
   font-family: 'CalSansUI', system-ui, sans-serif;
   letter-spacing: 0.04em;
   flex-shrink: 0;
