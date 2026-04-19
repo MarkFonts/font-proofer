@@ -5,6 +5,11 @@ import logoGif from '/public/logo.gif'
 // ── URL route parsing ────────────────────────────────────────────────────────
 const BASE = '/font-proofer'
 function parseRoute() {
+  const params = new URLSearchParams(window.location.search)
+  const routeParam = params.get('route')
+  if (routeParam) {
+    window.history.replaceState(null, null, routeParam)
+  }
   const path = window.location.pathname.startsWith(BASE)
     ? window.location.pathname.slice(BASE.length)
     : window.location.pathname

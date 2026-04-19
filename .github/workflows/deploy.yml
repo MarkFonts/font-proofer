@@ -24,10 +24,18 @@ jobs:
           git clone https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git wordmark-repo
           rm -rf wordmark-repo/font-proofer
           cp -r dist wordmark-repo/font-proofer
+          cat > wordmark-repo/404.html << 'EOF'
+          <!doctype html><html><head><script>
+            var path = window.location.pathname;
+            if (path.startsWith('/font-proofer/')) {
+              window.location.replace('/font-proofer/?route=' + encodeURIComponent(path));
+            }
+          </script></head><body></body></html>
+          EOF
           cd wordmark-repo
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git remote set-url origin https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git
-          git add font-proofer/
+          git add font-proofer/ 404.html
           git diff --staged --quiet || git commit -m "Deploy font-proofer"
           git push
