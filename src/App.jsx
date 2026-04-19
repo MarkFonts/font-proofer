@@ -430,25 +430,21 @@ export default function App() {
             <div className="section-label">Typography</div>
             <div className="align-group">
               {(() => {
-                const axisDefaults = {}
-                variationAxes.forEach(a => { axisDefaults[a.tag] = a.defaultVal })
                 const isDirty =
                   fontSize !== 200 ||
                   letterSpacing !== 0 ||
                   lineHeight !== 1.1 ||
-                  textAlign !== 'left' ||
-                  variationAxes.some(a => axisValues[a.tag] !== a.defaultVal)
+                  textAlign !== 'left'
                 return (
                   <button
                     className={`align-btn ${isDirty ? 'active' : 'reset-clean'}`}
-                    title="Reset settings"
+                    title="Reset typography"
                     style={isDirty ? {} : { pointerEvents: 'none' }}
                     onClick={() => {
                       setFontSize(200)
                       setLetterSpacing(0)
                       setLineHeight(1.1)
                       setTextAlign('left')
-                      setAxisValues(axisDefaults)
                     }}
                   ><ResetIcon /></button>
                 )
@@ -498,7 +494,24 @@ export default function App() {
           <>
             <div className="sidebar-divider" />
             <div className="sidebar-section">
-              <div className="section-label">Variable Axes</div>
+              <div className="typography-header">
+                <div className="section-label">Variable Axes</div>
+                {(() => {
+                  const axesDirty = variationAxes.some(a => axisValues[a.tag] !== a.defaultVal)
+                  return (
+                    <button
+                      className={`align-btn ${axesDirty ? 'active' : 'reset-clean'}`}
+                      title="Reset axes"
+                      style={axesDirty ? {} : { pointerEvents: 'none' }}
+                      onClick={() => {
+                        const defaults = {}
+                        variationAxes.forEach(a => { defaults[a.tag] = a.defaultVal })
+                        setAxisValues(defaults)
+                      }}
+                    ><ResetIcon /></button>
+                  )
+                })()}
+              </div>
               {variationAxes.map(axis => (
                 <SliderRow
                   key={axis.tag}
