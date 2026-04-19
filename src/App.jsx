@@ -77,8 +77,10 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display }) {
   return (
     <div className="slider-row">
       <div className="slider-label">
-        <span className="slider-label-text">{label}</span>
-        {tag && <span className="slider-tag">{tag}</span>}
+        <span className="slider-label-left">
+          <span className="slider-label-text">{label}</span>
+          {tag && <span className="slider-tag">{tag}</span>}
+        </span>
         <input
           className="slider-number"
           type="text"

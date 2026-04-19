@@ -197,18 +197,25 @@
 .slider-label {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
 }
 
-.slider-label-text {
-  flex: 1;
+.slider-label-left {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.slider-label-text {
   font-size: 12px;
   color: var(--text-muted);
   font-family: 'CalSansUI', system-ui, sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .slider-tag {
