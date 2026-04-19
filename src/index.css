@@ -49,8 +49,7 @@ input[type="range"] {
   appearance: none;
   background: transparent;
   cursor: pointer;
-  width: calc(100% - 14px);
-  margin: 0 7px;
+  width: 100%;
   touch-action: none;
 }
 
@@ -83,7 +82,7 @@ input[type="number"] {
   padding: 4px 6px;
   font-family: inherit;
   font-size: 12px;
-  width: 56px;
+  width: 64px;
   text-align: right;
   outline: none;
 }
