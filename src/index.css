@@ -2,8 +2,9 @@
 
 @font-face {
   font-family: "CalSansUI";
-  src: url("https://cdn.jsdelivr.net/gh/calcom/sans-ui@main/fonts/webfonts/CalSansUI[wght,GEOM].woff2") format("woff2");
-  font-weight: 300 700;
+  src: url("./fonts/CalSansUI-VariableFont 1.723 [opsz,wght,GEOM,YTAS,SHRP].ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
   font-display: swap;
 }
 

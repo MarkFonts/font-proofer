@@ -163,20 +163,11 @@ export default function App() {
   useEffect(() => {
     if (!fontSlug) return
 
-    // Special built-in fonts (e.g. /wordmark/calsansui)
+    // Special built-in fonts — resolve to a real file via matchFont
     const special = matchSpecial(fontSlug)
-    if (special) {
-      setFontFace({ family: special.family })
-      setFontName(special.name)
-      setVariationAxes(special.axes)
-      const defaults = {}
-      special.axes.forEach(a => { defaults[a.tag] = a.defaultVal })
-      setAxisValues(defaults)
-      autoFitSize(special.family)
-      return
-    }
+    const resolvedSlug = special ? 'calsansui' : fontSlug
 
-    const matched = matchFont(fontSlug)
+    const matched = matchFont(resolvedSlug)
     if (!matched) return
     const loadRouteFont = async () => {
       const name = `ProoferFont_${Date.now()}`
