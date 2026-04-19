@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg id="b" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1485 1485">
-  <!-- Generator: Adobe Illustrator 30.0.0, SVG Export Plug-In . SVG Version: 2.1.1 Build 123)  -->
+  <style>
+    g { fill: #000; }
+    @media (prefers-color-scheme: dark) { g { fill: #fff; } }
+  </style>
   <g id="c">
     <g>
       <polygon points="1024.8 561.1 1030.9 0 781 0 781 714.1 984 714.1 1148.3 429.5 1111.5 430.5 1281.9 714.1 1484.9 714.1 1484.9 0 1235 0 1241.1 561.1 1310.5 302.6 954.4 302.6 1024.8 561.1"/>
