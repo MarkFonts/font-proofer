@@ -584,7 +584,7 @@ export default function App() {
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 function BigIcon() {
-  return <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><text x="1" y="12" fontSize="13" fill="currentColor" fontFamily="serif">A</text></svg>
+  return <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><text x="1" y="12" fontSize="13" fill="currentColor" fontFamily="'CalSansUI', system-ui, sans-serif">A</text></svg>
 }
 function ParaIcon() {
   return (
