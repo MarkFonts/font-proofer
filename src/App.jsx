@@ -316,9 +316,9 @@ export default function App() {
 
       {/* Mobile tab bar */}
       <nav className="mobile-tabs">
-        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}>Big Word</button>
-        <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}>Paragraph</button>
-        <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}>Glyphs</button>
+        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><BigIcon /> Big Word</button>
+        <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><ParaIcon /> Paragraph</button>
+        <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><GlyphIcon /> Glyphs</button>
       </nav>
 
       {/* Sidebar */}
@@ -361,7 +361,7 @@ export default function App() {
           </div>
         )}
 
-        <div className="sidebar-divider" />
+        <div className="sidebar-divider sidebar-divider-before-mode" />
 
         {/* Mode switcher */}
         <div className="sidebar-section sidebar-mode-section">

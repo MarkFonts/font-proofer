@@ -38,6 +38,10 @@
 
   .mobile-tab {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     padding: 12px 8px;
     font-size: 12px;
     font-family: 'CalSansUI', system-ui, sans-serif;
@@ -66,31 +70,25 @@
     width: 100%;
     min-width: 0;
     height: auto;
-    max-height: 45vh;
+    max-height: 42vh;
     overflow-y: auto;
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-direction: column;
     border-right: none;
     border-top: 1px solid var(--border-subtle);
   }
 
   .sidebar-logo,
-  .sidebar-mode-section {
+  .sidebar-mode-section,
+  .sidebar-divider-before-mode {
     display: none;
-  }
-
-  .sidebar-section {
-    flex: 1 1 160px;
-    min-width: 140px;
   }
 
   .sidebar-divider {
-    display: none;
+    display: block;
   }
 
   .sidebar-footer {
-    width: 100%;
-    flex-shrink: 0;
+    margin-top: 0;
   }
 }
 
