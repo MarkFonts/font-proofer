@@ -405,6 +405,30 @@ export default function App() {
           <div className="typography-header">
             <div className="section-label">Typography</div>
             <div className="align-group">
+              {(() => {
+                const axisDefaults = {}
+                variationAxes.forEach(a => { axisDefaults[a.tag] = a.defaultVal })
+                const isDirty =
+                  fontSize !== 200 ||
+                  letterSpacing !== 0 ||
+                  lineHeight !== 1.1 ||
+                  textAlign !== 'left' ||
+                  variationAxes.some(a => axisValues[a.tag] !== a.defaultVal)
+                return (
+                  <button
+                    className={`align-btn ${isDirty ? '' : 'reset-clean'}`}
+                    title="Reset settings"
+                    style={isDirty ? {} : { pointerEvents: 'none' }}
+                    onClick={() => {
+                      setFontSize(200)
+                      setLetterSpacing(0)
+                      setLineHeight(1.1)
+                      setTextAlign('left')
+                      setAxisValues(axisDefaults)
+                    }}
+                  ><ResetIcon /></button>
+                )
+              })()}
               {['left', 'center', 'right'].map(a => (
                 <button
                   key={a}
@@ -415,19 +439,6 @@ export default function App() {
                   {a === 'left' ? <AlignLeftIcon /> : a === 'center' ? <AlignCenterIcon /> : <AlignRightIcon />}
                 </button>
               ))}
-              <button
-                className="align-btn"
-                title="Reset settings"
-                onClick={() => {
-                  setFontSize(200)
-                  setLetterSpacing(0)
-                  setLineHeight(1.1)
-                  setTextAlign('left')
-                  const defaults = {}
-                  variationAxes.forEach(a => { defaults[a.tag] = a.defaultVal })
-                  setAxisValues(defaults)
-                }}
-              ><ResetIcon /></button>
             </div>
           </div>
           <SliderRow
@@ -623,9 +634,8 @@ function AlignRightIcon() {
 }
 function ResetIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M7 2.5A4.5 4.5 0 1 0 11.5 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      <polyline points="9.5,1 11.5,3 9.5,5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" aria-hidden="true" style={{flexShrink:0}} viewBox="0 0 20 20">
+      <path d="M10.386 2.51A7.5 7.5 0 1 1 5.499 4H3a.5.5 0 0 1 0-1h3.5a.5.5 0 0 1 .49.402L7 3.5V7a.5.5 0 0 1-1 0V4.879a6.5 6.5 0 1 0 4.335-1.37L10 3.5l-.1-.01a.5.5 0 0 1 .1-.99z"/>
     </svg>
   )
 }

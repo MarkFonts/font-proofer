@@ -244,6 +244,11 @@
   border-color: var(--text-muted);
 }
 
+.align-btn.reset-clean {
+  color: var(--text-dim);
+  opacity: 0.4;
+}
+
 /* ── Glyph set buttons ───────────────────────────────────────────────────── */
 .glyph-set-group {
   display: flex;
