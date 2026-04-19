@@ -73,11 +73,14 @@ const GLYPH_SETS = {
 }
 
 // ── Slider row component ─────────────────────────────────────────────────────
-function SliderRow({ label, value, min, max, step, onChange, display }) {
+function SliderRow({ label, tag, value, min, max, step, onChange, display }) {
   return (
     <div className="slider-row">
       <div className="slider-label">
-        <span className="slider-label-text">{label}</span>
+        <span className="slider-label-text">
+          {label}
+          {tag && <span style={{ opacity: 0.4, marginLeft: '1em' }}>{tag}</span>}
+        </span>
         <input
           type="number"
           value={display ?? value}
@@ -229,63 +232,81 @@ export default function App() {
     }
   }
 
-  // Minimal fvar table parser
+  // Minimal fvar + name table parser
   const parseVariationAxes = (buffer) => {
     try {
       const data = new DataView(buffer)
-
-      // Read SFNT header
       const numTables = data.getUint16(4)
       let fvarOffset = 0
+      let nameOffset = 0
 
       for (let i = 0; i < numTables; i++) {
-        const tag = String.fromCharCode(
+        const t = String.fromCharCode(
           data.getUint8(12 + i * 16),
           data.getUint8(13 + i * 16),
           data.getUint8(14 + i * 16),
           data.getUint8(15 + i * 16),
         )
-        if (tag === 'fvar') {
-          fvarOffset = data.getUint32(12 + i * 16 + 8)
-          break
-        }
+        if (t === 'fvar') fvarOffset = data.getUint32(12 + i * 16 + 8)
+        if (t === 'name') nameOffset = data.getUint32(12 + i * 16 + 8)
       }
 
       if (!fvarOffset) return []
+
+      // Read a nameID string from the name table (prefers Windows Unicode)
+      const getNameString = (nameID) => {
+        if (!nameOffset) return null
+        const count = data.getUint16(nameOffset + 2)
+        const stringBase = nameOffset + data.getUint16(nameOffset + 4)
+        let win = null, mac = null
+        for (let i = 0; i < count; i++) {
+          const r = nameOffset + 6 + i * 12
+          const platformID = data.getUint16(r)
+          const encodingID = data.getUint16(r + 2)
+          const nID = data.getUint16(r + 6)
+          const len = data.getUint16(r + 8)
+          const strOff = data.getUint16(r + 10)
+          if (nID !== nameID) continue
+          if (platformID === 3 && encodingID === 1) {
+            const chars = []
+            for (let j = 0; j < len; j += 2) chars.push(String.fromCharCode(data.getUint16(stringBase + strOff + j)))
+            win = chars.join('')
+          } else if (platformID === 1 && !mac) {
+            const chars = []
+            for (let j = 0; j < len; j++) chars.push(String.fromCharCode(data.getUint8(stringBase + strOff + j)))
+            mac = chars.join('')
+          }
+        }
+        return win || mac
+      }
 
       const axisArrayOffset = data.getUint16(fvarOffset + 4)
       const axisCount = data.getUint16(fvarOffset + 8)
       const axisSize = data.getUint16(fvarOffset + 10)
 
+      const tagLabels = {
+        wght: 'Weight', wdth: 'Width', ital: 'Italic', slnt: 'Slant',
+        opsz: 'Optical Size', GRAD: 'Grade', XHGT: 'X-Height',
+        YOPQ: 'Y Opacity', YTUC: 'Uppercase Height', YTLC: 'Lowercase Height',
+      }
+
       const axes = []
       for (let i = 0; i < axisCount; i++) {
         const off = fvarOffset + axisArrayOffset + i * axisSize
         const tag = String.fromCharCode(
-          data.getUint8(off),
-          data.getUint8(off + 1),
-          data.getUint8(off + 2),
-          data.getUint8(off + 3),
+          data.getUint8(off), data.getUint8(off + 1),
+          data.getUint8(off + 2), data.getUint8(off + 3),
         )
         const minVal = data.getInt32(off + 4) / 65536
         const defaultVal = data.getInt32(off + 8) / 65536
         const maxVal = data.getInt32(off + 12) / 65536
-
-        const tagLabels = {
-          wght: 'Weight',
-          wdth: 'Width',
-          ital: 'Italic',
-          slnt: 'Slant',
-          opsz: 'Optical Size',
-          GRAD: 'Grade',
-          XHGT: 'X-Height',
-          YOPQ: 'Y Opacity',
-          YTUC: 'Uppercase Height',
-          YTLC: 'Lowercase Height',
-        }
+        const axisNameID = data.getUint16(off + 18)
+        const fontName = getNameString(axisNameID)
+        const name = fontName || tagLabels[tag] || tag
 
         axes.push({
           tag,
-          name: tagLabels[tag] || tag,
+          name,
           min: minVal,
           max: maxVal,
           defaultVal,
@@ -516,6 +537,7 @@ export default function App() {
                 <SliderRow
                   key={axis.tag}
                   label={axis.name}
+                  tag={axis.tag}
                   value={axisValues[axis.tag] ?? axis.defaultVal}
                   min={axis.min}
                   max={axis.max}
