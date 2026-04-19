@@ -29,6 +29,24 @@ function normalize(s) {
   return s.toLowerCase().replace(/[-_\s]/g, '').replace(/var|demo|variable|display|text/g, '')
 }
 
+// ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
+const CALSANSUI_AXES = [
+  { tag: 'wght', name: 'Weight',      min: 300, max: 700,  defaultVal: 400 },
+  { tag: 'opsz', name: 'Optical Size',min: 6,   max: 144,  defaultVal: 14  },
+  { tag: 'GEOM', name: 'Geometry',    min: 0,   max: 100,  defaultVal: 0   },
+  { tag: 'YTAS', name: 'Y Ascender',  min: 650, max: 800,  defaultVal: 750 },
+  { tag: 'SHRP', name: 'Sharpness',   min: 0,   max: 100,  defaultVal: 0   },
+]
+
+const SPECIAL_FONTS = {
+  calsansui: { family: 'CalSansUI', name: 'CalSansUI', axes: CALSANSUI_AXES },
+  calsans:   { family: 'CalSansUI', name: 'Cal Sans (UI)', axes: CALSANSUI_AXES },
+}
+
+function matchSpecial(slug) {
+  return SPECIAL_FONTS[slug.toLowerCase().replace(/[-_\s]/g, '')] || null
+}
+
 function matchFont(slug) {
   const needle = normalize(slug)
   const entries = Object.entries(fontModules)
@@ -143,6 +161,20 @@ export default function App() {
   // ── Auto-load font from URL route ──────────────────────────────────────────
   useEffect(() => {
     if (!fontSlug) return
+
+    // Special built-in fonts (e.g. /wordmark/calsansui)
+    const special = matchSpecial(fontSlug)
+    if (special) {
+      setFontFace({ family: special.family })
+      setFontName(special.name)
+      setVariationAxes(special.axes)
+      const defaults = {}
+      special.axes.forEach(a => { defaults[a.tag] = a.defaultVal })
+      setAxisValues(defaults)
+      autoFitSize(special.family)
+      return
+    }
+
     const matched = matchFont(fontSlug)
     if (!matched) return
     const loadRouteFont = async () => {
