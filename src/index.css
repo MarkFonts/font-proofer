@@ -49,8 +49,7 @@ input[type="range"] {
   appearance: none;
   background: transparent;
   cursor: pointer;
-  width: calc(100% - 14px);
-  margin: 0 7px;
+  width: 100%;
   touch-action: none;
 }
 
@@ -75,8 +74,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.2);
 }
 
-input[type="number"],
-.slider-number {
+input[type="number"] {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   color: var(--text);
@@ -87,11 +85,9 @@ input[type="number"],
   width: 56px;
   text-align: right;
   outline: none;
-  flex-shrink: 0;
 }
 
-input[type="number"]:focus,
-.slider-number:focus {
+input[type="number"]:focus {
   border-color: var(--text-muted);
 }
 
