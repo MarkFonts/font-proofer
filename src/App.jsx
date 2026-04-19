@@ -457,6 +457,13 @@ export default function App() {
             </div>
           </>
         )}
+        {/* Copyright footer */}
+        <div className="sidebar-footer">
+          {clientSlug && clientSlug !== 'wordmark'
+            ? `\u00A9${new Date().getFullYear()} ${clientLabel}, courtesy of WORDMARK. Please do not distribute without approval and understanding of IP holder.`
+            : `\u00A9${new Date().getFullYear()} WORDMARK.`
+          }
+        </div>
       </aside>
 
       {/* Main preview area */}

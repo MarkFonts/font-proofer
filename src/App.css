@@ -6,6 +6,16 @@
   position: relative;
 }
 
+/* ── Sidebar footer ──────────────────────────────────────────────────────── */
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  font-family: 'CalSansUI', system-ui, sans-serif;
+}
+
 /* ── Drop overlay ────────────────────────────────────────────────────────── */
 .drop-overlay {
   position: fixed;
