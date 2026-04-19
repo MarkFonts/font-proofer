@@ -204,6 +204,10 @@
   font-size: 12px;
   color: var(--text-muted);
   font-family:  'CalSansUI', system-ui, sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 /* ── Typography header (label + alignment inline) ───────────────────────── */

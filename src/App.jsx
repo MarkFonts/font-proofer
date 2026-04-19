@@ -82,12 +82,10 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display }) {
           {tag && <span style={{ opacity: 0.4, marginLeft: '1em' }}>{tag}</span>}
         </span>
         <input
-          type="number"
-          value={display ?? value}
-          min={min}
-          max={max}
-          step={step}
-          onChange={e => onChange(parseFloat(e.target.value))}
+          className="slider-number"
+          type="text"
+          value={display != null ? String(display).replace('-', '−') : value}
+          onChange={e => onChange(parseFloat(e.target.value.replace('−', '-')))}
         />
       </div>
       <input
