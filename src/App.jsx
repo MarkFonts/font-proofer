@@ -415,6 +415,19 @@ export default function App() {
                   {a === 'left' ? <AlignLeftIcon /> : a === 'center' ? <AlignCenterIcon /> : <AlignRightIcon />}
                 </button>
               ))}
+              <button
+                className="align-btn"
+                title="Reset settings"
+                onClick={() => {
+                  setFontSize(200)
+                  setLetterSpacing(0)
+                  setLineHeight(1.1)
+                  setTextAlign('left')
+                  const defaults = {}
+                  variationAxes.forEach(a => { defaults[a.tag] = a.defaultVal })
+                  setAxisValues(defaults)
+                }}
+              ><ResetIcon /></button>
             </div>
           </div>
           <SliderRow
@@ -605,6 +618,14 @@ function AlignRightIcon() {
       <rect x="1" y="2" width="12" height="1.4" rx="0.7" fill="currentColor"/>
       <rect x="5" y="5.5" width="8" height="1.4" rx="0.7" fill="currentColor"/>
       <rect x="3" y="9" width="10" height="1.4" rx="0.7" fill="currentColor"/>
+    </svg>
+  )
+}
+function ResetIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M7 2.5A4.5 4.5 0 1 0 11.5 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <polyline points="9.5,1 11.5,3 9.5,5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
