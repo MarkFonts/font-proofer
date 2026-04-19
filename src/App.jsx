@@ -377,7 +377,7 @@ export default function App() {
         {/* Logo */}
         <div className="sidebar-logo">
           <img src={logoGif} alt="Logo" className="logo-gif" />
-          {clientLabel && <span className="client-label">{clientLabel}</span>}
+          {clientLabel && clientSlug !== 'wordmark' && <span className="client-label">{clientLabel}</span>}
         </div>
 
         {/* Font upload — hidden when font is pre-selected via URL */}
