@@ -8,7 +8,8 @@ function parseRoute() {
   const path = window.location.pathname.startsWith(BASE)
     ? window.location.pathname.slice(BASE.length)
     : window.location.pathname
-  const [, clientSlug, fontSlug] = path.split('/')
+  const segments = path.split('/').filter(Boolean)
+  const [clientSlug, fontSlug] = segments
   return { clientSlug: clientSlug || null, fontSlug: fontSlug || null }
 }
 
