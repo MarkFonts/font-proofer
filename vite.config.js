@@ -18,6 +18,52 @@ function findFontFile(fontSlug) {
   return matches.find(f => !/italic|oblique/i.test(f)) ?? matches[0] ?? null
 }
 
+function parseFontAxesFromBuffer(ab) {
+  try {
+    const data = new DataView(ab)
+    const numTables = data.getUint16(4)
+    let fvarOffset = 0, nameOffset = 0
+    for (let i = 0; i < numTables; i++) {
+      const t = String.fromCharCode(data.getUint8(12+i*16), data.getUint8(13+i*16), data.getUint8(14+i*16), data.getUint8(15+i*16))
+      if (t === 'fvar') fvarOffset = data.getUint32(12+i*16+8)
+      if (t === 'name') nameOffset = data.getUint32(12+i*16+8)
+    }
+    if (!fvarOffset) return { axes: [], instances: [] }
+    const getStr = (id) => {
+      if (!nameOffset) return null
+      const count = data.getUint16(nameOffset+2), base = nameOffset+data.getUint16(nameOffset+4)
+      for (let i = 0; i < count; i++) {
+        const r = nameOffset+6+i*12
+        if (data.getUint16(r+6) !== id) continue
+        if (data.getUint16(r) === 3 && data.getUint16(r+2) === 1) {
+          const len = data.getUint16(r+8), off = data.getUint16(r+10)
+          return Array.from({ length: len/2 }, (_, j) => String.fromCharCode(data.getUint16(base+off+j*2))).join('')
+        }
+      }
+      return null
+    }
+    const tagLabels = { wght:'Weight', wdth:'Width', ital:'Italic', slnt:'Slant', opsz:'Optical Size', GRAD:'Grade' }
+    const axOff = data.getUint16(fvarOffset+4), axCnt = data.getUint16(fvarOffset+8)
+    const axSz = data.getUint16(fvarOffset+10), instCnt = data.getUint16(fvarOffset+12), instSz = data.getUint16(fvarOffset+14)
+    const tags = [], axes = []
+    for (let i = 0; i < axCnt; i++) {
+      const o = fvarOffset+axOff+i*axSz
+      const tag = String.fromCharCode(data.getUint8(o), data.getUint8(o+1), data.getUint8(o+2), data.getUint8(o+3))
+      tags.push(tag)
+      axes.push({ tag, name: getStr(data.getUint16(o+18)) || tagLabels[tag] || tag, min: data.getInt32(o+4)/65536, max: data.getInt32(o+12)/65536, defaultVal: data.getInt32(o+8)/65536 })
+    }
+    const instStart = fvarOffset+axOff+axCnt*axSz, instances = []
+    for (let i = 0; i < instCnt; i++) {
+      const o = instStart+i*instSz, name = getStr(data.getUint16(o))
+      if (!name) continue
+      const coordinates = {}
+      tags.forEach((tag, j) => { coordinates[tag] = data.getInt32(o+4+j*4)/65536 })
+      instances.push({ name, coordinates })
+    }
+    return { axes, instances }
+  } catch { return { axes: [], instances: [] } }
+}
+
 async function loadFontForSatori(filePath) {
   const buf = readFileSync(filePath)
   if (filePath.endsWith('.woff2')) {
@@ -121,6 +167,27 @@ async function generateOgImages() {
 export default defineConfig({
   plugins: [
     react(),
+    {
+      name: 'font-axes-virtual',
+      resolveId(id) {
+        if (id === 'virtual:font-axes') return '\0virtual:font-axes'
+      },
+      async load(id) {
+        if (id !== '\0virtual:font-axes') return
+        const files = readdirSync('src/fonts').filter(f => /\.(ttf|otf|woff|woff2)$/i.test(f))
+        const result = {}
+        for (const file of files) {
+          try {
+            const rawBuf = await loadFontForSatori(`src/fonts/${file}`)
+            const ab = rawBuf.buffer.slice(rawBuf.byteOffset, rawBuf.byteOffset + rawBuf.byteLength)
+            result[file] = parseFontAxesFromBuffer(ab)
+          } catch {
+            result[file] = { axes: [], instances: [] }
+          }
+        }
+        return `export default ${JSON.stringify(result)}`
+      },
+    },
     {
       name: 'copy-404',
       closeBundle() {

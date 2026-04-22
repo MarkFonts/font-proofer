@@ -318,6 +318,37 @@
   font-feature-settings: "tnum";
 }
 
+/* ── Roman / Italic toggle ──────────────────────────────────────────────── */
+.roman-italic-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.roman-italic-btn {
+  flex: 1;
+  padding: 6px 0;
+  font-family: 'CalSansUI', system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.roman-italic-btn + .roman-italic-btn {
+  border-left: 1px solid var(--border);
+}
+.roman-italic-btn.active {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.roman-italic-btn:hover:not(.active) {
+  background: var(--bg-hover);
+}
+
 /* ── Named instance select ───────────────────────────────────────────────── */
 .instance-select {
   width: 100%;
@@ -507,7 +538,7 @@
 .para-styles-panel {
   position: fixed;
   z-index: 200;
-  background: rgba(28, 28, 28, 0.96);
+  background: var(--bg-elevated);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border);
@@ -516,7 +547,7 @@
   flex-direction: column;
   min-width: 300px;
   overflow: visible;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
 }
 
 .para-styles-panel::before {
@@ -537,7 +568,7 @@
   left: var(--caret-x, 16px);
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-bottom-color: rgba(28, 28, 28, 0.96);
+  border-bottom-color: var(--bg-elevated);
   pointer-events: none;
 }
 
@@ -571,7 +602,7 @@
 }
 
 .para-styles-row.active {
-  background: var(--bg-elevated);
+  background: var(--bg-hover);
 }
 
 .para-styles-preview {
@@ -596,7 +627,7 @@
   color: var(--text-dim);
   font-family: 'CalSansUI', system-ui, sans-serif;
   letter-spacing: 0.04em;
-  background: var(--bg-elevated);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 2px 5px;

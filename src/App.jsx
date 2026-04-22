@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
+import fontAxesData from 'virtual:font-axes'
 import logoGif from '/public/logo.gif'
 import logoGifDark from '/public/logo_darkmode.gif'
 import peerAvatar from '/public/peer-richelsen.png'
@@ -62,17 +63,9 @@ function normalize(s) {
 }
 
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
-const CALSANSUI_AXES = [
-  { tag: 'opsz', name: 'Optical Size',min: 10,  max: 10.1, defaultVal: 10  },
-  { tag: 'wght', name: 'Weight',      min: 400, max: 700,  defaultVal: 400 },
-  { tag: 'GEOM', name: 'Geometric Formality', min: 0, max: 100, defaultVal: 0 },
-  { tag: 'YTAS', name: 'Y Ascender',  min: 720, max: 800,  defaultVal: 720 },
-  { tag: 'SHRP', name: 'Sharpness',   min: 0,   max: 100,  defaultVal: 0   },
-]
-
 const SPECIAL_FONTS = {
-  calsansui: { family: 'CalSansUI', name: 'CalSansUI', axes: CALSANSUI_AXES },
-  calsans:   { family: 'CalSansUI', name: 'Cal Sans (UI)', axes: CALSANSUI_AXES },
+  calsansui: { name: 'CalSansUI' },
+  calsans:   { name: 'Cal Sans (UI)' },
 }
 
 function matchSpecial(slug) {
@@ -83,11 +76,24 @@ function matchFont(slug) {
   const needle = normalize(slug)
   const entries = Object.entries(fontModules)
   if (!entries.length) return null
-  const match = entries.find(([path]) => {
+  const matches = entries.filter(([path]) => {
     const name = normalize(path.split('/').pop().replace(/\.[^.]+$/, ''))
     return name.includes(needle) || needle.includes(name)
   })
+  const upright = matches.find(([path]) => !/italic|oblique/i.test(path))
+  const match = upright ?? matches[0] ?? null
   return match ? { url: match[1], filename: match[0].split('/').pop() } : null
+}
+
+function matchItalicFont(slug) {
+  const needle = normalize(slug)
+  const entries = Object.entries(fontModules)
+  const matches = entries.filter(([path]) => {
+    const name = normalize(path.split('/').pop().replace(/\.[^.]+$/, ''))
+    return name.includes(needle) || needle.includes(name)
+  })
+  const italic = matches.find(([path]) => /italic|oblique/i.test(path))
+  return italic ? { url: italic[1], filename: italic[0].split('/').pop() } : null
 }
 
 // ── Sample content ──────────────────────────────────────────────────────────
@@ -264,6 +270,8 @@ export default function App() {
   // Font loading
   const [fontName, setFontName] = useState(null)
   const [fontFace, setFontFace] = useState(null)
+  const [italicFontFace, setItalicFontFace] = useState(null)
+  const [isItalic, setIsItalic] = useState(false)
   const [variationAxes, setVariationAxes] = useState([]) // [{tag, name, min, max, defaultVal}]
   const [axisValues, setAxisValues] = useState({})
   const [namedInstances, setNamedInstances] = useState([]) // [{name, coordinates: {tag: value}}]
@@ -358,37 +366,42 @@ export default function App() {
   useEffect(() => {
     if (!fontSlug) return
 
-    // Special built-in fonts — resolve to a real file via matchFont
     const special = matchSpecial(fontSlug)
     const resolvedSlug = special ? 'calsansui' : fontSlug
-
     const matched = matchFont(resolvedSlug)
     if (!matched) return
+
     const loadRouteFont = async () => {
       const baseName = special ? special.name : matched.filename.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
       const name = `${baseName} Preview`
+
+      // Load roman face
       const face = new FontFace(name, `url(${matched.url})`)
       const loaded = await face.load()
       document.fonts.add(loaded)
       setFontFace(loaded)
       setFontName(matched.filename.replace(/\.[^/.]+$/, ''))
       autoFitSize(name)
-      if (special) {
-        setVariationAxes(special.axes)
-        setNamedInstances([])
-        const defaults = {}
-        special.axes.forEach(a => { defaults[a.tag] = a.defaultVal })
-        setAxisValues(defaults)
+
+      // Load italic companion (registers under same family with style:'italic')
+      const italicMatch = matchItalicFont(resolvedSlug)
+      if (italicMatch) {
+        const italicFace = new FontFace(name, `url(${italicMatch.url})`, { style: 'italic' })
+        const loadedItalic = await italicFace.load()
+        document.fonts.add(loadedItalic)
+        setItalicFontFace(loadedItalic)
       } else {
-        const res = await fetch(matched.url)
-        const buffer = await res.arrayBuffer()
-        const { axes, instances } = parseVariationAxes(buffer)
-        setVariationAxes(axes)
-        setNamedInstances(instances)
-        const defaults = {}
-        axes.forEach(a => { defaults[a.tag] = a.defaultVal })
-        setAxisValues(defaults)
+        setItalicFontFace(null)
+        setIsItalic(false)
       }
+
+      // Axes + instances from virtual module (covers TTF and woff2)
+      const { axes, instances } = fontAxesData[matched.filename] ?? { axes: [], instances: [] }
+      setVariationAxes(axes)
+      setNamedInstances(instances)
+      const defaults = {}
+      axes.forEach(a => { defaults[a.tag] = a.defaultVal })
+      setAxisValues(defaults)
     }
     loadRouteFont().catch(console.error)
   }, [fontSlug])
@@ -422,140 +435,62 @@ export default function App() {
   }, [])
 
   const detectAxes = async (file) => {
+    // Try virtual module first (covers all font formats including woff2)
+    const known = fontAxesData[file.name]
+    if (known) {
+      setVariationAxes(known.axes)
+      setNamedInstances(known.instances)
+      const defaults = {}
+      known.axes.forEach(a => { defaults[a.tag] = a.defaultVal })
+      setAxisValues(defaults)
+      return
+    }
+    // Fallback: parse TTF/OTF inline (woff2 will return empty)
     try {
       const buffer = await file.arrayBuffer()
-      const { axes, instances } = parseVariationAxes(buffer)
-      if (axes.length > 0) {
-        setVariationAxes(axes)
-        setNamedInstances(instances)
-        const defaults = {}
-        axes.forEach(a => { defaults[a.tag] = a.defaultVal })
-        setAxisValues(defaults)
-        return
-      }
-      // woff/woff2 compressed — try to match filename against special fonts
-      const normalized = file.name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[-_\s]/g, '')
-      const specialEntry = Object.entries(SPECIAL_FONTS).find(([key]) => normalized.includes(key))
-      if (specialEntry) {
-        const special = specialEntry[1]
-        setVariationAxes(special.axes)
-        setNamedInstances([])
-        const defaults = {}
-        special.axes.forEach(a => { defaults[a.tag] = a.defaultVal })
-        setAxisValues(defaults)
-      } else {
-        setVariationAxes([])
-        setNamedInstances([])
-        setAxisValues({})
-      }
-    } catch (e) {
-      setVariationAxes([])
-      setNamedInstances([])
-      setAxisValues({})
-    }
-  }
-
-  // Minimal fvar + name table parser (TTF/OTF only — WOFF/WOFF2 are compressed)
-  const parseVariationAxes = (buffer) => {
-    const empty = { axes: [], instances: [] }
-    try {
       const data = new DataView(buffer)
       const sig = data.getUint32(0)
-      // wOFF = 0x774F4646, wOF2 = 0x774F4632
-      if (sig === 0x774F4646 || sig === 0x774F4632) return empty
+      if (sig === 0x774F4646 || sig === 0x774F4632) { setVariationAxes([]); setNamedInstances([]); setAxisValues({}); return }
       const numTables = data.getUint16(4)
-      let fvarOffset = 0
-      let nameOffset = 0
-
+      let fvarOffset = 0, nameOffset = 0
       for (let i = 0; i < numTables; i++) {
-        const t = String.fromCharCode(
-          data.getUint8(12 + i * 16),
-          data.getUint8(13 + i * 16),
-          data.getUint8(14 + i * 16),
-          data.getUint8(15 + i * 16),
-        )
-        if (t === 'fvar') fvarOffset = data.getUint32(12 + i * 16 + 8)
-        if (t === 'name') nameOffset = data.getUint32(12 + i * 16 + 8)
+        const t = String.fromCharCode(data.getUint8(12+i*16), data.getUint8(13+i*16), data.getUint8(14+i*16), data.getUint8(15+i*16))
+        if (t === 'fvar') fvarOffset = data.getUint32(12+i*16+8)
+        if (t === 'name') nameOffset = data.getUint32(12+i*16+8)
       }
-
-      if (!fvarOffset) return empty
-
-      // Read a nameID string from the name table (prefers Windows Unicode)
-      const getNameString = (nameID) => {
+      if (!fvarOffset) { setVariationAxes([]); setNamedInstances([]); setAxisValues({}); return }
+      const getStr = (id) => {
         if (!nameOffset) return null
-        const count = data.getUint16(nameOffset + 2)
-        const stringBase = nameOffset + data.getUint16(nameOffset + 4)
-        let win = null, mac = null
+        const count = data.getUint16(nameOffset+2), base = nameOffset+data.getUint16(nameOffset+4)
         for (let i = 0; i < count; i++) {
-          const r = nameOffset + 6 + i * 12
-          const platformID = data.getUint16(r)
-          const encodingID = data.getUint16(r + 2)
-          const nID = data.getUint16(r + 6)
-          const len = data.getUint16(r + 8)
-          const strOff = data.getUint16(r + 10)
-          if (nID !== nameID) continue
-          if (platformID === 3 && encodingID === 1) {
-            const chars = []
-            for (let j = 0; j < len; j += 2) chars.push(String.fromCharCode(data.getUint16(stringBase + strOff + j)))
-            win = chars.join('')
-          } else if (platformID === 1 && !mac) {
-            const chars = []
-            for (let j = 0; j < len; j++) chars.push(String.fromCharCode(data.getUint8(stringBase + strOff + j)))
-            mac = chars.join('')
+          const r = nameOffset+6+i*12
+          if (data.getUint16(r+6) !== id) continue
+          if (data.getUint16(r) === 3 && data.getUint16(r+2) === 1) {
+            const len = data.getUint16(r+8), off = data.getUint16(r+10)
+            return Array.from({length:len/2}, (_,j) => String.fromCharCode(data.getUint16(base+off+j*2))).join('')
           }
         }
-        return win || mac
+        return null
       }
-
-      const axisArrayOffset = data.getUint16(fvarOffset + 4)
-      const axisCount = data.getUint16(fvarOffset + 8)
-      const axisSize = data.getUint16(fvarOffset + 10)
-      const instanceCount = data.getUint16(fvarOffset + 12)
-      const instanceSize = data.getUint16(fvarOffset + 14)
-
-      const tagLabels = {
-        wght: 'Weight', wdth: 'Width', ital: 'Italic', slnt: 'Slant',
-        opsz: 'Optical Size', GRAD: 'Grade', XHGT: 'X-Height',
-        YOPQ: 'Y Opacity', YTUC: 'Uppercase Height', YTLC: 'Lowercase Height',
-      }
-
-      const axes = []
-      const tags = []
-      for (let i = 0; i < axisCount; i++) {
-        const off = fvarOffset + axisArrayOffset + i * axisSize
-        const tag = String.fromCharCode(
-          data.getUint8(off), data.getUint8(off + 1),
-          data.getUint8(off + 2), data.getUint8(off + 3),
-        )
-        const minVal = data.getInt32(off + 4) / 65536
-        const defaultVal = data.getInt32(off + 8) / 65536
-        const maxVal = data.getInt32(off + 12) / 65536
-        const axisNameID = data.getUint16(off + 18)
-        const fontName = getNameString(axisNameID)
-        const name = fontName || tagLabels[tag] || tag
-
+      const tagLabels = { wght:'Weight', wdth:'Width', ital:'Italic', slnt:'Slant', opsz:'Optical Size', GRAD:'Grade' }
+      const axOff=data.getUint16(fvarOffset+4), axCnt=data.getUint16(fvarOffset+8), axSz=data.getUint16(fvarOffset+10)
+      const instCnt=data.getUint16(fvarOffset+12), instSz=data.getUint16(fvarOffset+14)
+      const tags=[], axes=[]
+      for (let i=0; i<axCnt; i++) {
+        const o=fvarOffset+axOff+i*axSz, tag=String.fromCharCode(data.getUint8(o),data.getUint8(o+1),data.getUint8(o+2),data.getUint8(o+3))
         tags.push(tag)
-        axes.push({ tag, name, min: minVal, max: maxVal, defaultVal })
+        axes.push({ tag, name: getStr(data.getUint16(o+18)) || tagLabels[tag] || tag, min: data.getInt32(o+4)/65536, max: data.getInt32(o+12)/65536, defaultVal: data.getInt32(o+8)/65536 })
       }
-
-      const instancesStart = fvarOffset + axisArrayOffset + axisCount * axisSize
-      const instances = []
-      for (let i = 0; i < instanceCount; i++) {
-        const off = instancesStart + i * instanceSize
-        const nameID = data.getUint16(off)
-        const name = getNameString(nameID)
+      const instStart=fvarOffset+axOff+axCnt*axSz, instances=[]
+      for (let i=0; i<instCnt; i++) {
+        const o=instStart+i*instSz, name=getStr(data.getUint16(o))
         if (!name) continue
-        const coordinates = {}
-        for (let j = 0; j < axisCount; j++) {
-          coordinates[tags[j]] = data.getInt32(off + 4 + j * 4) / 65536
-        }
-        instances.push({ name, coordinates })
+        const coords={}; tags.forEach((t,j) => { coords[t]=data.getInt32(o+4+j*4)/65536 })
+        instances.push({ name, coordinates: coords })
       }
-
-      return { axes, instances }
-    } catch {
-      return empty
-    }
+      setVariationAxes(axes); setNamedInstances(instances)
+      const defaults={}; axes.forEach(a => { defaults[a.tag]=a.defaultVal }); setAxisValues(defaults)
+    } catch { setVariationAxes([]); setNamedInstances([]); setAxisValues({}) }
   }
 
   // ── Drop zone ──────────────────────────────────────────────────────────────
@@ -584,8 +519,11 @@ export default function App() {
     .map(([tag, val]) => `"${tag}" ${val}`)
     .join(', ') || 'normal'
 
+  const fontStyle = isItalic && italicFontFace ? 'italic' : 'normal'
+
   const previewStyle = {
     fontFamily: fontFace ? fontFace.family : 'serif',
+    fontStyle,
     fontSize: `${fontSize}px`,
     letterSpacing: `${letterSpacing}em`,
     lineHeight: lineHeight,
@@ -668,6 +606,7 @@ export default function App() {
     const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     return {
       fontFamily: fontFace ? fontFace.family : 'serif',
+      fontStyle,
       fontSize: `${s.size}px`,
       letterSpacing: `${s.tracking}em`,
       lineHeight: s.leading,
@@ -992,6 +931,18 @@ export default function App() {
               ))}
             </div>
           </div>
+          {italicFontFace && (
+            <div className="roman-italic-toggle">
+              <button
+                className={`roman-italic-btn${!isItalic ? ' active' : ''}`}
+                onClick={() => setIsItalic(false)}
+              >Roman</button>
+              <button
+                className={`roman-italic-btn${isItalic ? ' active' : ''}`}
+                onClick={() => setIsItalic(true)}
+              >Italic</button>
+            </div>
+          )}
           {namedInstances.length > 0 && (() => {
             const currentCoords = effectiveParaStyle
               ? { ...axisValues, ...paraStyles[effectiveParaStyle].axisOverrides }
@@ -1402,6 +1353,7 @@ export default function App() {
                     className="para-styles-preview"
                     style={{
                       fontFamily: fontFace ? fontFace.family : 'serif',
+                      fontStyle,
                       fontSize: `${Math.min(s.size, 22)}px`,
                       fontVariationSettings: fvs,
                       fontSynthesis: 'none',
@@ -1412,14 +1364,11 @@ export default function App() {
                   </span>
                   <span className="para-styles-specs">
                     <span className="para-styles-spec">{s.size}px</span>
-                    {variationAxes.map(axis => {
-                      const val = s.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
-                      return (
-                        <span key={axis.tag} className="para-styles-spec">
-                          {axis.tag} {Number.isInteger(val) ? val : val.toFixed(1)}
-                        </span>
-                      )
-                    })}
+                    {Object.entries(s.axisOverrides).map(([tag, val]) => (
+                      <span key={tag} className="para-styles-spec">
+                        {tag} {Number.isInteger(val) ? val : val.toFixed(1)}
+                      </span>
+                    ))}
                   </span>
                 </button>
               )
