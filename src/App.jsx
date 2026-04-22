@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
 import logoGif from '/public/logo.gif'
+import peerAvatar from '/public/peer-richelsen.png'
+import calcomIcon from '/public/calcom-icon.svg'
+import calcomBanner from '/public/calcom-banner.png'
 
 // ── URL route parsing ────────────────────────────────────────────────────────
 const BASE = '/font-proofer'
@@ -1410,10 +1413,13 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
 
   return (
     <div className="calcom-page">
+      <img src={calcomBanner} alt="Cal.com reference" className="calcom-banner" />
       <div className="calcom-card">
         {/* Left panel */}
         <div className="calcom-left">
-          <div className="calcom-avatar">PR</div>
+          <div className="calcom-avatar">
+          <img src={peerAvatar} alt="Peer Richelsen" className="calcom-avatar-img" />
+        </div>
           <div className={`calcom-event-host ${roleClass('eventHost')}`} style={roleStyle('eventHost')}
             onClick={() => onRoleClick(r => r === 'eventHost' ? null : 'eventHost')}>
             Peer Richelsen
@@ -1438,10 +1444,15 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
           </div>
           <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}
             onClick={() => onRoleClick(r => r === 'eventMeta' ? null : 'eventMeta')}>
-            <span className="calcom-meta-icon">▷</span> Cal Video
+            <img src={calcomIcon} alt="" className="calcom-meta-icon-img" /> Cal Video
           </div>
           <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}>
-            <span className="calcom-meta-icon">◎</span> America/New York
+            <svg className="calcom-meta-icon-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            America/New York
           </div>
         </div>
 
