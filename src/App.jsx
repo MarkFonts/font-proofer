@@ -32,7 +32,7 @@ function normalize(s) {
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
 const CALSANSUI_AXES = [
   { tag: 'opsz', name: 'Optical Size',min: 10,  max: 10.1, defaultVal: 10  },
-  { tag: 'wght', name: 'Weight',      min: 400, max: 700,  defaultVal: 400 },
+  { tag: 'wght', name: 'Weight',      min: 400, max: 600,  defaultVal: 400 },
   { tag: 'GEOM', name: 'Geometric Formality', min: 0, max: 100, defaultVal: 0 },
   { tag: 'YTAS', name: 'Y Ascender',  min: 720, max: 800,  defaultVal: 720 },
   { tag: 'SHRP', name: 'Sharpness',   min: 0,   max: 100,  defaultVal: 0   },
@@ -60,11 +60,52 @@ function matchFont(slug) {
 
 // ── Sample content ──────────────────────────────────────────────────────────
 const SAMPLE_BIG = 'Hand gloves'
-const SAMPLE_BLOCKS = [
-  { id: '1', type: 'h1', text: 'Hand gloves' },
-  { id: '2', type: 'p',  text: 'Typography is the art and technique of arranging type to make written language legible, readable, and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing, as well as adjusting the space between pairs of letters.' },
-  { id: '3', type: 'p',  text: 'The term typography is also applied to the style, arrangement, and appearance of the letters, numbers, and symbols created by the process. Type design is a closely related craft, sometimes considered part of typography.' },
-]
+
+function makeBlocks(arr) {
+  return arr.map((b, i) => ({ ...b, id: String(i + 1) }))
+}
+
+const TEXT_PRESETS = {
+  'Sample': makeBlocks([
+    { type: 'h1', text: 'Hand gloves' },
+    { type: 'p',  text: 'Typography is the art and technique of arranging type to make written language legible, readable, and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing, as well as adjusting the space between pairs of letters.' },
+    { type: 'p',  text: 'The term typography is also applied to the style, arrangement, and appearance of the letters, numbers, and symbols created by the process. Type design is a closely related craft, sometimes considered part of typography.' },
+  ]),
+  'A Tale of Two Cities': makeBlocks([
+    { type: 'h2', text: 'Chapter I' },
+    { type: 'h1', text: 'A Tale of Two Cities' },
+    { type: 'p',  text: 'It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of Light, it was the season of Darkness, it was the spring of hope, it was the winter of despair, we had everything before us, we had nothing before us, we were all going direct to Heaven, we were all going direct the other way—in short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only.' },
+    { type: 'p',  text: 'There were a king with a large jaw and a queen with a plain face, on the throne of England; there were a king with a large jaw and a queen with a fair face, on the throne of France. In both countries it was clearer than crystal to the lords of the State preserves of loaves and fishes, that things in general were settled for ever.' },
+    { type: 'p',  text: 'It was the year of Our Lord one thousand seven hundred and seventy-five. Spiritual revelations were conceded to England at that favoured period, as at this. Mrs. Southcott had recently attained her five-and-twentieth blessed birthday, of whom a prophetic private in the Life Guards had heralded the sublime appearance by announcing that arrangements were made for the swallowing up of London and Westminster. Even the Cock-lane ghost had been laid only a round dozen of years, after rapping out its messages, as the spirits of this very year last past (supernaturally deficient in originality) rapped out theirs. Mere messages in the earthly order of events had lately come to the English Crown and People, from a congress of British subjects in America: which, strange to relate, have proved more important to the human race than any communications yet received through any of the chickens of the Cock-lane brood.' },
+    { type: 'p',  text: 'France, less favoured on the whole as to matters spiritual than her sister of the shield and trident, rolled with exceeding smoothness down hill, making paper money and spending it. Under the guidance of her Christian pastors, she entertained herself, besides, with such humane achievements as sentencing a youth to have his hands cut off, his tongue torn out with pincers, and his body burned alive, because he had not kneeled down in the rain to do honour to a dirty procession of monks which passed within his view, at a distance of some fifty or sixty yards. It is likely enough that, rooted in the woods of France and Norway, there were growing trees, when that sufferer was put to death, already marked by the Woodman, Fate, to come down and be sawn into boards, to make a certain movable framework with a sack and a knife in it, terrible in history. It is likely enough that in the rough outhouses of some tillers of the heavy lands adjacent to Paris, there were sheltered from the weather that very day, rude carts, bespattered with rustic mire, snuffed about by pigs, and roosted in by poultry, which the Farmer, Death, had already set apart to be his tumbrils of the Revolution. But that Woodman and that Farmer, though they work unceasingly, work silently, and no one heard them as they went about with muffled tread: the rather, forasmuch as to entertain any suspicion that they were awake, was to be atheistical and traitorous.' },
+    { type: 'p',  text: 'In England, there was scarcely an amount of order and protection to justify much national boasting. Daring burglaries by armed men, and highway robberies, took place in the capital itself every night; families were publicly cautioned not to go out of town without removing their furniture to upholsterers\' warehouses for security; the highwayman in the dark was a City tradesman in the light, and, being recognised and challenged by his fellow-tradesman whom he stopped in his character of "the Captain," gallantly shot him through the head and rode away; the mail was waylaid by seven robbers, and the guard shot three dead, and then got shot dead himself by the other four, "in consequence of the failure of his ammunition:" after which the mail was robbed in peace; that magnificent potentate, the Lord Mayor of London, was made to stand and deliver on Turnham Green, by one highwayman, who despoiled the illustrious creature in sight of all his retinue; prisoners in London gaols fought battles with their turnkeys, and the majesty of the law fired blunderbusses in among them, loaded with rounds of shot and ball; thieves snipped off diamond crosses from the necks of noble lords at Court drawing-rooms; musketeers went into St. Giles\'s, to search for contraband goods, and the mob fired on the musketeers, and the musketeers fired on the mob, and nobody thought any of these occurrences much out of the common way. In the midst of them, the hangman, ever busy and ever worse than useless, was in constant requisition; now, stringing up long rows of miscellaneous criminals; now, hanging a housebreaker on Saturday who had been taken on Tuesday; now, burning people in the hand at Newgate by the dozen, and now burning pamphlets at the door of Westminster Hall; to-day, taking the life of an atrocious murderer, and to-morrow of a wretched pilferer who had robbed a farmer\'s boy of sixpence.' },
+    { type: 'p',  text: 'All these things, and a thousand like them, came to pass in and close upon the dear old year one thousand seven hundred and seventy-five. Environed by them, while the Woodman and the Farmer worked unheeded, those two of the large jaws, and those other two of the plain and the fair faces, trod with stir enough, and carried their divine rights with a high hand. Thus did the year one thousand seven hundred and seventy-five conduct their Greatnesses, and myriads of small creatures—the creatures of this chronicle among the rest—along the roads that lay before them.' },
+    { type: 'h2', text: 'Chapter II — The Mail' },
+    { type: 'p',  text: 'It was the Dover road that lay, on a Friday night late in November, before the first of the persons with whom this history has business. The Dover road lay, as to him, beyond the Dover mail, as it lumbered up Shooter\'s Hill. He walked up hill in the mire by the side of the mail, as the rest of the passengers did; not because they had the least relish for walking exercise, under the circumstances, but because the hill, and the harness, and the mud, and the mail, were all so heavy, that the horses had three times already come to a stop, besides once drawing the coach across the road, with the mutinous intent of taking it back to Blackheath. Reins and whip and coachman and guard, however, in combination, had read that article of war which forbade a purpose otherwise strongly in favour of the argument, that some brute animals are endued with Reason; and the team had capitulated and returned to their duty.' },
+    { type: 'p',  text: 'With drooping heads and tremulous tails, they mashed their way through the thick mud, floundering and stumbling between whiles, as if they were falling to pieces at the larger joints. As often as the driver rested them and brought them to a stand, with a wary "Wo-ho! so-ho-then!" the near leader violently shook his head and everything upon it—like an unusually emphatic horse, denying that the coach could be got up the hill. Whenever the leader made this rattle, the passenger started, as a nervous passenger might, and was disturbed in mind.' },
+    { type: 'p',  text: 'There was a steaming mist in all the hollows, and it had roamed in its forlornness up the hill, like an evil spirit, seeking rest and finding none. A clammy and intensely cold mist, it made its slow way through the air in ripples that visibly followed and overspread one another, as the waves of an unwholesome sea might do. It was dense enough to shut out everything from the light of the coach-lamps but these its own workings, and a few yards of road; and the reek of the labouring horses steamed into it, as if they had made it all.' },
+    { type: 'p',  text: 'Two other passengers, besides the one, were plodding up the hill by the side of the mail. All three were wrapped to the cheekbones and over the ears, and wore jack-boots. Not one of the three could have said, from anything he saw, what either of the other two was like; and each was hidden under almost as many wrappers from the eyes of the mind, as from the eyes of the body, of his two companions. In those days, travellers were very shy of being confidential on a short notice, for anybody on the road might be a robber or in league with robbers. As to the latter, when every posting-house and ale-house could produce somebody in "the Captain\'s" pay, ranging from the landlord to the lowest stable non-descript, it was the likeliest thing upon the cards. So the guard of the Dover mail thought to himself, that Friday night in November, one thousand seven hundred and seventy-five, lumbering up Shooter\'s Hill, as he stood on his own particular perch behind the mail, beating his feet, and keeping an eye and a hand on the arm-chest before him, where a loaded blunderbuss lay at the top of six or eight loaded horse-pistols, deposited on a substratum of cutlass.' },
+    { type: 'p',  text: 'The Dover mail was in its usual genial position that the guard suspected the passengers, the passengers suspected one another and the guard, they all suspected everybody else, and the coachman was sure of nothing but the horses; as to which cattle he could with a clear conscience have taken his oath on the two Testaments that they were not fit for the journey.' },
+    { type: 'p',  text: '"Wo-ho!" said the coachman. "So, then! One more pull and you\'re at the top and be damned to you, for I have had trouble enough to get you to it!—Joe!" "Halloa!" the guard replied. "What o\'clock do you make it, Joe?" "Ten minutes, good, past eleven." "My blood!" ejaculated the vexed coachman, "and not atop of Shooter\'s yet! Tst! Yah! Get on with you!"' },
+    { type: 'p',  text: 'The emphatic horse, cut short by the whip in a most decided negative, made a decided scramble for it, and the three other horses followed suit. Once more, the Dover mail struggled on, with the jack-boots of its passengers squashing along by its side. They had stopped when the coach stopped, and they kept close company with it. If any one of the three had had the hardihood to propose to another to walk on a little ahead into the mist and darkness, he would have put himself in a fair way of getting shot instantly as a highwayman. The last burst carried the mail to the summit of the hill. The horses stopped to breathe again, and the guard got down to skid the wheel for the descent, and open the coach-door to let the passengers in.' },
+    { type: 'p',  text: '"Tst! Joe!" cried the coachman in a warning voice, looking down from his box. "What do you say, Tom?" They both listened. "I say a horse at a canter coming up, Joe." "I say a horse at a gallop, Tom," returned the guard, leaving his hold of the door, and mounting nimbly to his place. "Gentlemen! In the king\'s name, all of you!" With this hurried adjuration, he cocked his blunderbuss, and stood on the offensive.' },
+    { type: 'p',  text: 'The passenger booked by this history, was on the coach-step, getting in; the two other passengers were close behind him, and about to follow. He remained on the step, half in the coach and half out of; they remained in the road below him. They all looked from the coachman to the guard, and from the guard to the coachman, and listened. The coachman looked back and the guard looked back, and even the emphatic leader pricked up his ears and looked back, without contradicting.' },
+    { type: 'p',  text: 'The stillness consequent on the cessation of the rumbling and labouring of the coach, added to the stillness of the night, made it very quiet indeed. The panting of the horses communicated a tremulous motion to the coach, as if it were in a state of agitation. The hearts of the passengers beat loud enough perhaps to be heard; but at any rate, the quiet pause was audibly expressive of people out of breath, and holding the breath, and having the pulses quickened by expectation.' },
+  ]),
+  'Kern King': makeBlocks([
+    { type: 'h1', text: 'Kern King' },
+    { type: 'h2', text: 'Part 1 — Lowercase' },
+    { type: 'p',  text: 'lynx tuft frogs, dolphins abduct by proxy the ever awkward klutz, dud, dummkopf, jinx snubnose filmgoer, orphan sgt. renfruw grudgek reyfus, md. sikh psych if halt tympany jewelry sri heh! twyer vs jojo pneu fylfot alcaaba son of nonplussed halfbreed bubbly playboy guggenheim daddy coccyx sgraffito effect, vacuum dirndle impossible attempt to disvalue, muzzle the afghan czech czar and exninja, bob bixby dvorak wood dhurrie savvy, dizzy eye aeon circumcision uvula scrungy picnic luxurious special type carbohydrate ovoid adzuki kumquat bomb? afterglows gold girl pygmy gnome lb. ankhs acme aggroupment akmed brouhha tv wt. ujjain ms. oz abacus mnemonics bhikku khaki bwana aorta embolism vivid owls often kvetch otherwise, wysiwyg densfort wright you\'ve absorbed rhythm, put obstacle kyaks krieg kern wurst subject enmity equity coquet quorum pique tzetse hepzibah sulfhydryl briefcase ajax ehler kafka fjord elfship halfdressed jugful eggcup hummingbirds swingdevil bagpipe legwork reproachful hunchback archknave baghdad wejh rijswijk rajbansi rajput ajdir okay weekday obfuscate subpoena liebknecht marcgravia ecbolic arcticward dickcissel pincpinc boldface maidkin adjective adcraft adman dwarfness applejack darkbrown kiln palzy always farmland flimflam unbossy nonlineal stepbrother lapdog stopgap sx countdown basketball beaujolais vb. flowchart aztec lazy bozo syrup tarzan annoying dyke yucky hawg gagzhukz cuzco squire when hiho mayhem nietzsche szasz gumdrop milk emplotment ambidextrously lacquer byway ecclesiastes stubchen hobgoblins crabmill aqua hawaii blvd. subquality byzantine empire debt obvious cervantes jekabzeel anecdote flicflac mechanicville bedbug couldn\'t i\'ve it\'s they\'ll they\'d dpt. headquarter burkhardt xerxes atkins govt. ebenezer lg. lhama amtrak amway fixity axmen quumbabda upjohn hrumpf' },
+    { type: 'h2', text: 'Part 2 — Uppercase' },
+    { type: 'p',  text: 'LYNX TUFT FROGS, DOLPHINS ABDUCT BY PROXY THE EVER AWKWARD KLUTZ, DUD, DUMMKOPF, JINX SNUBNOSE FILMGOER, ORPHAN SGT. RENFRUW GRUDGEK REYFUS, MD. SIKH PSYCH IF HALT TYMPANY JEWELRY SRI HEH! TWYER VS JOJO PNEU FYLFOT ALCAABA SON OF NONPLUSSED HALFBREED BUBBLY PLAYBOY GUGGENHEIM DADDY COCCYX SGRAFFITO EFFECT, VACUUM DIRNDLE IMPOSSIBLE ATTEMPT TO DISVALUE, MUZZLE THE AFGHAN CZECH CZAR AND EXNINJA, BOB BIXBY DVORAK WOOD DHURRIE SAVVY, DIZZY EYE AEON CIRCUMCISION UVULA SCRUNGY PICNIC LUXURIOUS SPECIAL TYPE CARBOHYDRATE OVOID ADZUKI KUMQUAT BOMB? AFTERGLOWS GOLD GIRL PYGMY GNOME LB. ANKHS ACME AGGROUPMENT AKMED BROUHHA TV WT. UJJAIN MS. OZ ABACUS MNEMONICS BHIKKU KHAKI BWANA AORTA EMBOLISM VIVID OWLS OFTEN KVETCH OTHERWISE, WYSIWYG DENSFORT WRIGHT YOU\'VE ABSORBED RHYTHM, PUT OBSTACLE KYAKS KRIEG KERN WURST SUBJECT ENMITY EQUITY COQUET QUORUM PIQUE TZETSE HEPZIBAH SULFHYDRYL BRIEFCASE AJAX EHLER KAFKA FJORD ELFSHIP HALFDRESSED JUGFUL EGGCUP HUMMINGBIRDS SWINGDEVIL BAGPIPE LEGWORK REPROACHFUL HUNCHBACK ARCHKNAVE BAGHDAD WEJH RIJSWIJK RAJBANSI RAJPUT AJDIR OKAY WEEKDAY OBFUSCATE SUBPOENA LIEBKNECHT MARCGRAVIA ECBOLIC ARCTICWARD DICKCISSEL PINCPINC BOLDFACE MAIDKIN ADJECTIVE ADCRAFT ADMAN DWARFNESS APPLEJACK DARKBROWN KILN PALZY ALWAYS FARMLAND FLIMFLAM UNBOSSY NONLINEAL STEPBROTHER LAPDOG STOPGAP SX COUNTDOWN BASKETBALL BEAUJOLAIS VB. FLOWCHART AZTEC LAZY BOZO SYRUP TARZAN ANNOYING DYKE YUCKY HAWG GAGZHUKZ CUZCO SQUIRE WHEN HIHO MAYHEM NIETZSCHE SZASZ GUMDROP MILK EMPLOTMENT AMBIDEXTROUSLY LACQUER BYWAY ECCLESIASTES STUBCHEN HOBGOBLINS CRABMILL AQUA HAWAII BLVD. SUBQUALITY BYZANTINE EMPIRE DEBT OBVIOUS CERVANTES JEKABZEEL ANECDOTE FLICFLAC MECHANICVILLE BEDBUG COULDN\'T I\'VE IT\'S THEY\'LL THEY\'D DPT. HEADQUARTER BURKHARDT XERXES ATKINS GOVT. EBENEZER LG. LHAMA AMTRAK AMWAY FIXITY AXMEN QUUMBABDA UPJOHN HRUMPF' },
+    { type: 'h2', text: 'Part 3 — Sentence Case' },
+    { type: 'p',  text: 'Aaron Abraham Adam Aeneas Agfa Ahoy Aileen Akbar Alanon Americanism Anglican Aorta April Fool\'s Day Aqua Lung (Tm.) Arabic Ash Wednesday Authorized Version Ave Maria Away Axel Ay Aztec Bhutan Bill Bjorn Bk Btu. Bvart Bzonga California Cb Cd Cervantes Chicago Clute City, Tx. Cmdr. Cnossus Coco Cracker State, Georgia Cs Ct. Cwacker Cyrano David Debra Dharma Diane Djakarta Dm Dnepr Doris Dudley Dwayne Dylan Dzerzhinsk Eames Ectomorph Eden Eerie Effingham, Il. Egypt Eiffel Tower Eject Ekland Elmore Entreaty Eolian Epstein Equine Erasmus Eskimo Ethiopia Europe Eva Ewan Exodus Jan van Eyck Ezra Fabian February Fhara Fifi Fjord Florida Fm France Fs Ft. Fury Fyn Gabriel Gc Gdynia Gehrig Ghana Gilligan Karl Gjellerup Gk. Glen Gm Gnosis Gp.E. Gregory Gs Gt. Br. Guinevere Gwathmey Gypsy Gzags Hebrew Hf Hg Hileah Horace Hrdlicka Hsia Hts. Hubert Hwang Hai Hyacinth Hz. Iaccoca Ibsen Iceland Idaho If Iggy Ihre Ijit Ike Iliad Immediate Innocent Ione Ipswitch Iquarus Ireland Island It Iud Ivert Iwerks Ixnay Iy Jasper Jenks Jherry Jill Jm Jn Jorge Jr. Julie Kerry Kharma Kiki Klear Koko Kruse Kusack Kylie Laboe Lb. Leslie Lhihane Llama Lorrie Lt. Lucy Lyle Madeira Mechanic Mg. Minnie Morrie Mr. Ms. Mt. Music My Nanny Nellie Nillie Novocane Null Nyack Oak Oblique Occarina Odd Oedipus Off Ogmane Ohio Oil Oj Oklahoma Olio Omni Only Oops Opera Oqu Order Ostra Ottmar Out Ovum Ow Ox Oyster Oz Parade Pd. Pepe Pfister Pg. Phil Pippi Pj Please Pneumonia Porridge Price Psalm Pt. Purple Pv Pw Pyre Qt. Quincy Radio Rd. Red Rhea Right Rj Roche Rr Rs Rt. Rural Rwanda Ryder Sacrifice Series Sgraffito Shirt Sister Skeet Slow Smore Snoop Soon Special Squire Sr St. Suzy Svelte Swiss Sy Szach Td Teach There Title Total Trust Tsena Tulip Twice Tyler Tzean Ua Udder Ue Uf Ugh Uh Ui Uk Ul Um Unkempt Uo Up Uq Ursula Use Utmost Uvula Uw Uxurious Uzßai Valerie Velour Vh Vicky Volvo Vs Water Were Where With World Wt. Wulk Wyler Xavier Xerox Xi Xylophone Yaboe Year Yipes Yo Ypsilant Ys Yu Zabar\'s Zero Zhane Zizi Zorro Zu Zy Don\'t I\'ll I\'m I\'se' },
+    { type: 'h2', text: 'Part 4 — Numbers' },
+    { type: 'p',  text: '0010203040500607080900 10112131415116171819100 20212232425226272829200 30313233435336373839300 40414243445446474849400 50515253545556575859500 6061626364656676869600 7071727374757677879700 8081828384858687889800 9091929394959697989900 (1)(2)(3)(4)(5)(6)(7)(8)(9)(0) $00 $10 $20 $30 $40 $50 $60 $70 $80 $90 £00 £10 £20 £30 £40 £50 £60 £70 £80 £90 00¢ 11¢ 22¢ 33¢ 44¢ 55¢ 66¢ 77¢ 88¢ 99¢ 00% 0‰ 0-0.0,0…0° 11% 1‰ 1-1.1,1…1° 12% 2‰ 2-2.2,2…2° 13% 3‰ 3-3.3,3…3° 14% 4‰ 4-4.4,4…4° 15% 5‰ 5-5.5,5…5° 16% 6‰ 6-6.6,6…6° 17% 7‰ 7-7.7,7…7° 18% 8‰ 8-8.8,8…8° 19% 9‰ 9-9.9,9…9°' },
+  ]),
+}
+
+const SAMPLE_BLOCKS = TEXT_PRESETS['Sample']
 
 // ── Paragraph style model ────────────────────────────────────────────────────
 const DEFAULT_PARA_STYLES = {
@@ -113,7 +154,10 @@ const GLYPH_SETS = {
 }
 
 // ── Slider row component ─────────────────────────────────────────────────────
-function SliderRow({ label, tag, value, min, max, step, onChange, display }) {
+function SliderRow({ label, tag, value, min, max, step, onChange, display, lockedAbove }) {
+  const lockedPct = lockedAbove != null
+    ? Math.max(0, Math.min(100, (lockedAbove - min) / (max - min) * 100))
+    : null
   return (
     <div className="slider-row">
       <div className="slider-label">
@@ -129,14 +173,19 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display }) {
           onChange={e => onChange(parseFloat(String(e.target.value).replace('−', '-')))}
         />
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-      />
+      <div
+        className="slider-track-wrap"
+        style={lockedPct != null ? { '--locked-pct': `${lockedPct}%` } : undefined}
+      >
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={e => onChange(parseFloat(e.target.value))}
+        />
+      </div>
     </div>
   )
 }
@@ -170,6 +219,8 @@ export default function App() {
   // Text content
   const [bigText, setBigText] = useState(SAMPLE_BIG)
   const [blocks, setBlocks] = useState(SAMPLE_BLOCKS)
+  const [activeTextPreset, setActiveTextPreset] = useState('Sample')
+
   const [paraStyles, setParaStyles] = useState(DEFAULT_PARA_STYLES)
 
   // Paragraph styles panel
@@ -180,6 +231,20 @@ export default function App() {
   const [rightMargin, setRightMargin] = useState(80)
   const rightMarginRef = useRef(80)
   useEffect(() => { rightMarginRef.current = rightMargin }, [rightMargin])
+
+  // Max right margin: column can't get narrower than 45 'w' glyphs at paragraph size
+  const maxRightMarginRef = useRef(80)
+  useEffect(() => {
+    if (!fontFace || !previewAreaRef.current) { maxRightMarginRef.current = 80; return }
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    ctx.font = `${paraStyles.p.size}px "${fontFace.family}"`
+    const wWidth = ctx.measureText('w').width
+    const areaWidth = previewAreaRef.current.clientWidth
+    maxRightMarginRef.current = wWidth > 0
+      ? Math.max(80, Math.round(areaWidth - 45 * wWidth))
+      : 80
+  }, [fontFace, paraStyles.p.size])
 
   // Typography controls
   const [fontSize, setFontSize] = useState(200)
@@ -457,6 +522,8 @@ export default function App() {
     letterSpacing: `${letterSpacing}em`,
     lineHeight: lineHeight,
     fontVariationSettings,
+    fontSynthesis: 'none',
+    fontFeatureSettings: '"calt" 0',
     textAlign,
     color: '#ffffff',
     wordBreak: 'break-word',
@@ -464,11 +531,18 @@ export default function App() {
   }
 
   // ── Active style for sidebar controls in paragraph mode ──────────────────
-  // null when not in paragraph mode; falls back to 'p' when panel open but nothing selected
   const effectiveParaStyle = mode === 'paragraph' ? (activeParaStyle ?? 'p') : null
 
   // ── Paragraph comfortable max (scales 48→400 as escape bar opens 80→10px) ──
   const paraComfortableMax = Math.max(18, Math.round(48 + Math.max(0, 80 - rightMargin) * 5))
+
+  // Reactively clamp p size when column narrows
+  useEffect(() => {
+    setParaStyles(prev => {
+      if (prev.p.size <= paraComfortableMax) return prev
+      return { ...prev, p: { ...prev.p, size: paraComfortableMax } }
+    })
+  }, [paraComfortableMax])
 
   const handleEscapeBarMouseDown = useCallback((e) => {
     e.preventDefault()
@@ -476,7 +550,7 @@ export default function App() {
     const startMargin = rightMarginRef.current
     const onMove = (e) => {
       // drag right → smaller margin → wider column → higher max
-      const newMargin = Math.max(10, Math.min(80, startMargin - (e.clientX - startX)))
+      const newMargin = Math.max(10, Math.min(maxRightMarginRef.current, startMargin - (e.clientX - startX)))
       setRightMargin(newMargin)
     }
     const onUp = () => {
@@ -495,10 +569,11 @@ export default function App() {
     return {
       fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
       fontSize: `${s.size}px`,
-      fontWeight: merged.wght ?? 400,
       letterSpacing: `${s.tracking}em`,
       lineHeight: s.leading,
       fontVariationSettings: fvs,
+      fontSynthesis: 'none',
+      fontFeatureSettings: '"calt" 0',
       textAlign,
       color: '#ffffff',
       wordBreak: 'break-word',
@@ -594,20 +669,47 @@ export default function App() {
       {/* Mobile tab bar */}
       <nav className="mobile-tabs">
         <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><BigIcon /> Big Word</button>
-        <div className="mobile-tab-para">
-          <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><ParaIcon /> Paragraph</button>
-          {fontName && mode === 'paragraph' && (
-            <button
-              ref={mobileStylesBtnRef}
-              className={`mobile-styles-toggle ${paraStylesPanelOpen ? 'active' : ''}`}
-              onClick={() => setParaStylesPanelOpen(p => !p)}
-            >
-              {paraStylesPanelOpen ? '▼' : '▽'}
-            </button>
-          )}
-        </div>
+        <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><ParaIcon /> Paragraph</button>
         <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><GlyphIcon /> Glyphs</button>
       </nav>
+
+      {/* Mobile sub-bar: context-sensitive chips */}
+      {fontName && (mode === 'glyphs' || mode === 'paragraph') && (
+        <div className="mobile-sub-bar">
+          {mode === 'glyphs' && Object.keys(GLYPH_SETS).map(k => (
+            <button
+              key={k}
+              className={`mobile-sub-btn ${activeGlyphSet === k ? 'active' : ''}`}
+              onClick={() => setActiveGlyphSet(k)}
+            >
+              {k}
+            </button>
+          ))}
+          {mode === 'paragraph' && (['h1', 'h2', 'h3', 'p']).map(type => (
+            <button
+              key={type}
+              className={`mobile-sub-btn ${activeParaStyle === type ? 'active' : ''}`}
+              onClick={() => setActiveParaStyle(prev => prev === type ? null : type)}
+            >
+              {type === 'p' ? 'P' : type.toUpperCase()}
+            </button>
+          ))}
+          {mode === 'paragraph' && <span className="mobile-sub-divider" />}
+          {mode === 'paragraph' && Object.keys(TEXT_PRESETS).map(k => (
+            <button
+              key={k}
+              className={`mobile-sub-btn ${activeTextPreset === k ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTextPreset(k)
+                setBlocks(TEXT_PRESETS[k].map((b, i) => ({ ...b, id: String(Date.now() + i) })))
+                Object.values(blockRefs.current).forEach(el => { if (el) el.textContent = '' })
+              }}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Sidebar */}
       <aside className="sidebar">
@@ -732,44 +834,50 @@ export default function App() {
               ))}
             </div>
           </div>
-          {namedInstances.length > 0 && (
-            <div className="instance-chips">
-              {namedInstances.map(inst => {
-                const active = variationAxes.every(a => {
-                  const cur = effectiveParaStyle
-                    ? (paraStyles[effectiveParaStyle].axisOverrides[a.tag] ?? axisValues[a.tag] ?? a.defaultVal)
-                    : (axisValues[a.tag] ?? a.defaultVal)
-                  return cur === inst.coordinates[a.tag]
-                })
-                return (
-                  <button
-                    key={inst.name}
-                    className={`instance-chip ${active ? 'active' : ''}`}
-                    onClick={() => {
-                      if (effectiveParaStyle) {
-                        setParaStyles(prev => ({
-                          ...prev,
-                          [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: { ...inst.coordinates } }
-                        }))
-                      } else {
-                        setAxisValues({ ...inst.coordinates })
-                      }
-                    }}
-                  >
-                    {inst.name}
-                  </button>
-                )
-              })}
-            </div>
-          )}
+          {namedInstances.length > 0 && (() => {
+            const currentCoords = effectiveParaStyle
+              ? { ...axisValues, ...paraStyles[effectiveParaStyle].axisOverrides }
+              : axisValues
+            const activeInst = namedInstances.find(inst =>
+              variationAxes.every(a => (currentCoords[a.tag] ?? a.defaultVal) === inst.coordinates[a.tag])
+            )
+            const applyInstance = (name) => {
+              const inst = namedInstances.find(i => i.name === name)
+              if (!inst) return
+              if (effectiveParaStyle) {
+                setParaStyles(prev => ({
+                  ...prev,
+                  [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: { ...inst.coordinates } }
+                }))
+              } else {
+                setAxisValues({ ...inst.coordinates })
+              }
+            }
+            return (
+              <select
+                className="instance-select"
+                value={activeInst?.name ?? ''}
+                onChange={e => applyInstance(e.target.value)}
+              >
+                {!activeInst && <option value="" disabled>—</option>}
+                {namedInstances.map(inst => (
+                  <option key={inst.name} value={inst.name}>{inst.name}</option>
+                ))}
+              </select>
+            )
+          })()}
           {effectiveParaStyle ? (
             <SliderRow
               label="Size"
-              value={Math.min(paraStyles[effectiveParaStyle].size, effectiveParaStyle === 'p' ? paraComfortableMax : 400)}
+              value={paraStyles[effectiveParaStyle].size}
               min={8}
-              max={effectiveParaStyle === 'p' ? paraComfortableMax : 400}
+              max={400}
               step={1}
-              onChange={v => setParaStyles(prev => ({ ...prev, [effectiveParaStyle]: { ...prev[effectiveParaStyle], size: v } }))}
+              lockedAbove={effectiveParaStyle === 'p' ? paraComfortableMax : undefined}
+              onChange={v => {
+                const capped = effectiveParaStyle === 'p' ? Math.min(v, paraComfortableMax) : v
+                setParaStyles(prev => ({ ...prev, [effectiveParaStyle]: { ...prev[effectiveParaStyle], size: capped } }))
+              }}
             />
           ) : (
             <SliderRow
@@ -917,6 +1025,25 @@ export default function App() {
         </div>
       </aside>
 
+      {/* Desktop preset bar — top-left of preview, paragraph mode only */}
+      {fontName && mode === 'paragraph' && (
+        <div className="preview-preset-bar">
+          {Object.keys(TEXT_PRESETS).map(k => (
+            <button
+              key={k}
+              className={`preview-preset-btn ${activeTextPreset === k ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTextPreset(k)
+                setBlocks(TEXT_PRESETS[k].map((b, i) => ({ ...b, id: String(Date.now() + i) })))
+                Object.values(blockRefs.current).forEach(el => { if (el) el.textContent = '' })
+              }}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Main preview area */}
       <main className="preview-area" ref={previewAreaRef}>
         {!fontName && (
@@ -1032,8 +1159,8 @@ export default function App() {
                     style={{
                       fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
                       fontSize: `${Math.min(s.size, 22)}px`,
-                      fontWeight: merged.wght ?? 400,
                       fontVariationSettings: fvs,
+                      fontSynthesis: 'none',
                       lineHeight: 1.3,
                     }}
                   >
