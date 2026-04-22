@@ -536,6 +536,11 @@
   color: var(--text-muted);
 }
 
+.para-styles-spec--local {
+  border-color: var(--text-muted);
+  color: var(--text-muted);
+}
+
 /* ── Paragraph mode ──────────────────────────────────────────────────────── */
 .preview-paragraph {
   padding: 60px 80px;

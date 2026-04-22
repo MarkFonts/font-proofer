@@ -257,6 +257,9 @@ export default function App() {
   const [paraStylesPanelOpen, setParaStylesPanelOpen] = useState(false)
   const [activeParaStyle, setActiveParaStyle] = useState(null)
 
+  // Cal.com roles panel
+  const [calcomPanelOpen, setCalcomPanelOpen] = useState(false)
+
   // Paragraph escape bar (right margin, px)
   const [rightMargin, setRightMargin] = useState(80)
   const rightMarginRef = useRef(80)
@@ -294,6 +297,8 @@ export default function App() {
   const stylesPanelBtnRef = useRef(null)
   const mobileStylesBtnRef = useRef(null)
   const stylesPanelPopoverRef = useRef(null)
+  const calcomPanelBtnRef = useRef(null)
+  const calcomPanelPopoverRef = useRef(null)
 
   const bigEditorCallback = useCallback(el => {
     bigEditorRef.current = el
@@ -704,6 +709,19 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler)
   }, [paraStylesPanelOpen])
 
+  useEffect(() => {
+    if (!calcomPanelOpen) return
+    const handler = (e) => {
+      if (
+        calcomPanelBtnRef.current?.contains(e.target) ||
+        calcomPanelPopoverRef.current?.contains(e.target)
+      ) return
+      setCalcomPanelOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [calcomPanelOpen])
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
@@ -812,9 +830,21 @@ export default function App() {
           <div className="section-label">Preview Mode</div>
           <div className="mode-group">
             {isCalcom && (
-              <ModeBtn active={mode === 'calcom'} onClick={() => setMode('calcom')}>
-                <CalIcon /> Cal.com
-              </ModeBtn>
+              <div className="mode-btn-row">
+                <ModeBtn active={mode === 'calcom'} onClick={() => setMode('calcom')}>
+                  <CalIcon /> Cal.com
+                </ModeBtn>
+                {fontName && (
+                  <button
+                    ref={calcomPanelBtnRef}
+                    className={`align-btn styles-toggle-btn ${calcomPanelOpen ? 'active' : ''}`}
+                    title="Type roles panel"
+                    onClick={() => setCalcomPanelOpen(p => !p)}
+                  >
+                    {calcomPanelOpen ? '▶' : '▷'}
+                  </button>
+                )}
+              </div>
             )}
             <ModeBtn active={mode === 'big'} onClick={() => setMode('big')}>
               <BigIcon /> Big Word
@@ -1269,6 +1299,66 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* Cal.com roles popover */}
+      {calcomPanelOpen && mode === 'calcom' && fontName && (() => {
+        const rect = calcomPanelBtnRef.current?.getBoundingClientRect()
+        if (!rect) return null
+        return (
+          <div
+            ref={calcomPanelPopoverRef}
+            className="para-styles-panel"
+            style={{
+              top: rect.bottom + 8,
+              left: rect.left,
+              '--caret-x': `${rect.width / 2}px`,
+            }}
+          >
+            {Object.entries(CALCOM_ROLE_LABELS).map(([key, label]) => {
+              const r = calcomRoles[key]
+              const merged = { ...axisValues, ...r.axisOverrides }
+              const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+              const family = calcomFont === 'inter'
+                ? '"Inter", system-ui, sans-serif'
+                : fontFace ? `"${fontFace.family}"` : 'serif'
+              const isActive = activeCalcomRole === key
+              return (
+                <button
+                  key={key}
+                  className={`para-styles-row ${isActive ? 'active' : ''}`}
+                  onClick={() => { setActiveCalcomRole(prev => prev === key ? null : key); setCalcomPanelOpen(false) }}
+                >
+                  <span
+                    className="para-styles-preview"
+                    style={{
+                      fontFamily: family,
+                      fontSize: `${Math.min(r.size, 22)}px`,
+                      fontVariationSettings: calcomFont === 'calsansui' ? fvs : 'normal',
+                      fontSynthesis: 'none',
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {label}
+                  </span>
+                  <span className="para-styles-specs">
+                    <span className="para-styles-spec">{r.size}px</span>
+                    <span className="para-styles-spec">{r.tracking.toFixed(3)}</span>
+                    {variationAxes.map(axis => {
+                      const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
+                      const isLocal = axis.tag in r.axisOverrides
+                      return (
+                        <span key={axis.tag} className={`para-styles-spec${isLocal ? ' para-styles-spec--local' : ''}`}>
+                          {axis.tag} {Number.isInteger(val) ? val : val.toFixed(1)}
+                        </span>
+                      )
+                    })}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )
+      })()}
 
       {/* Styles popover */}
       {paraStylesPanelOpen && mode === 'paragraph' && fontName && (() => {
