@@ -92,6 +92,15 @@ const TEXT_PRESETS = {
     { type: 'p',  text: 'The passenger booked by this history, was on the coach-step, getting in; the two other passengers were close behind him, and about to follow. He remained on the step, half in the coach and half out of; they remained in the road below him. They all looked from the coachman to the guard, and from the guard to the coachman, and listened. The coachman looked back and the guard looked back, and even the emphatic leader pricked up his ears and looked back, without contradicting.' },
     { type: 'p',  text: 'The stillness consequent on the cessation of the rumbling and labouring of the coach, added to the stillness of the night, made it very quiet indeed. The panting of the horses communicated a tremulous motion to the coach, as if it were in a state of agitation. The hearts of the passengers beat loud enough perhaps to be heard; but at any rate, the quiet pause was audibly expressive of people out of breath, and holding the breath, and having the pulses quickened by expectation.' },
   ]),
+  'Staatliche Bauhaus': makeBlocks([
+    { type: 'h2', text: 'Walter Gropius, 1919' },
+    { type: 'h1', text: 'Staatliche Bauhaus' },
+    { type: 'p',  text: 'Das Staatliche Bauhaus in Weimar int durch Vereinigung der ehemaligen Großherzoglich Sächsischen Hochschule für bildende Kunst mit der ehemaligen Großherzoglich Sächsischen Kunstgewerbeschule unter Neuangliediederung einer Abteilung für Baukunst enstanden.' },
+    { type: 'p',  text: 'Das Bauhaus erstrebt die Sammlung alles künstlerischen Schaffens zur Einheit, die Wiedervereinigung aller werke künstlerischen Disziplinen — Bildhauerei, Malerei, Kunstgewerbe und Handwerk — zu einer neuen Baukunst als deren unablösliehe Bestandteile. Das letzte, wenn auch ferne Ziel des Bauhauses ist das Einheits Kunstwerk — der große Bau — in dem es keine Grenze gibt zwischen monumentaler und dekorativer Kunst.' },
+    { type: 'p',  text: 'Das Bauhaus will Architekten, Maler und Bildhauer aller Grade je nach ihren Fähigkeiten zu tüchtigen Handwerkern oder selbständig schaffenden Künstlern erziehen und eine Arbeitsgemeinschaft führender und werdender Werk Künstler gründen, die Bauwerke in ihrer Gesamtheit — Rohbau, Ausbau, Ausschmückung und Einrichtung — aus gleich gearteter Geist heraus einheitlich zu gestalten weiß.' },
+    { type: 'p',  text: 'Kunst entsteht oberhalb aller Methoden, sie ist an sich nicht lehrbar, wohl aber das Handwerk., Architekten, Maler, Bildhauer sind Handwerker im Ursinn des Wortes, deshalb wird als unerlaßliche Grundlage für alles bildnerische Schaffen die gründliche handwerkliche Ausbildung aller Studierenden in Werkstätten und auf Probier- und Werk-plätzen gefordert. Die eigenen Werkstätten sollen allmählich ausgebaut, mit fremden Werkstätten Lehrverträge abgeschlossen werden.' },
+    { type: 'p',  text: 'Die Schule ist die Dienerin der Werkstatt, sie wird eines Tages in ihr aufgehen. Deshalb nicht Lehrer und Schüler im Bauhaus, sondern Meister, Gesellen und Lehrlinge.' },
+  ]),
   'Kern King': makeBlocks([
     { type: 'h1', text: 'Kern King' },
     { type: 'h2', text: 'Part 1 — Lowercase' },
