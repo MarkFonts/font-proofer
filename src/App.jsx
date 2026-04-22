@@ -1413,13 +1413,16 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
 
   return (
     <div className="calcom-page">
-      <img src={calcomBanner} alt="Cal.com reference" className="calcom-banner" />
       <div className="calcom-card">
         {/* Left panel */}
         <div className="calcom-left">
-          <div className="calcom-avatar">
-          <img src={peerAvatar} alt="Peer Richelsen" className="calcom-avatar-img" />
-        </div>
+          <div className="calcom-cover">
+            <img src={calcomBanner} alt="" className="calcom-cover-img" />
+            <div className="calcom-avatar">
+              <img src={peerAvatar} alt="Peer Richelsen" className="calcom-avatar-img" />
+            </div>
+          </div>
+          <div className="calcom-left-body">
           <div className={`calcom-event-host ${roleClass('eventHost')}`} style={roleStyle('eventHost')}
             onClick={() => onRoleClick(r => r === 'eventHost' ? null : 'eventHost')}>
             Peer Richelsen
@@ -1468,15 +1471,21 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
             </svg>
             America/New York
           </div>
+          </div>{/* end calcom-left-body */}
         </div>
 
         {/* Calendar panel */}
         <div className="calcom-right">
           <div className="calcom-calendar-wrap">
             <div className="calcom-month-nav">
-              <button className="calcom-nav-btn">‹</button>
-              <span style={roleStyle('calHeader')}>April 2026</span>
-              <button className="calcom-nav-btn">›</button>
+              <div className="calcom-month-label">
+                <span style={roleStyle('calHeader')}>April</span>
+                <span style={{...roleStyle('calHeader'), color: '#555'}}>2026</span>
+              </div>
+              <div className="calcom-nav-btns">
+                <button className="calcom-nav-btn">‹</button>
+                <button className="calcom-nav-btn">›</button>
+              </div>
             </div>
             <div className="calcom-cal-grid">
               {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
