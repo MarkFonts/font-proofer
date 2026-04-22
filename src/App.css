@@ -285,7 +285,8 @@
 }
 
 /* ── Typography header (label + alignment inline) ───────────────────────── */
-.section-label-sub {
+.section-label-sub,
+.section-label-exit {
   margin-left: 5px;
   font-size: 9px;
   letter-spacing: 0.08em;
@@ -298,6 +299,13 @@
   vertical-align: middle;
 }
 
+.section-label-exit {
+  cursor: pointer;
+}
+.section-label-exit:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
 
 .typography-header {
   display: flex;

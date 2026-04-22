@@ -1059,7 +1059,14 @@ export default function App() {
             <div className="sidebar-divider" />
             <div className="sidebar-section">
               <div className="typography-header">
-                <div className="section-label">Variable Axes</div>
+                <div className="section-label">
+                  Variable Axes
+                  {effectiveCalcomRole && (
+                    <button className="section-label-exit" onClick={() => setActiveCalcomRole(null)} title="Back to master">
+                      {CALCOM_ROLE_LABELS[effectiveCalcomRole]} ×
+                    </button>
+                  )}
+                </div>
                 {(() => {
                   const axesDirty = effectiveParaStyle
                     ? JSON.stringify(paraStyles[effectiveParaStyle].axisOverrides) !== JSON.stringify(DEFAULT_PARA_STYLES[effectiveParaStyle].axisOverrides)
@@ -1188,7 +1195,7 @@ export default function App() {
         )}
 
         {fontName && mode === 'calcom' && (
-          <CalcomPreview roleStyle={roleStyle} activeRole={activeCalcomRole} onRoleClick={setActiveCalcomRole} />
+          <CalcomPreview key={calcomFont} roleStyle={roleStyle} activeRole={activeCalcomRole} onRoleClick={setActiveCalcomRole} />
         )}
 
         {fontName && mode === 'big' && (
