@@ -565,7 +565,7 @@ export default function App() {
     fontSynthesis: 'none',
     fontFeatureSettings: '"calt" 0, "ss20" 0',
     textAlign,
-    color: '#ffffff',
+    color: 'var(--text)',
     wordBreak: 'break-word',
     transition: 'font-variation-settings 0.15s ease',
   }
@@ -647,7 +647,7 @@ export default function App() {
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "ss20" 0',
       textAlign,
-      color: '#ffffff',
+      color: 'var(--text)',
       wordBreak: 'break-word',
       display: 'block',
       width: '100%',
