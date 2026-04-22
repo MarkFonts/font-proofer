@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
 import logoGif from '/public/logo.gif'
+import logoGifDark from '/public/logo_darkmode.gif'
 import peerAvatar from '/public/peer-richelsen.png'
 import calcomIcon from '/public/calcom-icon.svg'
 import calcomBanner from '/public/calcom-banner.png'
@@ -802,7 +803,8 @@ export default function App() {
       <aside className="sidebar">
         {/* Logo */}
         <div className="sidebar-logo">
-          <img src={logoGif} alt="Logo" className="logo-gif" />
+          <img src={logoGifDark} alt="Logo" className="logo-gif logo-gif--dark" />
+          <img src={logoGif} alt="Logo" className="logo-gif logo-gif--light" />
           {clientLabel && clientSlug !== 'wordmark' && <span className="client-label">{clientLabel}</span>}
         </div>
 
