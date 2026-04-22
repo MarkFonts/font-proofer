@@ -579,44 +579,6 @@ export default function App() {
       window.removeEventListener('drop', handleDrop)
     }
   }, [handleDrop])
-
-  // ── OG image export ───────────────────────────────────────────────────────
-  const exportOgImage = useCallback(() => {
-    if (!fontFace || !fontName) return
-    const W = 1200, H = 630
-    const canvas = document.createElement('canvas')
-    canvas.width = W
-    canvas.height = H
-    const ctx = canvas.getContext('2d')
-
-    ctx.fillStyle = '#242424'
-    ctx.fillRect(0, 0, W, H)
-
-    // "Aa" in the loaded font at default variation (no fvs = browser defaults)
-    const size = 420
-    ctx.font = `400 ${size}px ${fontFace.family}`
-    ctx.fillStyle = '#ffffff'
-    ctx.textBaseline = 'alphabetic'
-    ctx.textAlign = 'left'
-    const textW = ctx.measureText('Aa').width
-    ctx.fillText('Aa', Math.round((W - textW) / 2), 500)
-
-    // Font name in Cal Sans UI, bottom-right
-    ctx.font = '22px CalSansUI, system-ui, sans-serif'
-    ctx.fillStyle = 'rgba(255,255,255,0.45)'
-    ctx.textBaseline = 'bottom'
-    ctx.textAlign = 'right'
-    ctx.fillText(fontName, W - 40, H - 32)
-
-    canvas.toBlob(blob => {
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = `${fontSlug || fontName.toLowerCase().replace(/\s+/g, '-')}.png`
-      a.click()
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000)
-    }, 'image/png')
-  }, [fontFace, fontName, fontSlug])
-
   // ── Font variation string ─────────────────────────────────────────────────
   const fontVariationSettings = Object.entries(axisValues)
     .map(([tag, val]) => `"${tag}" ${val}`)
@@ -1234,15 +1196,6 @@ export default function App() {
             </div>
           </>
         )}
-        {/* OG export */}
-        {fontName && (
-          <div className="sidebar-section sidebar-og-export">
-            <button className="og-export-btn" onClick={exportOgImage} title="Download 1200×630 OG image">
-              ↓ OG Image
-            </button>
-          </div>
-        )}
-
         {/* Copyright footer */}
         <div className="sidebar-footer">
           {clientSlug && clientSlug !== 'wordmark'

@@ -1,0 +1,23 @@
+diff --git a/node_modules/@shuding/opentype.js/dist/opentype.js b/node_modules/@shuding/opentype.js/dist/opentype.js
+index d72d1b7..392a88a 100644
+--- a/node_modules/@shuding/opentype.js/dist/opentype.js
++++ b/node_modules/@shuding/opentype.js/dist/opentype.js
+@@ -10282,14 +10282,16 @@
+        axis.defaultValue = p.parseFixed();
+        axis.maxValue = p.parseFixed();
+        p.skip('uShort', 1); // reserved for flags; no values defined
+-       axis.name = names[p.parseUShort()] || {};
++       var axisNameId = p.parseUShort();
++       axis.name = (names ? names[axisNameId] : null) || {};
+        return axis;
+    }
+ 
+    function parseFvarInstance(data, start, axes, names) {
+        var inst = {};
+        var p = new parse.Parser(data, start);
+-       inst.name = names[p.parseUShort()] || {};
++       var instNameId = p.parseUShort();
++       inst.name = (names ? names[instNameId] : null) || {};
+        p.skip('uShort', 1); // reserved for flags; no values defined
+ 
+        inst.coordinates = {};
