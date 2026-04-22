@@ -897,6 +897,18 @@
   .sidebar-footer {
     margin-top: 0;
   }
+
+  .preview-big {
+    padding: 16px 20px;
+  }
+
+  .preview-paragraph {
+    padding: 16px 20px !important; /* override inline paddingRight from escape bar state */
+  }
+
+  .escape-bar {
+    display: none;
+  }
 }
 
 /* ── Cal.com sidebar controls ────────────────────────────────────────────── */
