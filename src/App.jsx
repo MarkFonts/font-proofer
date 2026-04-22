@@ -1430,17 +1430,31 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
           </div>
           <div className={`calcom-event-desc ${roleClass('eventDesc')}`} style={roleStyle('eventDesc')}
             onClick={() => onRoleClick(r => r === 'eventDesc' ? null : 'eventDesc')}>
-            A quick screen share demo or longer conversation. Requires confirmation
+            A quick screen share demo or longer conversation.
           </div>
-          <div className="calcom-durations">
-            {[15, 30].map(d => (
-              <button
-                key={d}
-                className={`calcom-dur-btn ${selectedDur === d ? 'active' : ''} ${roleClass('eventMeta')}`}
-                style={roleStyle('eventMeta')}
-                onClick={() => setSelectedDur(d)}
-              >{d}m</button>
-            ))}
+          <div className={`calcom-meta-item ${roleClass('eventDesc')}`} style={roleStyle('eventDesc')}>
+            <svg className="calcom-meta-icon-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+            Requires confirmation
+          </div>
+          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}
+            onClick={() => onRoleClick(r => r === 'eventMeta' ? null : 'eventMeta')}>
+            <svg className="calcom-meta-icon-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <div className="calcom-durations">
+              {[15, 30].map(d => (
+                <button
+                  key={d}
+                  className={`calcom-dur-btn ${selectedDur === d ? 'active' : ''}`}
+                  style={roleStyle('eventMeta')}
+                  onClick={e => { e.stopPropagation(); setSelectedDur(d) }}
+                >{d}m</button>
+              ))}
+            </div>
           </div>
           <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}
             onClick={() => onRoleClick(r => r === 'eventMeta' ? null : 'eventMeta')}>
