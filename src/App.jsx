@@ -116,6 +116,21 @@ const TEXT_PRESETS = {
 
 const SAMPLE_BLOCKS = TEXT_PRESETS['Sample']
 
+// ── Cal.com type role model ───────────────────────────────────────────────────
+const CALCOM_ROLE_LABELS = {
+  eventHost: 'Host', eventTitle: 'Title', eventDesc: 'Desc',
+  eventMeta: 'Meta', calHeader: 'Cal',   calDay: 'Day', timeSlot: 'Time',
+}
+const DEFAULT_CALCOM_ROLES = {
+  eventHost:  { size: 14, tracking: 0,      leading: 1.4, axisOverrides: {} },
+  eventTitle: { size: 28, tracking: -0.015, leading: 1.1, axisOverrides: { wght: 600 } },
+  eventDesc:  { size: 13, tracking: 0,      leading: 1.5, axisOverrides: {} },
+  eventMeta:  { size: 13, tracking: 0,      leading: 1.4, axisOverrides: {} },
+  calHeader:  { size: 11, tracking: 0.05,   leading: 1,   axisOverrides: { wght: 500 } },
+  calDay:     { size: 13, tracking: 0,      leading: 1,   axisOverrides: {} },
+  timeSlot:   { size: 14, tracking: 0,      leading: 1,   axisOverrides: {} },
+}
+
 // ── Paragraph style model ────────────────────────────────────────────────────
 const DEFAULT_PARA_STYLES = {
   h1: { size: 57, leading: 1.1, tracking: 0,     axisOverrides: { wght: 700 } },
@@ -212,6 +227,7 @@ function ModeBtn({ active, onClick, children }) {
 export default function App() {
   const { clientSlug, fontSlug } = parseRoute()
   const clientLabel = clientSlug ? toDisplayName(clientSlug) : null
+  const isCalcom = clientSlug?.toLowerCase() === 'calcom'
 
   // Font loading
   const [fontName, setFontName] = useState(null)
@@ -223,7 +239,12 @@ export default function App() {
   const fontObjectUrl = useRef(null)
 
   // View mode
-  const [mode, setMode] = useState('big') // 'big' | 'paragraph' | 'glyphs'
+  const [mode, setMode] = useState(isCalcom ? 'calcom' : 'big') // 'big' | 'paragraph' | 'glyphs' | 'calcom'
+
+  // Cal.com preview state
+  const [calcomFont, setCalcomFont] = useState('calsansui')
+  const [calcomRoles, setCalcomRoles] = useState(DEFAULT_CALCOM_ROLES)
+  const [activeCalcomRole, setActiveCalcomRole] = useState(null)
 
   // Text content
   const [bigText, setBigText] = useState(SAMPLE_BIG)
@@ -544,6 +565,27 @@ export default function App() {
   // ── Active style for sidebar controls in paragraph mode ──────────────────
   const effectiveParaStyle = mode === 'paragraph' ? (activeParaStyle ?? 'p') : null
 
+  // ── Active role for calcom mode ───────────────────────────────────────────
+  const effectiveCalcomRole = mode === 'calcom' ? activeCalcomRole : null
+
+  const roleStyle = (role) => {
+    const r = calcomRoles[role] ?? calcomRoles.eventDesc
+    const merged = { ...axisValues, ...r.axisOverrides }
+    const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    const family = calcomFont === 'inter'
+      ? '"Inter", system-ui, -apple-system, sans-serif'
+      : fontFace ? `"${fontFace.family}"` : '"Inter", system-ui, sans-serif'
+    return {
+      fontFamily: family,
+      fontSize: `${r.size}px`,
+      letterSpacing: `${r.tracking}em`,
+      lineHeight: r.leading,
+      fontVariationSettings: calcomFont === 'calsansui' ? fvs : 'normal',
+      fontSynthesis: 'none',
+      fontFeatureSettings: '"calt" 0, "ss20" 0',
+    }
+  }
+
   // ── Paragraph comfortable max (scales 48→400 as escape bar opens 80→10px) ──
   const paraComfortableMax = Math.max(18, Math.round(48 + Math.max(0, 80 - rightMargin) * 5))
 
@@ -679,6 +721,7 @@ export default function App() {
 
       {/* Mobile tab bar */}
       <nav className="mobile-tabs">
+        {isCalcom && <button className={`mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><CalIcon /> Cal.com</button>}
         <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><BigIcon /> Big Word</button>
         <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><ParaIcon /> Paragraph</button>
         <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><GlyphIcon /> Glyphs</button>
@@ -768,6 +811,11 @@ export default function App() {
         <div className="sidebar-section sidebar-mode-section">
           <div className="section-label">Preview Mode</div>
           <div className="mode-group">
+            {isCalcom && (
+              <ModeBtn active={mode === 'calcom'} onClick={() => setMode('calcom')}>
+                <CalIcon /> Cal.com
+              </ModeBtn>
+            )}
             <ModeBtn active={mode === 'big'} onClick={() => setMode('big')}>
               <BigIcon /> Big Word
             </ModeBtn>
@@ -794,7 +842,81 @@ export default function App() {
 
         <div className="sidebar-divider" />
 
+        {/* Cal.com font radio + type roles */}
+        {mode === 'calcom' && (
+          <>
+            <div className="sidebar-divider" />
+            <div className="sidebar-section">
+              <div className="section-label">Font</div>
+              <label className="calcom-radio-label">
+                <input type="radio" name="calcom-font" value="calsansui" checked={calcomFont === 'calsansui'} onChange={() => setCalcomFont('calsansui')} />
+                Cal Sans UI 1.727
+              </label>
+              <label className="calcom-radio-label">
+                <input type="radio" name="calcom-font" value="inter" checked={calcomFont === 'inter'} onChange={() => setCalcomFont('inter')} />
+                Inter
+              </label>
+            </div>
+            <div className="sidebar-divider" />
+            <div className="sidebar-section">
+              <div className="typography-header">
+                <div className="section-label">
+                  Type Roles
+                  {activeCalcomRole && (
+                    <span className="section-label-sub">{CALCOM_ROLE_LABELS[activeCalcomRole]}</span>
+                  )}
+                </div>
+                {activeCalcomRole && (() => {
+                  const r = calcomRoles[activeCalcomRole]
+                  const def = DEFAULT_CALCOM_ROLES[activeCalcomRole]
+                  const dirty = r.size !== def.size || r.tracking !== def.tracking
+                  return (
+                    <button
+                      className={`align-btn ${dirty ? 'active' : 'reset-clean'}`}
+                      title="Reset role"
+                      style={dirty ? {} : { pointerEvents: 'none' }}
+                      onClick={() => setCalcomRoles(prev => ({
+                        ...prev,
+                        [activeCalcomRole]: { ...prev[activeCalcomRole], size: def.size, tracking: def.tracking }
+                      }))}
+                    ><ResetIcon /></button>
+                  )
+                })()}
+              </div>
+              <div className="calcom-role-chips">
+                {Object.entries(CALCOM_ROLE_LABELS).map(([key, label]) => (
+                  <button
+                    key={key}
+                    className={`calcom-role-chip ${activeCalcomRole === key ? 'active' : ''}`}
+                    onClick={() => setActiveCalcomRole(prev => prev === key ? null : key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {activeCalcomRole && (
+                <>
+                  <SliderRow
+                    label="Size"
+                    value={calcomRoles[activeCalcomRole].size}
+                    min={8} max={80} step={1}
+                    onChange={v => setCalcomRoles(prev => ({ ...prev, [activeCalcomRole]: { ...prev[activeCalcomRole], size: v } }))}
+                  />
+                  <SliderRow
+                    label="Tracking"
+                    value={calcomRoles[activeCalcomRole].tracking}
+                    min={-0.2} max={0.5} step={0.001}
+                    display={calcomRoles[activeCalcomRole].tracking.toFixed(3)}
+                    onChange={v => setCalcomRoles(prev => ({ ...prev, [activeCalcomRole]: { ...prev[activeCalcomRole], tracking: v } }))}
+                  />
+                </>
+              )}
+            </div>
+          </>
+        )}
+
         {/* Typography controls */}
+        {mode !== 'calcom' && (
         <div className="sidebar-section">
           <div className="typography-header">
             <div className="section-label">
@@ -943,6 +1065,7 @@ export default function App() {
             />
           )}
         </div>
+        )}
 
         {/* Variable font axes */}
         {variationAxes.length > 0 && (
@@ -954,6 +1077,8 @@ export default function App() {
                 {(() => {
                   const axesDirty = effectiveParaStyle
                     ? JSON.stringify(paraStyles[effectiveParaStyle].axisOverrides) !== JSON.stringify(DEFAULT_PARA_STYLES[effectiveParaStyle].axisOverrides)
+                    : effectiveCalcomRole
+                    ? JSON.stringify(calcomRoles[effectiveCalcomRole].axisOverrides) !== JSON.stringify(DEFAULT_CALCOM_ROLES[effectiveCalcomRole].axisOverrides)
                     : variationAxes.some(a => axisValues[a.tag] !== a.defaultVal)
                   return (
                     <button
@@ -965,6 +1090,11 @@ export default function App() {
                           setParaStyles(prev => ({
                             ...prev,
                             [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: { ...DEFAULT_PARA_STYLES[effectiveParaStyle].axisOverrides } }
+                          }))
+                        } else if (effectiveCalcomRole) {
+                          setCalcomRoles(prev => ({
+                            ...prev,
+                            [effectiveCalcomRole]: { ...prev[effectiveCalcomRole], axisOverrides: { ...DEFAULT_CALCOM_ROLES[effectiveCalcomRole].axisOverrides } }
                           }))
                         } else {
                           const defaults = {}
@@ -979,6 +1109,8 @@ export default function App() {
               {variationAxes.map(axis => {
                 const val = effectiveParaStyle
                   ? (paraStyles[effectiveParaStyle].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
+                  : effectiveCalcomRole
+                  ? (calcomRoles[effectiveCalcomRole].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
                   : (axisValues[axis.tag] ?? axis.defaultVal)
                 return (
                   <SliderRow
@@ -994,6 +1126,11 @@ export default function App() {
                         setParaStyles(prev => ({
                           ...prev,
                           [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: { ...prev[effectiveParaStyle].axisOverrides, [axis.tag]: v } }
+                        }))
+                      } else if (effectiveCalcomRole) {
+                        setCalcomRoles(prev => ({
+                          ...prev,
+                          [effectiveCalcomRole]: { ...prev[effectiveCalcomRole], axisOverrides: { ...prev[effectiveCalcomRole].axisOverrides, [axis.tag]: v } }
                         }))
                       } else {
                         setAxisValues(prev => ({ ...prev, [axis.tag]: v }))
@@ -1062,6 +1199,10 @@ export default function App() {
             <img src={logoGif} alt="Logo" className="empty-logo" />
             <p className="empty-hint">Open a font file to begin proofing</p>
           </div>
+        )}
+
+        {fontName && mode === 'calcom' && (
+          <CalcomPreview roleStyle={roleStyle} activeRole={activeCalcomRole} onRoleClick={setActiveCalcomRole} />
         )}
 
         {fontName && mode === 'big' && (
@@ -1198,7 +1339,123 @@ export default function App() {
   )
 }
 
+// ── Cal.com preview ───────────────────────────────────────────────────────────
+function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
+  const [selectedDate, setSelectedDate] = useState(22)
+  const [selectedDur, setSelectedDur] = useState(15)
+
+  // April 2026: April 1 = Wednesday → startOffset 2 (Mon=0, Tue=1, Wed=2)
+  const startOffset = 2
+  const cells = []
+  for (let i = 0; i < startOffset; i++) cells.push(null)
+  for (let d = 1; d <= 30; d++) cells.push(d)
+  while (cells.length % 7 !== 0) cells.push(null)
+
+  const times = ['4:15am','4:20am','4:25am','4:30am','6:00am','6:05am','6:15am','6:30am','6:45am','7:00am','11:30am','1:15pm','1:30pm','1:45pm']
+
+  const roleClass = (role) => activeRole === role ? 'calcom-role-highlight' : ''
+
+  return (
+    <div className="calcom-page">
+      <div className="calcom-card">
+        {/* Left panel */}
+        <div className="calcom-left">
+          <div className="calcom-avatar">PR</div>
+          <div className={`calcom-event-host ${roleClass('eventHost')}`} style={roleStyle('eventHost')}
+            onClick={() => onRoleClick(r => r === 'eventHost' ? null : 'eventHost')}>
+            Peer Richelsen
+          </div>
+          <div className={`calcom-event-title ${roleClass('eventTitle')}`} style={roleStyle('eventTitle')}
+            onClick={() => onRoleClick(r => r === 'eventTitle' ? null : 'eventTitle')}>
+            Meeting
+          </div>
+          <div className={`calcom-event-desc ${roleClass('eventDesc')}`} style={roleStyle('eventDesc')}
+            onClick={() => onRoleClick(r => r === 'eventDesc' ? null : 'eventDesc')}>
+            A quick screen share demo or longer conversation. Requires confirmation
+          </div>
+          <div className="calcom-durations">
+            {[15, 30].map(d => (
+              <button
+                key={d}
+                className={`calcom-dur-btn ${selectedDur === d ? 'active' : ''} ${roleClass('eventMeta')}`}
+                style={roleStyle('eventMeta')}
+                onClick={() => setSelectedDur(d)}
+              >{d}m</button>
+            ))}
+          </div>
+          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}
+            onClick={() => onRoleClick(r => r === 'eventMeta' ? null : 'eventMeta')}>
+            <span className="calcom-meta-icon">▷</span> Cal Video
+          </div>
+          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}>
+            <span className="calcom-meta-icon">◎</span> America/New York
+          </div>
+        </div>
+
+        {/* Calendar panel */}
+        <div className="calcom-right">
+          <div className="calcom-calendar-wrap">
+            <div className="calcom-month-nav">
+              <button className="calcom-nav-btn">‹</button>
+              <span style={roleStyle('calHeader')}>April 2026</span>
+              <button className="calcom-nav-btn">›</button>
+            </div>
+            <div className="calcom-cal-grid">
+              {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+                <div key={d} className={`calcom-weekday ${roleClass('calHeader')}`} style={roleStyle('calHeader')}
+                  onClick={() => onRoleClick(r => r === 'calHeader' ? null : 'calHeader')}>
+                  {d}
+                </div>
+              ))}
+              {cells.map((day, i) => (
+                <div
+                  key={i}
+                  className={`calcom-day${day === null ? ' empty' : ''}${day === 22 ? ' today' : ''}${day === selectedDate ? ' selected' : ''}${day !== null && day < 22 ? ' past' : ''} ${day !== null ? roleClass('calDay') : ''}`}
+                  style={day !== null ? roleStyle('calDay') : {}}
+                  onClick={() => {
+                    if (day !== null && day >= 22) setSelectedDate(day)
+                    onRoleClick(r => r === 'calDay' ? null : 'calDay')
+                  }}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Time slots */}
+          {selectedDate && (
+            <div className="calcom-times-wrap">
+              <div className="calcom-time-date" style={roleStyle('calHeader')}>
+                Wed {selectedDate}
+              </div>
+              <div className="calcom-time-list">
+                {times.map(t => (
+                  <button
+                    key={t}
+                    className={`calcom-time-btn ${roleClass('timeSlot')}`}
+                    style={roleStyle('timeSlot')}
+                    onClick={() => onRoleClick(r => r === 'timeSlot' ? null : 'timeSlot')}
+                  >{t}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Icons ─────────────────────────────────────────────────────────────────────
+function CalIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+      <rect width="20" height="20" rx="3" ry="3" fill="currentColor" fillOpacity="0.15"/>
+      <path fill="currentColor" d="M5.155 12.422c-.43-.25-.769-.587-1.016-1.012-.247-.425-.371-.893-.371-1.402 0-.515.12-.987.36-1.417.24-.43.574-.77 1.001-1.02.427-.25.914-.375 1.459-.375.405 0 .777.071 1.117.214.34.143.635.358.885.648l-.772.735c-.17-.18-.35-.314-.54-.401-.19-.087-.42-.131-.69-.131-.345 0-.646.076-.904.229-.257.153-.456.361-.596.626-.14.265-.21.562-.21.892 0 .33.07.625.21.885.14.26.341.465.604.615.262.15.568.225.918.225.235 0 .456-.042.664-.128.207-.085.383-.21.529-.375l.795.698c-.22.265-.498.476-.832.633-.335.157-.728.236-1.177.236-.525 0-1.002-.125-1.432-.375ZM9.835 12.516c-.3-.193-.534-.449-.701-.769-.168-.32-.251-.665-.251-1.035 0-.37.084-.715.251-1.035.167-.32.401-.576.701-.769.3-.193.64-.289 1.02-.289.285 0 .542.064.772.191.23.128.383.3.458.514h.052v-.6h1.027v3.974h-1.027v-.585h-.052c-.075.205-.228.371-.458.499-.23.127-.487.191-.772.191-.38 0-.72-.096-1.02-.288Zm1.743-.833c.162-.097.29-.231.382-.401.092-.17.139-.36.139-.57 0-.215-.047-.407-.139-.577-.092-.17-.22-.304-.382-.401-.163-.097-.346-.146-.551-.146-.31 0-.568.106-.772.319-.205.213-.307.478-.307.799 0 .21.046.401.139.574.092.172.221.307.386.405.165.097.35.146.555.146.205 0 .389-.049.551-.146ZM15.391 12.7h-1.057v-.877l.007-4.53h1.058l-.008 5.406Z"/>
+    </svg>
+  )
+}
 function BigIcon() {
   return <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><text x="1" y="12" fontSize="13" fill="currentColor" fontFamily="'CalSansUI', system-ui, sans-serif">A</text></svg>
 }
