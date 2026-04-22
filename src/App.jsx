@@ -12,10 +12,14 @@ const SHOW_CLIENT_LOGO = true
 
 const _rawLogos = import.meta.glob('./logos/*.svg', { query: '?raw', import: 'default', eager: true })
 const CLIENT_LOGOS = Object.fromEntries(
-  Object.entries(_rawLogos).map(([path, svg]) => [
-    path.replace('./logos/', '').replace(/\.svg$/i, '').toLowerCase(),
-    svg.replace(/<\?xml[^?]*\?>\s*/i, ''),
-  ])
+  Object.entries(_rawLogos).map(([path, svg]) => {
+    const key = path.replace('./logos/', '').replace(/\.svg$/i, '').toLowerCase()
+    const clean = svg
+      .replace(/<\?xml[^?]*\?>\s*/i, '')       // strip XML declaration
+      .replace(/<style[\s\S]*?<\/style>/gi, '') // strip embedded styles (prevent global bleed)
+      .replace(/(<svg\b[^>]*?)(\s*fill="[^"]*")?(\s*>)/i, '$1 fill="currentColor"$3') // ensure currentColor
+    return [key, clean]
+  })
 )
 function fuzzyClientLogo(slug) {
   if (!slug) return null
