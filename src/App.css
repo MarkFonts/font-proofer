@@ -855,15 +855,25 @@
     margin: 2px 2px;
   }
 
-  .preview-area {
+  #theme-toggle {
+    position: static;
     order: 3;
+    align-self: flex-end;
+    margin: 6px 12px;
+    opacity: 1;
+    z-index: auto;
+    flex-shrink: 0;
+  }
+
+  .preview-area {
+    order: 4;
     flex: 1;
     height: auto;
     min-height: 0;
   }
 
   .sidebar {
-    order: 4;
+    order: 5;
     width: 100%;
     min-width: 0;
     height: auto;
