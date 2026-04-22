@@ -1,0 +1,34 @@
+name: Deploy to Wordmark
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - name: Push to wordmark repo
+        env:
+          TOKEN: ${{ secrets.WORDMARK_DEPLOY_TOKEN2 }}
+        run: |
+          git clone https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git wordmark-repo
+          rm -rf wordmark-repo/font-proofer
+          cp -r dist wordmark-repo/font-proofer
+          cp scripts/wordmark-404.html wordmark-repo/404.html
+          cd wordmark-repo
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git remote set-url origin https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git
+          git add font-proofer/ 404.html
+          git diff --staged --quiet || git commit -m "Deploy font-proofer"
+          git push
