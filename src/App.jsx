@@ -298,7 +298,8 @@ export default function App() {
     const matched = matchFont(resolvedSlug)
     if (!matched) return
     const loadRouteFont = async () => {
-      const name = `ProoferFont_${Date.now()}`
+      const baseName = special ? special.name : matched.filename.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
+      const name = `${baseName} Preview`
       const face = new FontFace(name, `url(${matched.url})`)
       const loaded = await face.load()
       document.fonts.add(loaded)
@@ -335,7 +336,8 @@ export default function App() {
       const url = URL.createObjectURL(file)
       fontObjectUrl.current = url
 
-      const name = `ProoferFont_${Date.now()}`
+      const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
+      const name = `${baseName} Preview`
       const face = new FontFace(name, `url(${url})`)
       const loaded = await face.load()
       document.fonts.add(loaded)
@@ -523,7 +525,7 @@ export default function App() {
     lineHeight: lineHeight,
     fontVariationSettings,
     fontSynthesis: 'none',
-    fontFeatureSettings: '"calt" 0',
+    fontFeatureSettings: '"calt" 0, "ss20" 0',
     textAlign,
     color: '#ffffff',
     wordBreak: 'break-word',
@@ -573,7 +575,7 @@ export default function App() {
       lineHeight: s.leading,
       fontVariationSettings: fvs,
       fontSynthesis: 'none',
-      fontFeatureSettings: '"calt" 0',
+      fontFeatureSettings: '"calt" 0, "ss20" 0',
       textAlign,
       color: '#ffffff',
       wordBreak: 'break-word',
