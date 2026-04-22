@@ -909,6 +909,12 @@
   .escape-bar {
     display: none;
   }
+
+  .escape-bar + .para-block--h1,
+  .escape-bar + .para-block--h2,
+  .escape-bar + .para-block--h3 {
+    margin-top: 0;
+  }
 }
 
 /* ── Cal.com sidebar controls ────────────────────────────────────────────── */
