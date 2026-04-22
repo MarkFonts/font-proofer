@@ -803,8 +803,8 @@ export default function App() {
       <aside className="sidebar">
         {/* Logo */}
         <div className="sidebar-logo">
-          <img src={logoGifDark} alt="Logo" className="logo-gif logo-gif--dark" />
-          <img src={logoGif} alt="Logo" className="logo-gif logo-gif--light" />
+          <img src={logoGif} alt="Logo" className="logo-gif logo-gif--dark" />
+          <img src={logoGifDark} alt="Logo" className="logo-gif logo-gif--light" />
           {clientLabel && clientSlug !== 'wordmark' && <span className="client-label">{clientLabel}</span>}
         </div>
 
