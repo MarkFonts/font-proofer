@@ -163,6 +163,23 @@
   gap: 4px;
 }
 
+.mode-btn-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.mode-btn-row .mode-btn {
+  flex: 1;
+}
+
+.mode-btn-row .styles-toggle-btn {
+  width: 30px;
+  height: auto;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+
 .mode-btn {
   display: flex;
   align-items: center;
@@ -206,7 +223,8 @@
   align-items: baseline;
   gap: 5px;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
+  padding-bottom: 2px;
 }
 
 .slider-label-text {
@@ -214,8 +232,8 @@
   color: var(--text-muted);
   font-family: 'CalSansUI', system-ui, sans-serif;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .slider-label-text--tagged {
@@ -231,7 +249,52 @@
   font-feature-settings: "tnum";
 }
 
+/* ── Named instance chips ────────────────────────────────────────────────── */
+.instance-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.instance-chip {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'CalSansUI', system-ui, sans-serif;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.instance-chip:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.instance-chip.active {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
 /* ── Typography header (label + alignment inline) ───────────────────────── */
+.section-label-sub {
+  margin-left: 5px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 4px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+
 .typography-header {
   display: flex;
   align-items: center;
@@ -355,19 +418,189 @@
   outline: none;
 }
 
+/* ── Styles panel toggle ─────────────────────────────────────────────────── */
+.styles-toggle-btn {
+  font-family: 'CalSansUI', system-ui, sans-serif;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+/* ── Paragraph styles panel ──────────────────────────────────────────────── */
+.para-styles-panel {
+  position: fixed;
+  z-index: 200;
+  background: rgba(28, 28, 28, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  min-width: 300px;
+  overflow: visible;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.para-styles-panel::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: var(--caret-x, 16px);
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-bottom-color: var(--border);
+  pointer-events: none;
+}
+
+.para-styles-panel::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: var(--caret-x, 16px);
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: rgba(28, 28, 28, 0.96);
+  pointer-events: none;
+}
+
+.para-styles-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 7px 14px;
+  cursor: pointer;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  text-align: left;
+  transition: background 0.1s;
+  width: 100%;
+  font-family: inherit;
+  color: var(--text);
+}
+
+.para-styles-row:first-child {
+  border-radius: 10px 10px 0 0;
+}
+
+.para-styles-row:last-child {
+  border-bottom: none;
+  border-radius: 0 0 10px 10px;
+}
+
+.para-styles-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.para-styles-row.active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.para-styles-preview {
+  flex: 1;
+  min-width: 0;
+  overflow: visible;
+  white-space: nowrap;
+  text-overflow: clip;
+  color: var(--text);
+  padding-bottom: 4px;
+}
+
+.para-styles-specs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.para-styles-spec {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: 'CalSansUI', system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  font-feature-settings: "tnum";
+}
+
+.para-styles-row.active .para-styles-spec {
+  border-color: var(--text-muted);
+  color: var(--text-muted);
+}
+
 /* ── Paragraph mode ──────────────────────────────────────────────────────── */
 .preview-paragraph {
   padding: 60px 80px;
   max-width: 900px;
   min-height: 100%;
+  position: relative;
 }
 
-.editable-paragraph {
-  outline: none;
-  width: 100%;
-  min-height: 1em;
-  cursor: text;
-  white-space: pre-wrap;
+/* ── Escape bar (right-margin drag handle) ───────────────────────────────── */
+.escape-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+  border-radius: 2px;
+  z-index: 5;
+}
+
+.escape-bar::after {
+  content: '';
+  position: absolute;
+  top: 60px;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  background: var(--text);
+  border-radius: 1px;
+  opacity: 0.05;
+  transition: opacity 0.15s;
+}
+
+.escape-bar:hover::after,
+.escape-bar:active::after {
+  opacity: 0.35;
+}
+
+.para-block {
+  margin-bottom: 0.6em;
+}
+
+.para-block:last-child {
+  margin-bottom: 0;
+}
+
+.para-block--p + .para-block--p {
+  margin-top: 0.4em;
+}
+
+.para-block--h1,
+.para-block--h2,
+.para-block--h3 {
+  margin-top: 1em;
+  margin-bottom: 0.2em;
+}
+
+.para-block--h1:first-child,
+.para-block--h2:first-child,
+.para-block--h3:first-child {
+  margin-top: 0;
+}
+
+.para-block--selected {
+  border-radius: 2px;
+  outline: 1px solid rgba(255, 255, 255, 0.08) !important;
+  outline-offset: 4px;
 }
 
 /* ── Glyphs mode ─────────────────────────────────────────────────────────── */
@@ -449,6 +682,35 @@
   .mobile-tab.active {
     color: var(--text);
     border-bottom-color: var(--text);
+  }
+
+  .mobile-tab-para {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .mobile-tab-para .mobile-tab {
+    flex: 1;
+  }
+
+  .mobile-styles-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    font-family: 'CalSansUI', system-ui, sans-serif;
+    font-size: 13px;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.12s;
+  }
+
+  .mobile-styles-toggle.active {
+    color: var(--text);
   }
 
   .preview-area {

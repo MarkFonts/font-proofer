@@ -60,9 +60,49 @@ function matchFont(slug) {
 
 // ── Sample content ──────────────────────────────────────────────────────────
 const SAMPLE_BIG = 'Hand gloves'
-const SAMPLE_PARAGRAPH = `Typography is the art and technique of arranging type to make written language legible, readable, and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing, as well as adjusting the space between pairs of letters.
+const SAMPLE_BLOCKS = [
+  { id: '1', type: 'h1', text: 'Hand gloves' },
+  { id: '2', type: 'p',  text: 'Typography is the art and technique of arranging type to make written language legible, readable, and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing, as well as adjusting the space between pairs of letters.' },
+  { id: '3', type: 'p',  text: 'The term typography is also applied to the style, arrangement, and appearance of the letters, numbers, and symbols created by the process. Type design is a closely related craft, sometimes considered part of typography.' },
+]
 
-The term typography is also applied to the style, arrangement, and appearance of the letters, numbers, and symbols created by the process. Type design is a closely related craft, sometimes considered part of typography.`
+// ── Paragraph style model ────────────────────────────────────────────────────
+const DEFAULT_PARA_STYLES = {
+  h1: { size: 57, leading: 1.1, tracking: 0,     axisOverrides: { wght: 700 } },
+  h2: { size: 32, leading: 1.2, tracking: 0,     axisOverrides: { wght: 400 } },
+  h3: { size: 22, leading: 1.3, tracking: 0,     axisOverrides: {} },
+  p:  { size: 18, leading: 1.6, tracking: 0,     axisOverrides: {} },
+}
+
+// ── Cursor utilities ─────────────────────────────────────────────────────────
+function placeCursorAtEnd(el) {
+  const range = document.createRange()
+  const sel = window.getSelection()
+  range.selectNodeContents(el)
+  range.collapse(false)
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
+
+function placeCursorAtStart(el) {
+  const range = document.createRange()
+  const sel = window.getSelection()
+  range.setStart(el, 0)
+  range.collapse(true)
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
+
+function caretAtStart(el) {
+  const sel = window.getSelection()
+  if (!sel.rangeCount) return false
+  const range = sel.getRangeAt(0)
+  if (!range.collapsed) return false
+  const pre = range.cloneRange()
+  pre.selectNodeContents(el)
+  pre.setEnd(range.startContainer, range.startOffset)
+  return pre.toString().length === 0
+}
 
 const GLYPH_SETS = {
   'Uppercase': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -120,6 +160,7 @@ export default function App() {
   const [fontFace, setFontFace] = useState(null)
   const [variationAxes, setVariationAxes] = useState([]) // [{tag, name, min, max, defaultVal}]
   const [axisValues, setAxisValues] = useState({})
+  const [namedInstances, setNamedInstances] = useState([]) // [{name, coordinates: {tag: value}}]
   const [isDragging, setIsDragging] = useState(false)
   const fontObjectUrl = useRef(null)
 
@@ -128,7 +169,17 @@ export default function App() {
 
   // Text content
   const [bigText, setBigText] = useState(SAMPLE_BIG)
-  const [paragraphText, setParagraphText] = useState(SAMPLE_PARAGRAPH)
+  const [blocks, setBlocks] = useState(SAMPLE_BLOCKS)
+  const [paraStyles, setParaStyles] = useState(DEFAULT_PARA_STYLES)
+
+  // Paragraph styles panel
+  const [paraStylesPanelOpen, setParaStylesPanelOpen] = useState(false)
+  const [activeParaStyle, setActiveParaStyle] = useState(null)
+
+  // Paragraph escape bar (right margin, px)
+  const [rightMargin, setRightMargin] = useState(80)
+  const rightMarginRef = useRef(80)
+  useEffect(() => { rightMarginRef.current = rightMargin }, [rightMargin])
 
   // Typography controls
   const [fontSize, setFontSize] = useState(200)
@@ -144,16 +195,14 @@ export default function App() {
   const fileInputRef = useRef(null)
   const previewAreaRef = useRef(null)
   const bigEditorRef = useRef(null)
-  const paraEditorRef = useRef(null)
+  const blockRefs = useRef({})
+  const stylesPanelBtnRef = useRef(null)
+  const mobileStylesBtnRef = useRef(null)
+  const stylesPanelPopoverRef = useRef(null)
 
   const bigEditorCallback = useCallback(el => {
     bigEditorRef.current = el
     if (el && !el.textContent) el.textContent = SAMPLE_BIG
-  }, [])
-
-  const paraEditorCallback = useCallback(el => {
-    paraEditorRef.current = el
-    if (el && !el.innerText) el.innerText = SAMPLE_PARAGRAPH
   }, [])
 
   // ── Auto-fit font size to preview width ────────────────────────────────────
@@ -191,13 +240,22 @@ export default function App() {
       setFontFace(loaded)
       setFontName(matched.filename.replace(/\.[^/.]+$/, ''))
       autoFitSize(name)
-      const res = await fetch(matched.url)
-      const buffer = await res.arrayBuffer()
-      const axes = parseVariationAxes(buffer)
-      setVariationAxes(axes)
-      const defaults = {}
-      axes.forEach(a => { defaults[a.tag] = a.defaultVal })
-      setAxisValues(defaults)
+      if (special) {
+        setVariationAxes(special.axes)
+        setNamedInstances([])
+        const defaults = {}
+        special.axes.forEach(a => { defaults[a.tag] = a.defaultVal })
+        setAxisValues(defaults)
+      } else {
+        const res = await fetch(matched.url)
+        const buffer = await res.arrayBuffer()
+        const { axes, instances } = parseVariationAxes(buffer)
+        setVariationAxes(axes)
+        setNamedInstances(instances)
+        const defaults = {}
+        axes.forEach(a => { defaults[a.tag] = a.defaultVal })
+        setAxisValues(defaults)
+      }
     }
     loadRouteFont().catch(console.error)
   }, [fontSlug])
@@ -229,24 +287,48 @@ export default function App() {
     }
   }, [])
 
-  const detectAxes = async (file, fontFamilyName) => {
+  const detectAxes = async (file) => {
     try {
       const buffer = await file.arrayBuffer()
-      const axes = parseVariationAxes(buffer)
-      setVariationAxes(axes)
-      const defaults = {}
-      axes.forEach(a => { defaults[a.tag] = a.defaultVal })
-      setAxisValues(defaults)
+      const { axes, instances } = parseVariationAxes(buffer)
+      if (axes.length > 0) {
+        setVariationAxes(axes)
+        setNamedInstances(instances)
+        const defaults = {}
+        axes.forEach(a => { defaults[a.tag] = a.defaultVal })
+        setAxisValues(defaults)
+        return
+      }
+      // woff/woff2 compressed — try to match filename against special fonts
+      const normalized = file.name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[-_\s]/g, '')
+      const specialEntry = Object.entries(SPECIAL_FONTS).find(([key]) => normalized.includes(key))
+      if (specialEntry) {
+        const special = specialEntry[1]
+        setVariationAxes(special.axes)
+        setNamedInstances([])
+        const defaults = {}
+        special.axes.forEach(a => { defaults[a.tag] = a.defaultVal })
+        setAxisValues(defaults)
+      } else {
+        setVariationAxes([])
+        setNamedInstances([])
+        setAxisValues({})
+      }
     } catch (e) {
       setVariationAxes([])
+      setNamedInstances([])
       setAxisValues({})
     }
   }
 
-  // Minimal fvar + name table parser
+  // Minimal fvar + name table parser (TTF/OTF only — WOFF/WOFF2 are compressed)
   const parseVariationAxes = (buffer) => {
+    const empty = { axes: [], instances: [] }
     try {
       const data = new DataView(buffer)
+      const sig = data.getUint32(0)
+      // wOFF = 0x774F4646, wOF2 = 0x774F4632
+      if (sig === 0x774F4646 || sig === 0x774F4632) return empty
       const numTables = data.getUint16(4)
       let fvarOffset = 0
       let nameOffset = 0
@@ -262,7 +344,7 @@ export default function App() {
         if (t === 'name') nameOffset = data.getUint32(12 + i * 16 + 8)
       }
 
-      if (!fvarOffset) return []
+      if (!fvarOffset) return empty
 
       // Read a nameID string from the name table (prefers Windows Unicode)
       const getNameString = (nameID) => {
@@ -294,6 +376,8 @@ export default function App() {
       const axisArrayOffset = data.getUint16(fvarOffset + 4)
       const axisCount = data.getUint16(fvarOffset + 8)
       const axisSize = data.getUint16(fvarOffset + 10)
+      const instanceCount = data.getUint16(fvarOffset + 12)
+      const instanceSize = data.getUint16(fvarOffset + 14)
 
       const tagLabels = {
         wght: 'Weight', wdth: 'Width', ital: 'Italic', slnt: 'Slant',
@@ -302,6 +386,7 @@ export default function App() {
       }
 
       const axes = []
+      const tags = []
       for (let i = 0; i < axisCount; i++) {
         const off = fvarOffset + axisArrayOffset + i * axisSize
         const tag = String.fromCharCode(
@@ -315,17 +400,27 @@ export default function App() {
         const fontName = getNameString(axisNameID)
         const name = fontName || tagLabels[tag] || tag
 
-        axes.push({
-          tag,
-          name,
-          min: minVal,
-          max: maxVal,
-          defaultVal,
-        })
+        tags.push(tag)
+        axes.push({ tag, name, min: minVal, max: maxVal, defaultVal })
       }
-      return axes
+
+      const instancesStart = fvarOffset + axisArrayOffset + axisCount * axisSize
+      const instances = []
+      for (let i = 0; i < instanceCount; i++) {
+        const off = instancesStart + i * instanceSize
+        const nameID = data.getUint16(off)
+        const name = getNameString(nameID)
+        if (!name) continue
+        const coordinates = {}
+        for (let j = 0; j < axisCount; j++) {
+          coordinates[tags[j]] = data.getInt32(off + 4 + j * 4) / 65536
+        }
+        instances.push({ name, coordinates })
+      }
+
+      return { axes, instances }
     } catch {
-      return []
+      return empty
     }
   }
 
@@ -368,11 +463,118 @@ export default function App() {
     transition: 'font-variation-settings 0.15s ease',
   }
 
-  // ── Paragraph font size is smaller ────────────────────────────────────────
-  const paragraphStyle = {
-    ...previewStyle,
-    fontSize: `${Math.min(fontSize, 48)}px`,
+  // ── Active style for sidebar controls in paragraph mode ──────────────────
+  // null when not in paragraph mode; falls back to 'p' when panel open but nothing selected
+  const effectiveParaStyle = mode === 'paragraph' ? (activeParaStyle ?? 'p') : null
+
+  // ── Paragraph comfortable max (scales 48→400 as escape bar opens 80→10px) ──
+  const paraComfortableMax = Math.max(18, Math.round(48 + Math.max(0, 80 - rightMargin) * 5))
+
+  const handleEscapeBarMouseDown = useCallback((e) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startMargin = rightMarginRef.current
+    const onMove = (e) => {
+      // drag right → smaller margin → wider column → higher max
+      const newMargin = Math.max(10, Math.min(80, startMargin - (e.clientX - startX)))
+      setRightMargin(newMargin)
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [])
+
+  // ── Per-block style (paragraph mode) ─────────────────────────────────────
+  const blockStyle = (type) => {
+    const s = paraStyles[type] ?? paraStyles.p
+    const merged = { ...axisValues, ...s.axisOverrides }
+    const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    return {
+      fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
+      fontSize: `${s.size}px`,
+      fontWeight: merged.wght ?? 400,
+      letterSpacing: `${s.tracking}em`,
+      lineHeight: s.leading,
+      fontVariationSettings: fvs,
+      textAlign,
+      color: '#ffffff',
+      wordBreak: 'break-word',
+      display: 'block',
+      width: '100%',
+      minHeight: '1em',
+      outline: 'none',
+      cursor: 'text',
+      transition: 'font-variation-settings 0.15s ease',
+    }
   }
+
+  const handleBlockInput = useCallback((id, e) => {
+    const text = e.currentTarget.textContent
+    setBlocks(prev => prev.map(b => b.id === id ? { ...b, text } : b))
+  }, [])
+
+  const handleBlockKeyDown = useCallback((id, e) => {
+    if (e.key === ' ') {
+      const el = blockRefs.current[id]
+      const text = el?.textContent ?? ''
+      const mdType = text === '#' ? 'h1' : text === '##' ? 'h2' : text === '###' ? 'h3' : null
+      if (mdType) {
+        e.preventDefault()
+        el.textContent = ''
+        setBlocks(prev => prev.map(b => b.id === id ? { ...b, type: mdType, text: '' } : b))
+        requestAnimationFrame(() => { el.focus(); placeCursorAtStart(el) })
+      }
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const newId = String(Date.now())
+      setBlocks(prev => {
+        const idx = prev.findIndex(b => b.id === id)
+        const next = [...prev]
+        next.splice(idx + 1, 0, { id: newId, type: 'p', text: '' })
+        return next
+      })
+      requestAnimationFrame(() => {
+        const el = blockRefs.current[newId]
+        if (el) { el.focus(); placeCursorAtStart(el) }
+      })
+    }
+    if (e.key === 'Backspace') {
+      const el = blockRefs.current[id]
+      if (el && !el.textContent) {
+        e.preventDefault()
+        setBlocks(prev => {
+          if (prev.length <= 1) return prev
+          const idx = prev.findIndex(b => b.id === id)
+          const next = prev.filter(b => b.id !== id)
+          const targetId = next[Math.max(0, idx - 1)]?.id
+          requestAnimationFrame(() => {
+            const targetEl = blockRefs.current[targetId]
+            if (targetEl) { targetEl.focus(); placeCursorAtEnd(targetEl) }
+          })
+          return next
+        })
+      }
+    }
+  }, [])
+
+  // ── Close styles popover on outside click ──────────────────────────────────
+  useEffect(() => {
+    if (!paraStylesPanelOpen) return
+    const handler = (e) => {
+      if (
+        stylesPanelBtnRef.current?.contains(e.target) ||
+        mobileStylesBtnRef.current?.contains(e.target) ||
+        stylesPanelPopoverRef.current?.contains(e.target)
+      ) return
+      setParaStylesPanelOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [paraStylesPanelOpen])
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -392,7 +594,18 @@ export default function App() {
       {/* Mobile tab bar */}
       <nav className="mobile-tabs">
         <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><BigIcon /> Big Word</button>
-        <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><ParaIcon /> Paragraph</button>
+        <div className="mobile-tab-para">
+          <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><ParaIcon /> Paragraph</button>
+          {fontName && mode === 'paragraph' && (
+            <button
+              ref={mobileStylesBtnRef}
+              className={`mobile-styles-toggle ${paraStylesPanelOpen ? 'active' : ''}`}
+              onClick={() => setParaStylesPanelOpen(p => !p)}
+            >
+              {paraStylesPanelOpen ? '▼' : '▽'}
+            </button>
+          )}
+        </div>
         <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><GlyphIcon /> Glyphs</button>
       </nav>
 
@@ -445,9 +658,21 @@ export default function App() {
             <ModeBtn active={mode === 'big'} onClick={() => setMode('big')}>
               <BigIcon /> Big Word
             </ModeBtn>
-            <ModeBtn active={mode === 'paragraph'} onClick={() => setMode('paragraph')}>
-              <ParaIcon /> Paragraph
-            </ModeBtn>
+            <div className="mode-btn-row">
+              <ModeBtn active={mode === 'paragraph'} onClick={() => setMode('paragraph')}>
+                <ParaIcon /> Paragraph
+              </ModeBtn>
+              {fontName && (
+                <button
+                  ref={stylesPanelBtnRef}
+                  className={`align-btn styles-toggle-btn ${paraStylesPanelOpen ? 'active' : ''}`}
+                  title="Styles panel"
+                  onClick={() => setParaStylesPanelOpen(p => !p)}
+                >
+                  {paraStylesPanelOpen ? '▶' : '▷'}
+                </button>
+              )}
+            </div>
             <ModeBtn active={mode === 'glyphs'} onClick={() => setMode('glyphs')}>
               <GlyphIcon /> Glyphs
             </ModeBtn>
@@ -459,24 +684,38 @@ export default function App() {
         {/* Typography controls */}
         <div className="sidebar-section">
           <div className="typography-header">
-            <div className="section-label">Typography</div>
+            <div className="section-label">
+              Typography
+              {effectiveParaStyle && activeParaStyle && (
+                <span className="section-label-sub">
+                  {activeParaStyle === 'p' ? 'P' : activeParaStyle.toUpperCase()}
+                </span>
+              )}
+            </div>
             <div className="align-group">
               {(() => {
-                const isDirty =
-                  fontSize !== 200 ||
-                  letterSpacing !== 0 ||
-                  lineHeight !== 1.1 ||
-                  textAlign !== 'left'
+                const isDirty = effectiveParaStyle
+                  ? paraStyles[effectiveParaStyle].size !== DEFAULT_PARA_STYLES[effectiveParaStyle].size ||
+                    paraStyles[effectiveParaStyle].tracking !== DEFAULT_PARA_STYLES[effectiveParaStyle].tracking ||
+                    paraStyles[effectiveParaStyle].leading !== DEFAULT_PARA_STYLES[effectiveParaStyle].leading
+                  : fontSize !== 200 || letterSpacing !== 0 || lineHeight !== 1.1 || textAlign !== 'left'
                 return (
                   <button
                     className={`align-btn ${isDirty ? 'active' : 'reset-clean'}`}
                     title="Reset typography"
                     style={isDirty ? {} : { pointerEvents: 'none' }}
                     onClick={() => {
-                      setFontSize(200)
-                      setLetterSpacing(0)
-                      setLineHeight(1.1)
-                      setTextAlign('left')
+                      if (effectiveParaStyle) {
+                        setParaStyles(prev => ({
+                          ...prev,
+                          [effectiveParaStyle]: { ...prev[effectiveParaStyle], ...DEFAULT_PARA_STYLES[effectiveParaStyle] }
+                        }))
+                      } else {
+                        setFontSize(200)
+                        setLetterSpacing(0)
+                        setLineHeight(1.1)
+                        setTextAlign('left')
+                      }
                     }}
                   ><ResetIcon /></button>
                 )
@@ -493,32 +732,97 @@ export default function App() {
               ))}
             </div>
           </div>
-          <SliderRow
-            label="Size"
-            value={fontSize}
-            min={8}
-            max={400}
-            step={1}
-            onChange={setFontSize}
-          />
-          <SliderRow
-            label="Tracking"
-            value={letterSpacing}
-            min={-0.2}
-            max={0.5}
-            step={0.001}
-            onChange={setLetterSpacing}
-            display={letterSpacing.toFixed(3)}
-          />
-          <SliderRow
-            label="Leading"
-            value={lineHeight}
-            min={0.6}
-            max={3}
-            step={0.01}
-            onChange={setLineHeight}
-            display={lineHeight.toFixed(2)}
-          />
+          {namedInstances.length > 0 && (
+            <div className="instance-chips">
+              {namedInstances.map(inst => {
+                const active = variationAxes.every(a => {
+                  const cur = effectiveParaStyle
+                    ? (paraStyles[effectiveParaStyle].axisOverrides[a.tag] ?? axisValues[a.tag] ?? a.defaultVal)
+                    : (axisValues[a.tag] ?? a.defaultVal)
+                  return cur === inst.coordinates[a.tag]
+                })
+                return (
+                  <button
+                    key={inst.name}
+                    className={`instance-chip ${active ? 'active' : ''}`}
+                    onClick={() => {
+                      if (effectiveParaStyle) {
+                        setParaStyles(prev => ({
+                          ...prev,
+                          [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: { ...inst.coordinates } }
+                        }))
+                      } else {
+                        setAxisValues({ ...inst.coordinates })
+                      }
+                    }}
+                  >
+                    {inst.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {effectiveParaStyle ? (
+            <SliderRow
+              label="Size"
+              value={Math.min(paraStyles[effectiveParaStyle].size, effectiveParaStyle === 'p' ? paraComfortableMax : 400)}
+              min={8}
+              max={effectiveParaStyle === 'p' ? paraComfortableMax : 400}
+              step={1}
+              onChange={v => setParaStyles(prev => ({ ...prev, [effectiveParaStyle]: { ...prev[effectiveParaStyle], size: v } }))}
+            />
+          ) : (
+            <SliderRow
+              label="Size"
+              value={fontSize}
+              min={8}
+              max={400}
+              step={1}
+              onChange={setFontSize}
+            />
+          )}
+          {effectiveParaStyle ? (
+            <SliderRow
+              label="Tracking"
+              value={paraStyles[effectiveParaStyle].tracking}
+              min={-0.2}
+              max={0.5}
+              step={0.001}
+              onChange={v => setParaStyles(prev => ({ ...prev, [effectiveParaStyle]: { ...prev[effectiveParaStyle], tracking: v } }))}
+              display={paraStyles[effectiveParaStyle].tracking.toFixed(3)}
+            />
+          ) : (
+            <SliderRow
+              label="Tracking"
+              value={letterSpacing}
+              min={-0.2}
+              max={0.5}
+              step={0.001}
+              onChange={setLetterSpacing}
+              display={letterSpacing.toFixed(3)}
+            />
+          )}
+          {effectiveParaStyle ? (
+            <SliderRow
+              label="Leading"
+              value={paraStyles[effectiveParaStyle].leading}
+              min={0.6}
+              max={3}
+              step={0.01}
+              onChange={v => setParaStyles(prev => ({ ...prev, [effectiveParaStyle]: { ...prev[effectiveParaStyle], leading: v } }))}
+              display={paraStyles[effectiveParaStyle].leading.toFixed(2)}
+            />
+          ) : (
+            <SliderRow
+              label="Leading"
+              value={lineHeight}
+              min={0.6}
+              max={3}
+              step={0.01}
+              onChange={setLineHeight}
+              display={lineHeight.toFixed(2)}
+            />
+          )}
         </div>
 
         {/* Variable font axes */}
@@ -529,34 +833,57 @@ export default function App() {
               <div className="typography-header">
                 <div className="section-label">Variable Axes</div>
                 {(() => {
-                  const axesDirty = variationAxes.some(a => axisValues[a.tag] !== a.defaultVal)
+                  const axesDirty = effectiveParaStyle
+                    ? JSON.stringify(paraStyles[effectiveParaStyle].axisOverrides) !== JSON.stringify(DEFAULT_PARA_STYLES[effectiveParaStyle].axisOverrides)
+                    : variationAxes.some(a => axisValues[a.tag] !== a.defaultVal)
                   return (
                     <button
                       className={`align-btn ${axesDirty ? 'active' : 'reset-clean'}`}
                       title="Reset axes"
                       style={axesDirty ? {} : { pointerEvents: 'none' }}
                       onClick={() => {
-                        const defaults = {}
-                        variationAxes.forEach(a => { defaults[a.tag] = a.defaultVal })
-                        setAxisValues(defaults)
+                        if (effectiveParaStyle) {
+                          setParaStyles(prev => ({
+                            ...prev,
+                            [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: { ...DEFAULT_PARA_STYLES[effectiveParaStyle].axisOverrides } }
+                          }))
+                        } else {
+                          const defaults = {}
+                          variationAxes.forEach(a => { defaults[a.tag] = a.defaultVal })
+                          setAxisValues(defaults)
+                        }
                       }}
                     ><ResetIcon /></button>
                   )
                 })()}
               </div>
-              {variationAxes.map(axis => (
-                <SliderRow
-                  key={axis.tag}
-                  label={axis.name}
-                  tag={axis.tag}
-                  value={axisValues[axis.tag] ?? axis.defaultVal}
-                  min={axis.min}
-                  max={axis.max}
-                  step={(axis.max - axis.min) > 10 ? 1 : 0.01}
-                  onChange={v => setAxisValues(prev => ({ ...prev, [axis.tag]: v }))}
-                  display={Math.round((axisValues[axis.tag] ?? axis.defaultVal))}
-                />
-              ))}
+              {variationAxes.map(axis => {
+                const val = effectiveParaStyle
+                  ? (paraStyles[effectiveParaStyle].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
+                  : (axisValues[axis.tag] ?? axis.defaultVal)
+                return (
+                  <SliderRow
+                    key={axis.tag}
+                    label={axis.name}
+                    tag={axis.tag}
+                    value={val}
+                    min={axis.min}
+                    max={axis.max}
+                    step={(axis.max - axis.min) > 10 ? 1 : 0.01}
+                    onChange={v => {
+                      if (effectiveParaStyle) {
+                        setParaStyles(prev => ({
+                          ...prev,
+                          [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: { ...prev[effectiveParaStyle].axisOverrides, [axis.tag]: v } }
+                        }))
+                      } else {
+                        setAxisValues(prev => ({ ...prev, [axis.tag]: v }))
+                      }
+                    }}
+                    display={Math.round(val)}
+                  />
+                )
+              })}
             </div>
           </>
         )}
@@ -614,16 +941,33 @@ export default function App() {
         )}
 
         {fontName && mode === 'paragraph' && (
-          <div className="preview-paragraph">
-            <div
-              ref={paraEditorCallback}
-              contentEditable
-              suppressContentEditableWarning
-              spellCheck={false}
-              className="editable-paragraph"
-              style={paragraphStyle}
-              onInput={e => setParagraphText(e.currentTarget.textContent)}
-            />
+          <div className="preview-paragraph" style={{ paddingRight: `${rightMargin}px` }}>
+              <div
+                className="escape-bar"
+                style={{ right: `${rightMargin - 14}px` }}
+                onMouseDown={handleEscapeBarMouseDown}
+                title="Drag to expand column"
+              />
+              {blocks.map(block => (
+                <div
+                  key={block.id}
+                  ref={el => {
+                    if (el) {
+                      blockRefs.current[block.id] = el
+                      if (!el.textContent) el.textContent = block.text
+                    } else {
+                      delete blockRefs.current[block.id]
+                    }
+                  }}
+                  contentEditable
+                  suppressContentEditableWarning
+                  spellCheck={false}
+                  className={`para-block para-block--${block.type}${activeParaStyle === block.type ? ' para-block--selected' : ''}`}
+                  style={blockStyle(block.type)}
+                  onInput={e => handleBlockInput(block.id, e)}
+                  onKeyDown={e => handleBlockKeyDown(block.id, e)}
+                />
+              ))}
           </div>
         )}
 
@@ -646,6 +990,72 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* Styles popover */}
+      {paraStylesPanelOpen && mode === 'paragraph' && fontName && (() => {
+        const mobileRect = mobileStylesBtnRef.current?.getBoundingClientRect()
+        const desktopRect = stylesPanelBtnRef.current?.getBoundingClientRect()
+        const isMobile = mobileRect && mobileRect.width > 0
+        const rect = isMobile ? mobileRect : desktopRect
+        if (!rect) return null
+        const margin = 16
+        const popoverLeft = isMobile ? margin : rect.left
+        const popoverRight = isMobile ? margin : undefined
+        const caretX = isMobile
+          ? rect.left + rect.width / 2 - margin
+          : rect.width / 2
+        return (
+          <div
+            ref={stylesPanelPopoverRef}
+            className="para-styles-panel"
+            style={{
+              top: rect.bottom + 8,
+              left: popoverLeft,
+              ...(popoverRight !== undefined ? { right: popoverRight, minWidth: 'unset' } : {}),
+              '--caret-x': `${caretX}px`,
+            }}
+          >
+            {(['h1', 'h2', 'h3', 'p']).map(type => {
+              const s = paraStyles[type]
+              const isActive = activeParaStyle === type
+              const merged = { ...axisValues, ...s.axisOverrides }
+              const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+              const label = type === 'p' ? 'Paragraph' : `Heading ${type[1]}`
+              return (
+                <button
+                  key={type}
+                  className={`para-styles-row ${isActive ? 'active' : ''}`}
+                  onClick={() => setActiveParaStyle(prev => prev === type ? null : type)}
+                >
+                  <span
+                    className="para-styles-preview"
+                    style={{
+                      fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
+                      fontSize: `${Math.min(s.size, 22)}px`,
+                      fontWeight: merged.wght ?? 400,
+                      fontVariationSettings: fvs,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {label}
+                  </span>
+                  <span className="para-styles-specs">
+                    <span className="para-styles-spec">{s.size}px</span>
+                    {variationAxes.map(axis => {
+                      const val = s.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
+                      return (
+                        <span key={axis.tag} className="para-styles-spec">
+                          {axis.tag} {Number.isInteger(val) ? val : val.toFixed(1)}
+                        </span>
+                      )
+                    })}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )
+      })()}
     </div>
   )
 }
