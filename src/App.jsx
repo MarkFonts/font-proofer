@@ -1485,7 +1485,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
             <div className="calcom-month-nav">
               <div className="calcom-month-label">
                 <span style={{...roleStyle('calHeader'), fontSize: '14px'}}>April</span>
-                <span style={{...roleStyle('calHeader'), fontSize: '14px', color: '#555'}}>2026</span>
+                <span style={{...roleStyle('calHeader'), fontSize: '14px', color: 'rgba(245,250,255,0.4)'}}>2026</span>
               </div>
               <div className="calcom-nav-btns">
                 <button className="calcom-nav-btn">‹</button>
