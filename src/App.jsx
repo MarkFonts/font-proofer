@@ -6,6 +6,30 @@ import peerAvatar from '/public/peer-richelsen.png'
 import calcomIcon from '/public/calcom-icon.svg'
 import calcomBanner from '/public/calcom-banner.png'
 
+// ── Logo mode ─────────────────────────────────────────────────────────────────
+// Set to true to show the client's SVG logo in the sidebar instead of the WM gif
+const SHOW_CLIENT_LOGO = true
+
+const _rawLogos = import.meta.glob('./logos/*.svg', { query: '?raw', import: 'default', eager: true })
+const CLIENT_LOGOS = Object.fromEntries(
+  Object.entries(_rawLogos).map(([path, svg]) => [
+    path.replace('./logos/', '').replace(/\.svg$/i, '').toLowerCase(),
+    svg.replace(/<\?xml[^?]*\?>\s*/i, ''),
+  ])
+)
+function fuzzyClientLogo(slug) {
+  if (!slug) return null
+  const n = slug.toLowerCase()
+  if (CLIENT_LOGOS[n]) return CLIENT_LOGOS[n]
+  const key = Object.keys(CLIENT_LOGOS).find(k => k.includes(n) || n.includes(k))
+  return key ? CLIENT_LOGOS[key] : null
+}
+function ClientLogo({ slug, clientLabel }) {
+  const svg = fuzzyClientLogo(slug)
+  if (svg) return <div className="client-logo-svg" dangerouslySetInnerHTML={{ __html: svg }} />
+  return <span className="client-logo-text">{clientLabel}</span>
+}
+
 // ── URL route parsing ────────────────────────────────────────────────────────
 const BASE = '/font-proofer'
 function parseRoute() {
@@ -803,9 +827,15 @@ export default function App() {
       <aside className="sidebar">
         {/* Logo */}
         <div className="sidebar-logo">
-          <img src={logoGif} alt="Logo" className="logo-gif logo-gif--dark" />
-          <img src={logoGifDark} alt="Logo" className="logo-gif logo-gif--light" />
-          {clientLabel && clientSlug !== 'wordmark' && <span className="client-label">{clientLabel}</span>}
+          {SHOW_CLIENT_LOGO && clientSlug && clientSlug !== 'wordmark' ? (
+            <ClientLogo slug={clientSlug} clientLabel={clientLabel} />
+          ) : (
+            <>
+              <img src={logoGif} alt="Logo" className="logo-gif logo-gif--dark" />
+              <img src={logoGifDark} alt="Logo" className="logo-gif logo-gif--light" />
+              {clientLabel && clientSlug !== 'wordmark' && <span className="client-label">{clientLabel}</span>}
+            </>
+          )}
         </div>
 
         {/* Font upload — hidden when font is pre-selected via URL */}
