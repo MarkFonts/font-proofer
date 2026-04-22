@@ -41,6 +41,32 @@
   position: relative;
 }
 
+/* ── OG export button ────────────────────────────────────────────────────── */
+.sidebar-og-export {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.og-export-btn {
+  font-family: 'CalSansUI', system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  width: 100%;
+  text-align: left;
+}
+
+.og-export-btn:hover {
+  color: var(--text-muted);
+  border-color: var(--text-dim);
+}
+
 /* ── Sidebar footer ──────────────────────────────────────────────────────── */
 .sidebar-footer {
   margin-top: auto;
