@@ -11,10 +11,11 @@ function normalize(s) {
 function findFontFile(fontSlug) {
   const needle = normalize(fontSlug)
   const files = readdirSync('src/fonts').filter(f => /\.(ttf|otf|woff|woff2)$/i.test(f))
-  return files.find(f => {
+  const matches = files.filter(f => {
     const n = normalize(f.replace(/\.[^.]+$/, ''))
     return n.includes(needle) || needle.includes(n)
-  }) ?? null
+  })
+  return matches.find(f => !/italic|oblique/i.test(f)) ?? matches[0] ?? null
 }
 
 async function loadFontForSatori(filePath) {
