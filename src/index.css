@@ -24,10 +24,42 @@
   --text-muted: #888888;
   --text-dim: #555555;
   --accent: #ffffff;
+  --ink: #ffffff;
+  --muted: rgba(255,255,255,0.42);
   --radius: 6px;
   --sidebar-width: 260px;
   --header-height: 64px;
   font-family: 'CalSansUI', system-ui, sans-serif;
+}
+
+[data-theme="light"] {
+  --bg: #f2f0eb;
+  --bg-elevated: #e8e5df;
+  --bg-hover: #dedad3;
+  --border: #ccc8c0;
+  --border-subtle: #d8d4cd;
+  --text: #111111;
+  --text-muted: rgba(17,17,17,0.55);
+  --text-dim: rgba(17,17,17,0.35);
+  --accent: #111111;
+  --ink: #111111;
+  --muted: rgba(17,17,17,0.45);
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] {
+    --bg: #f2f0eb;
+    --bg-elevated: #e8e5df;
+    --bg-hover: #dedad3;
+    --border: #ccc8c0;
+    --border-subtle: #d8d4cd;
+    --text: #111111;
+    --text-muted: rgba(17,17,17,0.55);
+    --text-dim: rgba(17,17,17,0.35);
+    --accent: #111111;
+    --ink: #111111;
+    --muted: rgba(17,17,17,0.45);
+  }
 }
 
 html, body, #root {

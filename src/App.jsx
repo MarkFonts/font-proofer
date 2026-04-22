@@ -741,6 +741,7 @@ export default function App() {
     <div
       className={`layout ${isDragging ? 'dragging' : ''}`}
     >
+      <ThemeToggle />
       {/* Drop overlay */}
       {isDragging && (
         <div className="drop-overlay">
@@ -1532,6 +1533,25 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Theme Toggle ──────────────────────────────────────────────────────────────
+function ThemeToggle() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('wm-theme') || 'auto')
+  const apply = (t) => {
+    setTheme(t)
+    localStorage.setItem('wm-theme', t)
+    document.documentElement.dataset.theme = t
+  }
+  return (
+    <div id="theme-toggle" role="group" aria-label="Colour scheme">
+      {['auto', 'light', 'dark'].map(t => (
+        <button key={t} data-mode={t} className={theme === t ? 'active' : ''} onClick={() => apply(t)}>
+          {t.charAt(0).toUpperCase() + t.slice(1)}
+        </button>
+      ))}
     </div>
   )
 }
