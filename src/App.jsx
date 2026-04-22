@@ -586,7 +586,7 @@ export default function App() {
     .join(', ') || 'normal'
 
   const previewStyle = {
-    fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
+    fontFamily: fontFace ? fontFace.family : 'serif',
     fontSize: `${fontSize}px`,
     letterSpacing: `${letterSpacing}em`,
     lineHeight: lineHeight,
@@ -621,7 +621,7 @@ export default function App() {
       }
     }
     const family = calcomFont === 'calsansui'
-      ? (fontFace ? `"${fontFace.family}"` : '"Inter", system-ui, sans-serif')
+      ? (fontFace ? fontFace.family : '"Inter", system-ui, sans-serif')
       : '"Inter", system-ui, -apple-system, sans-serif'
     return {
       fontFamily: family,
@@ -668,7 +668,7 @@ export default function App() {
     const merged = { ...axisValues, ...s.axisOverrides }
     const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     return {
-      fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
+      fontFamily: fontFace ? fontFace.family : 'serif',
       fontSize: `${s.size}px`,
       letterSpacing: `${s.tracking}em`,
       lineHeight: s.leading,
@@ -1323,7 +1323,7 @@ export default function App() {
               const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
               const family = calcomFont === 'inter'
                 ? '"Inter", system-ui, sans-serif'
-                : fontFace ? `"${fontFace.family}"` : 'serif'
+                : fontFace ? fontFace.family : 'serif'
               const isActive = activeCalcomRole === key
               return (
                 <button
@@ -1402,7 +1402,7 @@ export default function App() {
                   <span
                     className="para-styles-preview"
                     style={{
-                      fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
+                      fontFamily: fontFace ? fontFace.family : 'serif',
                       fontSize: `${Math.min(s.size, 22)}px`,
                       fontVariationSettings: fvs,
                       fontSynthesis: 'none',
