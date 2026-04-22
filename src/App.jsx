@@ -1407,7 +1407,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
   for (let d = 1; d <= 30; d++) cells.push(d)
   while (cells.length % 7 !== 0) cells.push(null)
 
-  const times = ['4:15am','4:20am','4:25am','4:30am','6:00am','6:05am','6:15am','6:30am','6:45am','7:00am','11:30am','1:15pm','1:30pm','1:45pm']
+  const times = ['4:15am','4:20am','4:25am','4:30am','6:00am','6:05am','6:15am','6:30am','6:45am','7:00am','11:30am','1:15pm','1:30pm']
 
   const roleClass = (role) => activeRole === role ? 'calcom-role-highlight' : ''
 
@@ -1481,8 +1481,8 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
           <div className="calcom-calendar-wrap">
             <div className="calcom-month-nav">
               <div className="calcom-month-label">
-                <span style={roleStyle('calHeader')}>April</span>
-                <span style={{...roleStyle('calHeader'), color: '#555'}}>2026</span>
+                <span style={{...roleStyle('calHeader'), fontSize: '14px'}}>April</span>
+                <span style={{...roleStyle('calHeader'), fontSize: '14px', color: '#555'}}>2026</span>
               </div>
               <div className="calcom-nav-btns">
                 <button className="calcom-nav-btn">‹</button>
@@ -1515,7 +1515,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
           {/* Time slots */}
           {selectedDate && (
             <div className="calcom-times-wrap">
-              <div className="calcom-time-date" style={roleStyle('calHeader')}>
+              <div className="calcom-time-date" style={{...roleStyle('calHeader'), fontSize: '14px', textTransform: 'none'}}>
                 Wed {selectedDate}
               </div>
               <div className="calcom-time-list">
