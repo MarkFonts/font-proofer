@@ -901,10 +901,12 @@
 
 .calcom-cover {
   position: relative;
+  flex-shrink: 0;
+  margin-bottom: 28px;
+}
+.calcom-cover-img-wrap {
   height: 100px;
   overflow: hidden;
-  border-radius: 0;
-  flex-shrink: 0;
 }
 .calcom-cover-img {
   width: 100%;

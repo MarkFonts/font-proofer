@@ -1417,7 +1417,9 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
         {/* Left panel */}
         <div className="calcom-left">
           <div className="calcom-cover">
-            <img src={calcomBanner} alt="" className="calcom-cover-img" />
+            <div className="calcom-cover-img-wrap">
+              <img src={calcomBanner} alt="" className="calcom-cover-img" />
+            </div>
             <div className="calcom-avatar">
               <img src={peerAvatar} alt="Peer Richelsen" className="calcom-avatar-img" />
             </div>
