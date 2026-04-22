@@ -64,7 +64,7 @@ function normalize(s) {
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
 const CALSANSUI_AXES = [
   { tag: 'opsz', name: 'Optical Size',min: 10,  max: 10.1, defaultVal: 10  },
-  { tag: 'wght', name: 'Weight',      min: 400, max: 600,  defaultVal: 400 },
+  { tag: 'wght', name: 'Weight',      min: 400, max: 700,  defaultVal: 400 },
   { tag: 'GEOM', name: 'Geometric Formality', min: 0, max: 100, defaultVal: 0 },
   { tag: 'YTAS', name: 'Y Ascender',  min: 720, max: 800,  defaultVal: 720 },
   { tag: 'SHRP', name: 'Sharpness',   min: 0,   max: 100,  defaultVal: 0   },
