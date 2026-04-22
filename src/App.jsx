@@ -1197,7 +1197,7 @@ export default function App() {
           </div>
         )}
 
-        {fontName && mode === 'calcom' && (
+        {mode === 'calcom' && (
           <CalcomPreview key={calcomFont} roleStyle={roleStyle} activeRole={activeCalcomRole} onRoleClick={setActiveCalcomRole} />
         )}
 
@@ -1267,7 +1267,7 @@ export default function App() {
       </main>
 
       {/* Cal.com roles popover */}
-      {calcomPanelOpen && mode === 'calcom' && fontName && (() => {
+      {calcomPanelOpen && mode === 'calcom' && (() => {
         const rect = calcomPanelBtnRef.current?.getBoundingClientRect()
         if (!rect) return null
         return (
