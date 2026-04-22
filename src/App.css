@@ -835,10 +835,21 @@
   padding: 3px 0;
 }
 .calcom-radio-label input[type="radio"] {
-  accent-color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
   cursor: pointer;
   width: 13px;
   height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  flex-shrink: 0;
+  position: relative;
+  transition: border-color 0.1s;
+}
+.calcom-radio-label input[type="radio"]:checked {
+  border-color: var(--text);
+  background: radial-gradient(circle, var(--text) 38%, transparent 40%);
 }
 .calcom-radio-label:has(input:checked) {
   color: var(--text);
