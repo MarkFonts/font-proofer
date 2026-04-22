@@ -577,9 +577,20 @@ export default function App() {
     const r = calcomRoles[role] ?? calcomRoles.eventDesc
     const merged = { ...axisValues, ...r.axisOverrides }
     const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-    const family = calcomFont === 'inter'
-      ? '"Inter", system-ui, -apple-system, sans-serif'
-      : fontFace ? `"${fontFace.family}"` : '"Inter", system-ui, sans-serif'
+    if (role === 'eventTitle') {
+      return {
+        fontFamily: "'Cal Sans', sans-serif",
+        fontSize: `${r.size}px`,
+        letterSpacing: `${r.tracking}em`,
+        lineHeight: r.leading,
+        fontVariationSettings: 'normal',
+        fontSynthesis: 'none',
+        fontFeatureSettings: 'normal',
+      }
+    }
+    const family = calcomFont === 'calsansui'
+      ? (fontFace ? `"${fontFace.family}"` : '"Inter", system-ui, sans-serif')
+      : '"Inter", system-ui, -apple-system, sans-serif'
     return {
       fontFamily: family,
       fontSize: `${r.size}px`,
@@ -872,7 +883,7 @@ export default function App() {
 
         <div className="sidebar-divider" />
 
-        {/* Cal.com font radio + type roles */}
+        {/* Cal.com font radio */}
         {mode === 'calcom' && (
           <>
             <div className="sidebar-divider" />
@@ -884,63 +895,8 @@ export default function App() {
               </label>
               <label className="calcom-radio-label">
                 <input type="radio" name="calcom-font" value="inter" checked={calcomFont === 'inter'} onChange={() => setCalcomFont('inter')} />
-                Inter
+                Inter 4.1
               </label>
-            </div>
-            <div className="sidebar-divider" />
-            <div className="sidebar-section">
-              <div className="typography-header">
-                <div className="section-label">
-                  Type Roles
-                  {activeCalcomRole && (
-                    <span className="section-label-sub">{CALCOM_ROLE_LABELS[activeCalcomRole]}</span>
-                  )}
-                </div>
-                {activeCalcomRole && (() => {
-                  const r = calcomRoles[activeCalcomRole]
-                  const def = DEFAULT_CALCOM_ROLES[activeCalcomRole]
-                  const dirty = r.size !== def.size || r.tracking !== def.tracking
-                  return (
-                    <button
-                      className={`align-btn ${dirty ? 'active' : 'reset-clean'}`}
-                      title="Reset role"
-                      style={dirty ? {} : { pointerEvents: 'none' }}
-                      onClick={() => setCalcomRoles(prev => ({
-                        ...prev,
-                        [activeCalcomRole]: { ...prev[activeCalcomRole], size: def.size, tracking: def.tracking }
-                      }))}
-                    ><ResetIcon /></button>
-                  )
-                })()}
-              </div>
-              <div className="calcom-role-chips">
-                {Object.entries(CALCOM_ROLE_LABELS).map(([key, label]) => (
-                  <button
-                    key={key}
-                    className={`calcom-role-chip ${activeCalcomRole === key ? 'active' : ''}`}
-                    onClick={() => setActiveCalcomRole(prev => prev === key ? null : key)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {activeCalcomRole && (
-                <>
-                  <SliderRow
-                    label="Size"
-                    value={calcomRoles[activeCalcomRole].size}
-                    min={8} max={80} step={1}
-                    onChange={v => setCalcomRoles(prev => ({ ...prev, [activeCalcomRole]: { ...prev[activeCalcomRole], size: v } }))}
-                  />
-                  <SliderRow
-                    label="Tracking"
-                    value={calcomRoles[activeCalcomRole].tracking}
-                    min={-0.2} max={0.5} step={0.001}
-                    display={calcomRoles[activeCalcomRole].tracking.toFixed(3)}
-                    onChange={v => setCalcomRoles(prev => ({ ...prev, [activeCalcomRole]: { ...prev[activeCalcomRole], tracking: v } }))}
-                  />
-                </>
-              )}
             </div>
           </>
         )}
