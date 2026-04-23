@@ -1411,14 +1411,17 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
           </div>
           <div className="calcom-left-body">
           <div className={`calcom-event-host ${roleClass('eventHost')}`} style={roleStyle('eventHost')}
+            contentEditable suppressContentEditableWarning
             onClick={() => onRoleClick(r => r === 'eventHost' ? null : 'eventHost')}>
             Peer Richelsen
           </div>
           <div className={`calcom-event-title ${roleClass('eventTitle')}`} style={roleStyle('eventTitle')}
+            contentEditable suppressContentEditableWarning
             onClick={() => onRoleClick(r => r === 'eventTitle' ? null : 'eventTitle')}>
             Meeting
           </div>
           <div className={`calcom-event-desc ${roleClass('eventDesc')}`} style={roleStyle('eventDesc')}
+            contentEditable suppressContentEditableWarning
             onClick={() => onRoleClick(r => r === 'eventDesc' ? null : 'eventDesc')}>
             A quick screen share demo or longer conversation.
           </div>

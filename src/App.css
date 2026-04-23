@@ -1076,9 +1076,9 @@
   gap: 10px;
 }
 
-.calcom-event-host { color: rgba(245,250,255,0.5); }
-.calcom-event-title { color: #f5faff; margin-top: 2px; }
-.calcom-event-desc { color: rgba(245,250,255,0.35); margin-top: 2px; }
+.calcom-event-host { color: rgba(245,250,255,0.55); outline: none; }
+.calcom-event-title { color: #f5faff; margin-top: 2px; outline: none; }
+.calcom-event-desc { color: #d4d4d4; margin-top: 2px; outline: none; }
 
 .calcom-durations {
   display: flex;
@@ -1104,7 +1104,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: rgba(245,250,255,0.35);
+  color: #d4d4d4;
   cursor: default;
 }
 .calcom-meta-icon-img {
@@ -1188,18 +1188,17 @@
 .calcom-day.empty { pointer-events: none; }
 .calcom-day.past { color: rgba(245,250,255,0.2); pointer-events: none; }
 .calcom-day:not(.empty):not(.past):hover { background: #1e1e1e; }
-.calcom-day.today { color: #f5faff; font-weight: 500; }
-.calcom-day.today {
-  flex-direction: column;
-  gap: 3px;
-}
+.calcom-day.today { color: #f5faff; font-weight: 500; position: relative; }
 .calcom-day.today::after {
   content: '';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
   width: 4px;
   height: 4px;
   border-radius: 50%;
   background: #f5faff;
-  flex-shrink: 0;
 }
 .calcom-day.selected {
   background: #f5faff;
