@@ -1244,3 +1244,405 @@
   outline-offset: 3px;
   border-radius: 3px;
 }
+
+/* ── Booking Events (coss.com) preview ───────────────────────────────────── */
+.coss-shell {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+  background: #0f0f0f;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+.coss-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: #111;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 0;
+}
+.coss-sidebar-top { display: flex; flex-direction: column; }
+.coss-sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.coss-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 14px 12px;
+}
+.coss-wordmark {
+  height: 16px;
+  width: auto;
+  color: #f0f0f0;
+  flex-shrink: 0;
+}
+.coss-logo-actions { display: flex; align-items: center; gap: 6px; }
+.coss-logo-icon {
+  width: 15px;
+  height: 15px;
+  color: rgba(255,255,255,0.35);
+}
+.coss-avatar-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
+}
+
+.coss-nav { display: flex; flex-direction: column; gap: 1px; padding: 0 8px; }
+.coss-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.68);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+.coss-nav-item:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); }
+.coss-nav-item.active { background: rgba(255,255,255,0.08); color: #f0f0f0; }
+.coss-nav-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: currentColor;
+  opacity: 0.8;
+}
+.coss-nav-chevron {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+.coss-ai-badge {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 2px 7px 2px 5px;
+  border-radius: 99px;
+  background: rgba(139,92,246,0.25);
+  color: #c4b5fd;
+  font-weight: 500;
+  letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.coss-sparkle-icon {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.coss-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.1s;
+  white-space: nowrap;
+}
+.coss-sidebar-link:hover { color: rgba(255,255,255,0.7); }
+
+/* Main content */
+.coss-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #161616;
+  padding: 28px 32px;
+  overflow-y: auto;
+}
+.coss-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.coss-page-title {
+  color: #f0f0f0;
+  cursor: pointer;
+}
+.coss-page-sub {
+  color: rgba(255,255,255,0.45);
+  margin-top: 3px;
+  cursor: pointer;
+}
+.coss-header-actions { display: flex; align-items: center; gap: 8px; }
+.coss-search-bar {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.coss-search-icon { width: 14px; height: 14px; color: rgba(255,255,255,0.4); }
+.coss-new-btn {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 7px;
+  border: none;
+  background: #f0f0f0;
+  color: #111;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Event type cards */
+.coss-card-list { display: flex; flex-direction: column; gap: 2px; }
+.coss-event-card {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: #1e1e1e;
+  gap: 12px;
+}
+.coss-card-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.coss-card-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.coss-card-title {
+  color: #f0f0f0;
+  cursor: pointer;
+}
+.coss-card-slug {
+  color: rgba(255,255,255,0.35);
+  cursor: pointer;
+}
+.coss-card-desc {
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 420px;
+}
+.coss-card-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.coss-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  cursor: pointer;
+}
+.coss-badge--duration { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
+.coss-badge--confirm  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
+.coss-badge--hidden   { background: rgba(245,158,11,0.15);  color: #fbbf24; }
+.coss-badge--paid     { background: rgba(34,197,94,0.15);   color: #4ade80; }
+.coss-badge-icon { width: 10px; height: 10px; flex-shrink: 0; }
+
+.coss-card-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.coss-toggle {
+  width: 34px;
+  height: 20px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.coss-toggle.on  { background: #22c55e; justify-content: flex-end; }
+.coss-toggle.off { background: #3a3a3a; justify-content: flex-start; }
+.coss-toggle-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+}
+.coss-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.35);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.1s, background 0.1s;
+}
+.coss-icon-btn svg { width: 15px; height: 15px; }
+.coss-icon-btn:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
+.coss-icon-btn--menu {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5);
+}
+.coss-icon-btn--menu:hover,
+.coss-icon-btn--menu.active {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.9);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.coss-menu-wrap { position: relative; }
+.coss-ctx-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: #1e1e1e;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 4px;
+  min-width: 220px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.coss-ctx-section {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  padding: 6px 10px 4px;
+  letter-spacing: 0.02em;
+}
+.coss-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.85);
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+.coss-ctx-item:hover { background: rgba(255,255,255,0.07); }
+.coss-ctx-item--muted { color: rgba(255,255,255,0.4); }
+.coss-ctx-item--danger { color: #f87171; }
+.coss-ctx-item--danger:hover { background: rgba(248,113,113,0.08); }
+.coss-ctx-icon { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.7; }
+.coss-ctx-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 4px 0; }
+
+/* Bookings page */
+.coss-bookings-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.coss-bookings-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 3px;
+}
+.coss-bookings-tab {
+  padding: 5px 12px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.1s, background 0.1s;
+}
+.coss-bookings-tab:hover { color: rgba(255,255,255,0.7); }
+.coss-bookings-tab.active { background: rgba(255,255,255,0.12); color: #f0f0f0; }
+.coss-bookings-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  border-radius: 7px;
+  font-size: 11px;
+  margin-left: auto;
+  transition: color 0.1s, border-color 0.1s;
+}
+.coss-bookings-filter-btn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.3); }
+
+.coss-bookings-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px 24px;
+  text-align: center;
+}
+.coss-empty-icon { width: 32px; height: 32px; color: rgba(255,255,255,0.2); margin-bottom: 4px; }
+.coss-empty-title { color: #f0f0f0; cursor: pointer; }
+.coss-empty-sub { color: rgba(255,255,255,0.4); max-width: 320px; cursor: pointer; }
+
+.coss-booking-list { display: flex; flex-direction: column; gap: 2px; }
+.coss-booking-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 16px 20px;
+  background: rgba(255,255,255,0.025);
+  border-radius: 10px;
+  position: relative;
+}
+.coss-booking-row.accent::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  background: #f472b6;
+  border-radius: 99px;
+}
+.coss-booking-grid {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  row-gap: 3px;
+  column-gap: 20px;
+  align-items: baseline;
+}
+.coss-booking-date-label { color: rgba(255,255,255,0.8); cursor: pointer; }
+.coss-booking-time { color: rgba(255,255,255,0.45); }
+.coss-booking-left-badge { padding-top: 6px; }
+.coss-booking-title { color: rgba(255,255,255,0.85); cursor: pointer; }
+.coss-booking-people { color: rgba(255,255,255,0.45); cursor: pointer; }
+.coss-booking-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-top: 6px; }
+.coss-badge--platform { background: transparent; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.85); }
+.coss-badge--reschedule { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.coss-badge--cal { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); }
+
+.coss-no-more {
+  text-align: center;
+  color: rgba(255,255,255,0.25);
+  padding: 16px 0;
+  cursor: pointer;
+}

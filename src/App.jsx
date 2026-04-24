@@ -6,6 +6,8 @@ import logoGifDark from '/public/logo_darkmode.gif'
 import peerAvatar from '/public/peer-richelsen.png'
 import calcomIcon from '/public/calcom-icon.svg'
 import calcomBanner from '/public/calcom-banner.png'
+import cossCalAvatar from '/public/coss-cal-avatar.jpg'
+import cossUserAvatar from '/public/coss-user-avatar.jpg'
 
 // ── Logo mode ─────────────────────────────────────────────────────────────────
 // Set to true to show the client's SVG logo in the sidebar instead of the WM gif
@@ -169,6 +171,20 @@ const DEFAULT_CALCOM_ROLES = {
   timeSlot:   { size: 14, tracking: 0,      leading: 1,   axisOverrides: {} },
 }
 
+// ── Coss (booking events) type role model ────────────────────────────────────
+const COSS_ROLE_LABELS = {
+  navLabel: 'Nav', pageTitle: 'Title', cardTitle: 'Event',
+  cardSlug: 'Slug', cardDesc: 'Desc', badge: 'Badge',
+}
+const DEFAULT_COSS_ROLES = {
+  navLabel:  { size: 14, tracking: 0,      leading: 1.4, axisOverrides: {} },
+  pageTitle: { size: 20, tracking: -0.01,  leading: 1.2, axisOverrides: { wght: 700 } },
+  cardTitle: { size: 14, tracking: 0,      leading: 1.3, axisOverrides: { wght: 500 } },
+  cardSlug:  { size: 12, tracking: 0,      leading: 1.4, axisOverrides: {} },
+  cardDesc:  { size: 13, tracking: 0,      leading: 1.5, axisOverrides: {} },
+  badge:     { size: 11, tracking: 0,      leading: 1,   axisOverrides: {} },
+}
+
 // ── Paragraph style model ────────────────────────────────────────────────────
 const DEFAULT_PARA_STYLES = {
   h1: { size: 57, leading: 1.1, tracking: 0,     axisOverrides: { wght: 700 } },
@@ -286,6 +302,10 @@ export default function App() {
   const [calcomRoles, setCalcomRoles] = useState(DEFAULT_CALCOM_ROLES)
   const [activeCalcomRole, setActiveCalcomRole] = useState(null)
 
+  // Coss (booking events) preview state
+  const [cossRoles, setCossRoles] = useState(DEFAULT_COSS_ROLES)
+  const [activeCossRole, setActiveCossRole] = useState(null)
+
   // Text content
   const [bigText, setBigText] = useState(SAMPLE_BIG)
   const [blocks, setBlocks] = useState(SAMPLE_BLOCKS)
@@ -299,6 +319,8 @@ export default function App() {
 
   // Cal.com roles panel
   const [calcomPanelOpen, setCalcomPanelOpen] = useState(false)
+  // Coss roles panel
+  const [cossPanelOpen, setCossPanelOpen] = useState(false)
 
   // Paragraph escape bar (right margin, px)
   const [rightMargin, setRightMargin] = useState(80)
@@ -339,6 +361,8 @@ export default function App() {
   const stylesPanelPopoverRef = useRef(null)
   const calcomPanelBtnRef = useRef(null)
   const calcomPanelPopoverRef = useRef(null)
+  const cossPanelBtnRef = useRef(null)
+  const cossPanelPopoverRef = useRef(null)
 
   const bigEditorCallback = useCallback(el => {
     bigEditorRef.current = el
@@ -541,12 +565,42 @@ export default function App() {
 
   // ── Active role for calcom mode ───────────────────────────────────────────
   const effectiveCalcomRole = mode === 'calcom' ? activeCalcomRole : null
+  const effectiveCossRole = mode === 'coss' ? activeCossRole : null
 
   const roleStyle = (role) => {
     const r = calcomRoles[role] ?? calcomRoles.eventDesc
     const merged = { ...axisValues, ...r.axisOverrides }
     const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     if (role === 'eventTitle') {
+      return {
+        fontFamily: "'Cal Sans', sans-serif",
+        fontSize: `${r.size}px`,
+        letterSpacing: `${r.tracking}em`,
+        lineHeight: r.leading,
+        fontVariationSettings: 'normal',
+        fontSynthesis: 'none',
+        fontFeatureSettings: 'normal',
+      }
+    }
+    const family = calcomFont === 'calsansui'
+      ? (fontFace ? fontFace.family : '"Inter", system-ui, sans-serif')
+      : '"Inter", system-ui, -apple-system, sans-serif'
+    return {
+      fontFamily: family,
+      fontSize: `${r.size}px`,
+      letterSpacing: `${r.tracking}em`,
+      lineHeight: r.leading,
+      fontVariationSettings: calcomFont === 'calsansui' ? fvs : 'normal',
+      fontSynthesis: 'none',
+      fontFeatureSettings: '"calt" 0, "ss20" 0',
+    }
+  }
+
+  const cossRoleStyle = (role) => {
+    const r = cossRoles[role] ?? cossRoles.cardDesc
+    const merged = { ...axisValues, ...r.axisOverrides }
+    const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    if (role === 'pageTitle') {
       return {
         fontFamily: "'Cal Sans', sans-serif",
         fontSize: `${r.size}px`,
@@ -703,6 +757,19 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler)
   }, [calcomPanelOpen])
 
+  useEffect(() => {
+    if (!cossPanelOpen) return
+    const handler = (e) => {
+      if (
+        cossPanelBtnRef.current?.contains(e.target) ||
+        cossPanelPopoverRef.current?.contains(e.target)
+      ) return
+      setCossPanelOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [cossPanelOpen])
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
@@ -721,7 +788,8 @@ export default function App() {
 
       {/* Mobile tab bar */}
       <nav className="mobile-tabs">
-        {isCalcom && <button className={`mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><CalIcon /> Cal.com</button>}
+        {isCalcom && <button className={`mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><CalIcon /> cal.com/peer</button>}
+        {isCalcom && <button className={`mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><CalIcon /> booking events</button>}
         <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><BigIcon /> Big Word</button>
         <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><ParaIcon /> Paragraph</button>
         <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><GlyphIcon /> Glyphs</button>
@@ -821,16 +889,33 @@ export default function App() {
             {isCalcom && (
               <div className="mode-btn-row">
                 <ModeBtn active={mode === 'calcom'} onClick={() => setMode('calcom')}>
-                  <CalIcon /> Cal.com
+                  <CalIcon /> cal.com/peer
                 </ModeBtn>
-                {fontName && (
+                {fontName && mode === 'calcom' && (
                   <button
                     ref={calcomPanelBtnRef}
                     className={`align-btn styles-toggle-btn ${calcomPanelOpen ? 'active' : ''}`}
                     title="Type roles panel"
                     onClick={() => setCalcomPanelOpen(p => !p)}
                   >
-                    {calcomPanelOpen ? '▶' : '▷'}
+                    <SlidersIcon />
+                  </button>
+                )}
+              </div>
+            )}
+            {isCalcom && (
+              <div className="mode-btn-row">
+                <ModeBtn active={mode === 'coss'} onClick={() => setMode('coss')}>
+                  <CalIcon /> booking events
+                </ModeBtn>
+                {fontName && mode === 'coss' && (
+                  <button
+                    ref={cossPanelBtnRef}
+                    className={`align-btn styles-toggle-btn ${cossPanelOpen ? 'active' : ''}`}
+                    title="Type roles panel"
+                    onClick={() => setCossPanelOpen(p => !p)}
+                  >
+                    <SlidersIcon />
                   </button>
                 )}
               </div>
@@ -842,14 +927,14 @@ export default function App() {
               <ModeBtn active={mode === 'paragraph'} onClick={() => setMode('paragraph')}>
                 <ParaIcon /> Paragraph
               </ModeBtn>
-              {fontName && (
+              {fontName && mode === 'paragraph' && (
                 <button
                   ref={stylesPanelBtnRef}
                   className={`align-btn styles-toggle-btn ${paraStylesPanelOpen ? 'active' : ''}`}
                   title="Styles panel"
                   onClick={() => setParaStylesPanelOpen(p => !p)}
                 >
-                  {paraStylesPanelOpen ? '▶' : '▷'}
+                  <SlidersIcon />
                 </button>
               )}
             </div>
@@ -1056,12 +1141,19 @@ export default function App() {
                       {CALCOM_ROLE_LABELS[effectiveCalcomRole]} ×
                     </button>
                   )}
+                  {effectiveCossRole && (
+                    <button className="section-label-exit" onClick={() => setActiveCossRole(null)} title="Back to master">
+                      {COSS_ROLE_LABELS[effectiveCossRole]} ×
+                    </button>
+                  )}
                 </div>
                 {(() => {
                   const axesDirty = effectiveParaStyle
                     ? JSON.stringify(paraStyles[effectiveParaStyle].axisOverrides) !== JSON.stringify(DEFAULT_PARA_STYLES[effectiveParaStyle].axisOverrides)
                     : effectiveCalcomRole
                     ? JSON.stringify(calcomRoles[effectiveCalcomRole].axisOverrides) !== JSON.stringify(DEFAULT_CALCOM_ROLES[effectiveCalcomRole].axisOverrides)
+                    : effectiveCossRole
+                    ? JSON.stringify(cossRoles[effectiveCossRole].axisOverrides) !== JSON.stringify(DEFAULT_COSS_ROLES[effectiveCossRole].axisOverrides)
                     : variationAxes.some(a => axisValues[a.tag] !== a.defaultVal)
                   return (
                     <button
@@ -1079,6 +1171,11 @@ export default function App() {
                             ...prev,
                             [effectiveCalcomRole]: { ...prev[effectiveCalcomRole], axisOverrides: { ...DEFAULT_CALCOM_ROLES[effectiveCalcomRole].axisOverrides } }
                           }))
+                        } else if (effectiveCossRole) {
+                          setCossRoles(prev => ({
+                            ...prev,
+                            [effectiveCossRole]: { ...prev[effectiveCossRole], axisOverrides: { ...DEFAULT_COSS_ROLES[effectiveCossRole].axisOverrides } }
+                          }))
                         } else {
                           const defaults = {}
                           variationAxes.forEach(a => { defaults[a.tag] = a.defaultVal })
@@ -1094,6 +1191,8 @@ export default function App() {
                   ? (paraStyles[effectiveParaStyle].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
                   : effectiveCalcomRole
                   ? (calcomRoles[effectiveCalcomRole].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
+                  : effectiveCossRole
+                  ? (cossRoles[effectiveCossRole].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
                   : (axisValues[axis.tag] ?? axis.defaultVal)
                 return (
                   <SliderRow
@@ -1114,6 +1213,11 @@ export default function App() {
                         setCalcomRoles(prev => ({
                           ...prev,
                           [effectiveCalcomRole]: { ...prev[effectiveCalcomRole], axisOverrides: { ...prev[effectiveCalcomRole].axisOverrides, [axis.tag]: v } }
+                        }))
+                      } else if (effectiveCossRole) {
+                        setCossRoles(prev => ({
+                          ...prev,
+                          [effectiveCossRole]: { ...prev[effectiveCossRole], axisOverrides: { ...prev[effectiveCossRole].axisOverrides, [axis.tag]: v } }
                         }))
                       } else {
                         setAxisValues(prev => ({ ...prev, [axis.tag]: v }))
@@ -1186,6 +1290,10 @@ export default function App() {
 
         {mode === 'calcom' && (
           <CalcomPreview key={calcomFont} roleStyle={roleStyle} activeRole={activeCalcomRole} onRoleClick={setActiveCalcomRole} />
+        )}
+
+        {mode === 'coss' && (
+          <CossPreview key={calcomFont} roleStyle={cossRoleStyle} activeRole={activeCossRole} onRoleClick={setActiveCossRole} />
         )}
 
         {fontName && mode === 'big' && (
@@ -1280,6 +1388,65 @@ export default function App() {
                   key={key}
                   className={`para-styles-row ${isActive ? 'active' : ''}`}
                   onClick={() => { setActiveCalcomRole(prev => prev === key ? null : key); setCalcomPanelOpen(false) }}
+                >
+                  <span
+                    className="para-styles-preview"
+                    style={{
+                      fontFamily: family,
+                      fontSize: `${Math.min(r.size, 22)}px`,
+                      fontVariationSettings: calcomFont === 'calsansui' ? fvs : 'normal',
+                      fontSynthesis: 'none',
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {label}
+                  </span>
+                  <span className="para-styles-specs">
+                    <span className="para-styles-spec">{r.size}px</span>
+                    <span className="para-styles-spec">{r.tracking.toFixed(3)}</span>
+                    {variationAxes.map(axis => {
+                      const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
+                      const isLocal = axis.tag in r.axisOverrides
+                      return (
+                        <span key={axis.tag} className={`para-styles-spec${isLocal ? ' para-styles-spec--local' : ''}`}>
+                          {axis.tag} {Number.isInteger(val) ? val : val.toFixed(1)}
+                        </span>
+                      )
+                    })}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )
+      })()}
+
+      {cossPanelOpen && mode === 'coss' && (() => {
+        const rect = cossPanelBtnRef.current?.getBoundingClientRect()
+        if (!rect) return null
+        return (
+          <div
+            ref={cossPanelPopoverRef}
+            className="para-styles-panel"
+            style={{
+              top: rect.bottom + 8,
+              left: rect.left,
+              '--caret-x': `${rect.width / 2}px`,
+            }}
+          >
+            {Object.entries(COSS_ROLE_LABELS).map(([key, label]) => {
+              const r = cossRoles[key]
+              const merged = { ...axisValues, ...r.axisOverrides }
+              const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+              const family = calcomFont === 'inter'
+                ? '"Inter", system-ui, sans-serif'
+                : fontFace ? fontFace.family : 'serif'
+              const isActive = activeCossRole === key
+              return (
+                <button
+                  key={key}
+                  className={`para-styles-row ${isActive ? 'active' : ''}`}
+                  onClick={() => { setActiveCossRole(prev => prev === key ? null : key); setCossPanelOpen(false) }}
                 >
                   <span
                     className="para-styles-preview"
@@ -1524,6 +1691,370 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
   )
 }
 
+// ── Booking Events (coss.com) preview ────────────────────────────────────────
+function CossPreview({ roleStyle, activeRole, onRoleClick }) {
+  const roleClass = (role) => activeRole === role ? 'calcom-role-highlight' : ''
+  const [openMenu, setOpenMenu] = useState(null)
+  const [cossPage, setCossPage] = useState('eventTypes')
+  const [bookingsTab, setBookingsTab] = useState('past')
+
+  useEffect(() => {
+    if (openMenu === null) return
+    const handler = (e) => {
+      if (!e.target.closest('.coss-ctx-menu') && !e.target.closest('.coss-icon-btn--menu')) setOpenMenu(null)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [openMenu])
+
+  const LucideIcon = ({ children }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-nav-icon" aria-hidden="true">{children}</svg>
+  )
+
+  const PAGED = new Set(['eventTypes', 'bookings'])
+  const handleNavClick = (key) => {
+    if (PAGED.has(key)) {
+      if (cossPage !== key) { setCossPage(key); return }
+    }
+    onRoleClick(r => r === 'navLabel' ? null : 'navLabel')
+  }
+
+  const navItems = [
+    { key: 'eventTypes', label: 'Event Types', icon: (
+      <LucideIcon><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><line x1="11" y1="12" x2="13" y2="12"/></LucideIcon>
+    )},
+    { key: 'bookings', label: 'Bookings', icon: (
+      <LucideIcon><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></LucideIcon>
+    )},
+    { key: 'availability', label: 'Availability', icon: (
+      <LucideIcon><path d="M12 2a10 10 0 0 1 7.38 16.75"/><path d="M12 6v6l4 2"/><path d="M2.5 8.875a10 10 0 0 0-.5 3"/><path d="M2.83 16a10 10 0 0 0 2.43 3.4"/><path d="M4.636 5.235a10 10 0 0 1 .891-.857"/><path d="M8.644 21.42a10 10 0 0 0 7.631-.38"/></LucideIcon>
+    )},
+    { key: 'members', label: 'Members', icon: (
+      <LucideIcon><path d="M16 2v2"/><path d="M17.915 22a6 6 0 0 0-12 0"/><path d="M8 2v2"/><circle cx="12" cy="12" r="4"/><rect x="3" y="4" width="18" height="18" rx="2"/></LucideIcon>
+    )},
+    { key: 'teams', label: 'Teams', icon: (
+      <LucideIcon><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></LucideIcon>
+    )},
+    { key: 'apps', label: 'Apps', chevron: true, icon: (
+      <LucideIcon><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></LucideIcon>
+    )},
+    { key: 'routing', label: 'Routing', icon: (
+      <LucideIcon><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></LucideIcon>
+    )},
+    { key: 'workflows', label: 'Workflows', badge: 'Cal AI', icon: (
+      <LucideIcon><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></LucideIcon>
+    )},
+    { key: 'insights', label: 'Insights', icon: (
+      <LucideIcon><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></LucideIcon>
+    )},
+  ]
+
+  const eventTypes = [
+    { id: 1, title: '15 Min Meeting', slug: '/pasquale/15min',  desc: 'A quick 15 minute call to discuss anything.', duration: '15m', badges: [], enabled: true },
+    { id: 2, title: '30 Min Meeting', slug: '/pasquale/30min',  desc: 'A standard 30 minute meeting for detailed discussions.', duration: '30m', badges: [], enabled: true },
+    { id: 3, title: '60 Min Consultation', slug: '/pasquale/consultation', desc: 'An in-depth consultation for complex topics requiring detailed discussion and planning.', duration: '1h', badges: ['confirmation'], enabled: true },
+    { id: 4, title: 'Secret Meeting', slug: '/pasquale/secret', desc: 'A private meeting only accessible via direct link.', duration: '30m', badges: ['hidden'], enabled: false },
+    { id: 5, title: 'Paid Consultation', slug: '/pasquale/paid-consultation', desc: 'Premium consultation with payment required.', duration: '45m', badges: ['paid'], enabled: true },
+  ]
+
+  return (
+    <div className="coss-shell">
+      {/* Sidebar */}
+      <aside className="coss-sidebar">
+        <div className="coss-sidebar-top">
+          <div className="coss-logo-row">
+            <svg className="coss-wordmark" viewBox="0 0 1953.76354 400" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M196.05736,399.28317C84.22939,399.28317,0,312.18638,0,204.65949,0,96.77419,79.92832,8.96057,196.05736,8.96057c61.64874,0,104.30107,18.638,137.63442,61.29033l-53.76344,44.08603c-22.58066-23.65591-49.8208-35.48388-83.87098-35.48388-75.62724,0-117.20431,56.98925-117.20431,125.80645s45.51972,124.7312,117.20431,124.7312c33.69176,0,62.3656-11.82797,84.94623-35.48388l53.04661,45.87815c-31.89965,40.86022-75.62726,59.4982-137.99284,59.4982Z"/><path d="M565.59139,112.90322h72.40142v279.5699h-72.40142v-40.86022c-15.05375,29.03225-40.14336,48.3871-88.17207,48.3871-76.70252,0-137.99284-65.59141-137.99284-146.23657s61.29032-146.23656,137.99284-146.23656c47.67026,0,73.11826,19.35484,88.17207,48.3871v-43.01074ZM567.74194,253.76345c0-43.72759-30.46595-79.92832-78.4946-79.92832-46.23654,0-76.3441,36.55914-76.3441,79.92832,0,42.29392,30.10751,79.9283,76.3441,79.9283,47.67021,0,78.4946-36.55913,78.4946-79.9283Z"/><path d="M689.2473,0h72.40142v392.11471h-72.40142V0Z"/><path d="M793.90685,355.19713c0-22.93907,18.63798-42.29392,44.08603-42.29392s43.36914,19.35484,43.36914,42.29392c0,23.65591-18.27959,43.01075-43.3692,43.01075s-44.08598-19.35482-44.08598-43.01075Z"/><path d="M1158.42292,347.31184c-26.88172,32.25807-67.74192,52.68816-116.12901,52.68816-86.37995,0-149.82075-65.59141-149.82075-146.23657s63.44091-146.23656,149.82075-146.23656c46.59498,0,87.09673,19.35484,113.97845,49.82078l-55.914,46.23657c-13.97847-17.2043-32.25807-30.10753-58.06456-30.10753-46.23654,0-76.34404,36.55913-76.34404,79.9283s30.10751,79.92833,76.34404,79.92833c27.95695,0,47.31187-14.33692,61.64879-33.69176l54.48033,47.67029Z"/><path d="M1164.51616,253.76345c0-80.64516,63.44091-146.23656,149.82075-146.23656s149.82075,65.5914,149.82075,146.23656-63.44091,146.23655-149.82075,146.23655c-86.37984-.35842-149.82075-65.59138-149.82075-146.23655ZM1390.68106,253.76345c0-43.72759-30.10751-79.92832-76.34404-79.92832-46.23665-.35843-76.34415,36.2007-76.34415,79.92832,0,43.36917,30.10751,79.9283,76.34404,79.9283s76.34415-36.55913,76.34415-79.9283Z"/><path d="M1953.76354,221.50539v170.60932h-72.40148v-153.04659c0-48.3871-22.93916-69.17563-57.34767-69.17563-32.25807,0-55.19711,15.77062-55.19711,69.17563v153.04659h-72.40148v-153.04659c0-48.3871-23.29749-69.17563-57.34767-69.17563-32.25807,0-60.57346,15.77062-60.57346,69.17563v153.04659h-72.40148V112.5448h72.40148v38.70968c15.05381-30.10752,42.29386-45.1613,84.22939-45.1613,39.78497,0,73.11826,19.35484,91.39785,51.97133,18.27959-33.33333,45.1612-51.97133,93.90686-51.97133,59.49812.35843,105.73477,44.80288,105.73477,115.41221Z"/></svg>
+            <div className="coss-logo-actions">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-logo-icon"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+              <img src={cossCalAvatar} alt="" className="coss-avatar-img" />
+              <img src={cossUserAvatar} alt="" className="coss-avatar-img" />
+            </div>
+          </div>
+          <nav className="coss-nav">
+            {navItems.map(item => (
+              <button
+                key={item.key}
+                className={`coss-nav-item ${cossPage === item.key ? 'active' : ''} ${roleClass('navLabel')}`}
+                style={roleStyle('navLabel')}
+                onClick={() => handleNavClick(item.key)}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+                {item.badge && (
+                  <span className="coss-ai-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-sparkle-icon"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>
+                    {item.badge}
+                  </span>
+                )}
+                {item.chevron && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-nav-chevron"><path d="m9 18 6-6-6-6"/></svg>}
+              </button>
+            ))}
+          </nav>
+        </div>
+        <div className="coss-sidebar-bottom">
+          {[
+            { label: 'View public page',      icon: <><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></> },
+            { label: 'Copy public page link', icon: <><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></> },
+            { label: 'Refer and earn',        icon: <><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></> },
+            { label: 'Settings',              icon: <><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></> },
+          ].map(({ label, icon }) => (
+            <button key={label} className={`coss-sidebar-link ${roleClass('navLabel')}`} style={roleStyle('navLabel')}
+              onClick={() => onRoleClick(r => r === 'navLabel' ? null : 'navLabel')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-nav-icon">{icon}</svg>
+              {label}
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="coss-main">
+        {/* ── Event Types page ── */}
+        {cossPage === 'eventTypes' && (<>
+        <div className="coss-page-header">
+          <div>
+            <div className={`coss-page-title ${roleClass('pageTitle')}`} style={roleStyle('pageTitle')}
+              onClick={() => onRoleClick(r => r === 'pageTitle' ? null : 'pageTitle')}>
+              Event Types
+            </div>
+            <div className={`coss-page-sub ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}
+              onClick={() => onRoleClick(r => r === 'cardDesc' ? null : 'cardDesc')}>
+              Create events to share for people to book on your calendar.
+            </div>
+          </div>
+          <div className="coss-header-actions">
+            <div className="coss-search-bar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-search-icon"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+            </div>
+            <button className="coss-new-btn">+ New</button>
+          </div>
+        </div>
+
+        <div className="coss-card-list">
+          {eventTypes.map(et => (
+            <div key={et.id} className="coss-event-card">
+              <div className="coss-card-left">
+                <div className="coss-card-title-row">
+                  <span className={`coss-card-title ${roleClass('cardTitle')}`} style={roleStyle('cardTitle')}
+                    onClick={() => onRoleClick(r => r === 'cardTitle' ? null : 'cardTitle')}>
+                    {et.title}
+                  </span>
+                  <span className={`coss-card-slug ${roleClass('cardSlug')}`} style={roleStyle('cardSlug')}
+                    onClick={() => onRoleClick(r => r === 'cardSlug' ? null : 'cardSlug')}>
+                    {et.slug}
+                  </span>
+                </div>
+                <div className={`coss-card-desc ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}
+                  onClick={() => onRoleClick(r => r === 'cardDesc' ? null : 'cardDesc')}>
+                  {et.desc}
+                </div>
+                <div className="coss-card-badges">
+                  <span className={`coss-badge coss-badge--duration ${roleClass('badge')}`} style={roleStyle('badge')}
+                    onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-badge-icon"><path d="M12 2a10 10 0 0 1 7.38 16.75"/><path d="M12 6v6l4 2"/><path d="M2.5 8.875a10 10 0 0 0-.5 3"/><path d="M2.83 16a10 10 0 0 0 2.43 3.4"/><path d="M4.636 5.235a10 10 0 0 1 .891-.857"/><path d="M8.644 21.42a10 10 0 0 0 7.631-.38"/></svg>
+                    {et.duration}
+                  </span>
+                  {et.badges.includes('confirmation') && (
+                    <span className={`coss-badge coss-badge--confirm ${roleClass('badge')}`} style={roleStyle('badge')}
+                      onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
+                      Requires confirmation
+                    </span>
+                  )}
+                  {et.badges.includes('hidden') && (
+                    <span className={`coss-badge coss-badge--hidden ${roleClass('badge')}`} style={roleStyle('badge')}
+                      onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
+                      Hidden
+                    </span>
+                  )}
+                  {et.badges.includes('paid') && (
+                    <span className={`coss-badge coss-badge--paid ${roleClass('badge')}`} style={roleStyle('badge')}
+                      onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
+                      $99
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="coss-card-right">
+                <div className={`coss-toggle ${et.enabled ? 'on' : 'off'}`}>
+                  <div className="coss-toggle-thumb" />
+                </div>
+                <button className="coss-icon-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <div className="coss-menu-wrap">
+                  <button
+                    className={`coss-icon-btn coss-icon-btn--menu ${openMenu === et.id ? 'active' : ''}`}
+                    onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === et.id ? null : et.id) }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                  {openMenu === et.id && (
+                    <div className="coss-ctx-menu">
+                      <div className="coss-ctx-section">Edit event</div>
+                      <button className="coss-ctx-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-ctx-icon"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                        Reschedule booking
+                      </button>
+                      <button className="coss-ctx-item coss-ctx-item--muted">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-ctx-icon"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                        Request reschedule
+                      </button>
+                      <button className="coss-ctx-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-ctx-icon"><path d="M20 10c0 4.418-8 12-8 12s-8-7.582-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        Edit location
+                      </button>
+                      <button className="coss-ctx-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-ctx-icon"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                        Add guests
+                      </button>
+                      <div className="coss-ctx-divider" />
+                      <div className="coss-ctx-section">After event</div>
+                      <button className="coss-ctx-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-ctx-icon"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                        View recordings
+                      </button>
+                      <button className="coss-ctx-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-ctx-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        View Session Details
+                      </button>
+                      <button className="coss-ctx-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-ctx-icon"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        Mark as no-show
+                      </button>
+                      <div className="coss-ctx-divider" />
+                      <button className="coss-ctx-item coss-ctx-item--danger">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-ctx-icon"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                        Report booking
+                      </button>
+                      <div className="coss-ctx-divider" />
+                      <button className="coss-ctx-item coss-ctx-item--danger">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-ctx-icon"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        Cancel event
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          <div className={`coss-no-more ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}>
+            No more results
+          </div>
+        </div>
+        </>)}
+
+        {/* ── Bookings page ── */}
+        {cossPage === 'bookings' && (<>
+        <div className="coss-page-header">
+          <div>
+            <div className={`coss-page-title ${roleClass('pageTitle')}`} style={roleStyle('pageTitle')}
+              onClick={() => onRoleClick(r => r === 'pageTitle' ? null : 'pageTitle')}>
+              Bookings
+            </div>
+            <div className={`coss-page-sub ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}
+              onClick={() => onRoleClick(r => r === 'cardDesc' ? null : 'cardDesc')}>
+              See upcoming and past events booked through your event type links.
+            </div>
+          </div>
+        </div>
+        <div className="coss-bookings-tabs-row">
+          <div className="coss-bookings-tabs">
+            {['Upcoming','Unconfirmed','Recurring','Past','Cancelled'].map(t => (
+              <button key={t}
+                className={`coss-bookings-tab ${roleClass('badge')} ${bookingsTab === t.toLowerCase() ? 'active' : ''}`}
+                style={roleStyle('badge')}
+                onClick={() => { setBookingsTab(t.toLowerCase()); onRoleClick(r => r === 'badge' ? null : 'badge') }}>
+                {t}
+              </button>
+            ))}
+          </div>
+          <button className="coss-bookings-filter-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/><line x1="20" y1="20" x2="20" y2="14"/><line x1="17" y1="17" x2="23" y2="17"/></svg>
+            Add Filter
+          </button>
+        </div>
+        {bookingsTab === 'upcoming' ? (
+          <div className="coss-bookings-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="coss-empty-icon"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+            <div className={`coss-empty-title ${roleClass('cardTitle')}`} style={roleStyle('cardTitle')}
+              onClick={() => onRoleClick(r => r === 'cardTitle' ? null : 'cardTitle')}>
+              No upcoming bookings
+            </div>
+            <div className={`coss-empty-sub ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}
+              onClick={() => onRoleClick(r => r === 'cardDesc' ? null : 'cardDesc')}>
+              You have no upcoming bookings found. As soon as someone books a time with you, it will show up here.
+            </div>
+          </div>
+        ) : (
+          <div className="coss-booking-list">
+            {[
+              { date: 'November 25, 2025', time: '2:40 PM – 3:00 PM', title: 'Engineering Chat between Keith Williams and Pasquale Vitiello', people: 'Keith Williams and Pasquale Vitiello', platform: 'Cal Video', badge: 'Rescheduled', accent: false },
+              { date: 'November 7, 2025',  time: '11:30 AM – 12:00 PM', title: 'Platform onboarding roadmap', people: 'Carina Wollheim, Jonathan Djalo and Pasquale Vitiello', platform: 'Cal Video', badge: null, accent: true },
+              { date: 'November 6, 2025',  time: '3:00 PM – 3:20 PM', title: 'Engineering Chat between Keith Williams and Pasquale Vitiello', people: 'Keith Williams and Pasquale Vitiello', platform: 'Cal Video', badge: null, accent: false },
+              { date: 'November 3, 2025',  time: '3:00 PM – 3:30 PM', title: '30 Min Meeting between Susan Moeller and Pasquale Vitiello', people: 'Susan Moeller and Pasquale Vitiello', platform: 'Cal Video', badge: null, accent: false },
+              { date: 'October 13, 2025',  time: '3:30 PM – 4:00 PM', title: '30 Min Meeting between Pasquale Vitiello and David Borenius', people: 'Pasquale Vitiello and David Borenius', platform: 'Google Meet', badge: 'Rescheduled', accent: false },
+              { date: 'October 10, 2025',  time: '5:00 PM – 5:30 PM', title: '@cossful migration', people: 'Peer Richelsen, Keith Williams and Pasquale Vitiello', platform: 'Google Meet', badge: null, accent: false, calBadge: true },
+            ].map((b, i) => (
+              <div key={i} className={`coss-booking-row ${b.accent ? 'accent' : ''}`}>
+                <div className="coss-booking-grid">
+                  {/* row 1: date | title */}
+                  <div className={`coss-booking-date-label ${roleClass('cardSlug')}`} style={roleStyle('cardSlug')}
+                    onClick={() => onRoleClick(r => r === 'cardSlug' ? null : 'cardSlug')}>
+                    {b.date}
+                  </div>
+                  <div className={`coss-booking-title ${roleClass('cardTitle')}`} style={roleStyle('cardTitle')}
+                    onClick={() => onRoleClick(r => r === 'cardTitle' ? null : 'cardTitle')}>
+                    {b.title}
+                  </div>
+                  {/* row 2: time | people */}
+                  <div className={`coss-booking-time ${roleClass('cardSlug')}`} style={roleStyle('cardSlug')}
+                    onClick={() => onRoleClick(r => r === 'cardSlug' ? null : 'cardSlug')}>
+                    {b.time}
+                  </div>
+                  <div className={`coss-booking-people ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}
+                    onClick={() => onRoleClick(r => r === 'cardDesc' ? null : 'cardDesc')}>
+                    {b.people}
+                  </div>
+                  {/* row 3: platform badge | status badges */}
+                  <div className="coss-booking-left-badge">
+                    {b.platform && (
+                      <span className={`coss-badge coss-badge--platform ${roleClass('badge')}`} style={roleStyle('badge')}
+                        onClick={e => { e.stopPropagation(); onRoleClick(r => r === 'badge' ? null : 'badge') }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-badge-icon"><path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.82v6.361a1 1 0 0 1-1.447.894L15 14M3 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/></svg>
+                        {b.platform === 'Cal Video' ? 'Join Cal Video' : `Join ${b.platform}`}
+                      </span>
+                    )}
+                  </div>
+                  <div className="coss-booking-badges">
+                    {b.badge && (
+                      <span className={`coss-badge coss-badge--reschedule ${roleClass('badge')}`} style={roleStyle('badge')}
+                        onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-badge-icon"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg>
+                        {b.badge}
+                      </span>
+                    )}
+                    {b.calBadge && (
+                      <span className={`coss-badge coss-badge--cal ${roleClass('badge')}`} style={roleStyle('badge')}
+                        onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
+                        Cal.com
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button className="coss-icon-btn" style={{alignSelf:'flex-start', marginTop: 2}}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        </>)}
+
+      </main>
+    </div>
+  )
+}
+
 // ── Theme Toggle ──────────────────────────────────────────────────────────────
 function ThemeToggle() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wm-theme') || 'auto')
@@ -1571,6 +2102,16 @@ function GlyphIcon() {
       <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
       <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
       <rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+    </svg>
+  )
+}
+function SlidersIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <line x1="1" y1="3" x2="11" y2="3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <circle cx="4" cy="3" r="1.5" fill="currentColor"/>
+      <line x1="1" y1="9" x2="11" y2="9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <circle cx="8" cy="9" r="1.5" fill="currentColor"/>
     </svg>
   )
 }
