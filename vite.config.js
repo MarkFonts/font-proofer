@@ -102,6 +102,7 @@ async function generateOgImages() {
       .replace(/VarDemo|VariableFont|Variable|BETAVF|VF/gi, '')
       .replace(/[-_]+/g, ' ')
       .replace(/\s*\[.*$/, '')
+      .replace(/\s+/g, ' ')
       .trim()
 
     const fonts = [{ name: 'Preview', data: fontBuffer, weight: 400, style: 'normal' }]
@@ -202,7 +203,11 @@ export default defineConfig({
         for (const { clientSlug, fontSlug } of routes) {
           const dir = `dist/${clientSlug}/${fontSlug}`
           mkdirSync(dir, { recursive: true })
-          const title = `${fontSlug.charAt(0).toUpperCase() + fontSlug.slice(1)} — Font Proofer`
+          const fontFile = findFontFile(fontSlug)
+          const fontDisplayName = fontFile
+            ? fontFile.replace(/\.[^.]+$/, '').replace(/VarDemo|VariableFont|Variable|BETAVF|VF/gi, '').replace(/[-_]+/g, ' ').replace(/\s*\[.*$/, '').replace(/\s+/g, ' ').trim()
+            : fontSlug.charAt(0).toUpperCase() + fontSlug.slice(1)
+          const title = `${fontDisplayName} — Font Proofer`
           const html = base
             .replace('<title>Font Proofer</title>', `<title>${title}</title>`)
             .replace(/(<meta property="og:title"[^>]*>)/, `<meta property="og:title" content="${title}" />`)
