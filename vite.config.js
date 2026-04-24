@@ -8,6 +8,18 @@ function normalize(s) {
   return s.toLowerCase().replace(/[-_\s]/g, '').replace(/var|demo|variable|display|text/g, '')
 }
 
+function fileToDisplayName(file) {
+  return file
+    .replace(/\.[^.]+$/, '')
+    .replace(/VarDemo|VariableFont|Variable|BETAVF|VF/gi, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s*\[.*$/, '')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function findFontFile(fontSlug) {
   const needle = normalize(fontSlug)
   const files = readdirSync('src/fonts').filter(f => /\.(ttf|otf|woff|woff2)$/i.test(f))
@@ -96,14 +108,7 @@ async function generateOgImages() {
     }
 
     const fontBuffer = await loadFontForSatori(`src/fonts/${file}`)
-    // Display name: strip known suffixes, clean up separators
-    const displayName = file
-      .replace(/\.[^.]+$/, '')
-      .replace(/VarDemo|VariableFont|Variable|BETAVF|VF/gi, '')
-      .replace(/[-_]+/g, ' ')
-      .replace(/\s*\[.*$/, '')
-      .replace(/\s+/g, ' ')
-      .trim()
+    const displayName = fileToDisplayName(file)
 
     const fonts = [{ name: 'Preview', data: fontBuffer, weight: 400, style: 'normal' }]
     if (uiFont) fonts.push({ name: 'CalSansUI', data: uiFont, weight: 400, style: 'normal' })
@@ -205,7 +210,7 @@ export default defineConfig({
           mkdirSync(dir, { recursive: true })
           const fontFile = findFontFile(fontSlug)
           const fontDisplayName = fontFile
-            ? fontFile.replace(/\.[^.]+$/, '').replace(/VarDemo|VariableFont|Variable|BETAVF|VF/gi, '').replace(/[-_]+/g, ' ').replace(/\s*\[.*$/, '').replace(/\s+/g, ' ').trim()
+            ? fileToDisplayName(fontFile)
             : fontSlug.charAt(0).toUpperCase() + fontSlug.slice(1)
           const title = `${fontDisplayName} — Font Proofer`
           const html = base
