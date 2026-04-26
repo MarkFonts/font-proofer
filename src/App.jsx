@@ -262,6 +262,7 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display, locke
           step={step}
           value={value}
           onChange={e => onChange(parseFloat(e.target.value))}
+          onPointerDown={e => e.currentTarget.setPointerCapture(e.pointerId)}
         />
       </div>
     </div>

@@ -85,7 +85,12 @@ input[type="range"] {
   background: transparent;
   cursor: pointer;
   width: 100%;
+  height: 44px;
   touch-action: none;
+}
+
+.slider-track-wrap {
+  padding: 0 16px;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {

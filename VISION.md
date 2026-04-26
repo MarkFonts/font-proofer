@@ -20,12 +20,29 @@ Controls are kept to what matters: size, tracking, leading, alignment, and varia
 
 ---
 
+## Deployment model
+
+Each client gets one link — their own Vercel deployment, configured for their font. There is no shared dashboard, no client management, no multi-tenant infrastructure. The designer sets up the deployment, embeds the font, and sends the URL. That's the full handoff.
+
+The repo may contain multiple routes (one per client or font family), but each deployment only ever exposes one. What a client can see is determined entirely by what the designer put there.
+
+---
+
+## Custom app previews
+
+Some client deployments include additional tabs that show the font in context — a reconstruction of the client's actual product UI, built from screenshots. These are live components, not images, so the font renders real and editable rather than baked in.
+
+The workflow for building these is intentionally low-fi: screenshots are saved locally, and Claude reconstructs them as components by editing from those references. There is no automated pipeline for pulling from Vercel or syncing with the client's live site — it's a manual, per-client process, done when it adds value.
+
+---
+
 ## What it is not
 
 - Not a font management tool
 - Not a web font generator
 - Not a specimen builder with export
 - Not a replacement for desktop proofing
+- Not a multi-client platform — one deployment, one client, one link
 
 ---
 
