@@ -187,9 +187,11 @@ export default defineConfig({
             const rawBuf = await loadFontForSatori(`src/fonts/${file}`)
             const ab = rawBuf.buffer.slice(rawBuf.byteOffset, rawBuf.byteOffset + rawBuf.byteLength)
             result[file] = parseFontAxesFromBuffer(ab)
-          } catch {
+          } catch (e) {
+            console.warn(`[font-axes] Failed to parse ${file}:`, e.message)
             result[file] = { axes: [], instances: [] }
           }
+          if (result[file].axes.length === 0) console.warn(`[font-axes] No axes found for ${file}`)
         }
         return `export default ${JSON.stringify(result)}`
       },

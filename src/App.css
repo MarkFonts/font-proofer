@@ -155,10 +155,10 @@
 
 
 .sidebar-section {
-  padding: 14px 16px;
+  padding: 8px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .sidebar-divider {
@@ -277,7 +277,7 @@
 .slider-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
 }
 
 .slider-label {

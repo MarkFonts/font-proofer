@@ -68,6 +68,7 @@ function normalize(s) {
 const SPECIAL_FONTS = {
   calsansui: { name: 'CalSansUI' },
   calsans:   { name: 'Cal Sans (UI)' },
+  calsans2:  { name: 'Cal Sans 2', file: 'CalSans-VariableFont 2 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
 }
 
 function matchSpecial(slug) {
@@ -163,7 +164,7 @@ const CALCOM_ROLE_LABELS = {
 }
 const DEFAULT_CALCOM_ROLES = {
   eventHost:  { size: 14, tracking: 0,      leading: 1.4, axisOverrides: {} },
-  eventTitle: { size: 28, tracking: -0.015, leading: 1.1, axisOverrides: { wght: 600 } },
+  eventTitle: { size: 28, tracking: -0.015, leading: 1.1, axisOverrides: { wght: 700, opsz: 32, GEOM: 50 } },
   eventDesc:  { size: 13, tracking: 0,      leading: 1.5, axisOverrides: {} },
   eventMeta:  { size: 13, tracking: 0,      leading: 1.4, axisOverrides: {} },
   calHeader:  { size: 11, tracking: 0.05,   leading: 1,   axisOverrides: { wght: 500 } },
@@ -299,7 +300,7 @@ export default function App() {
   const [mode, setMode] = useState(isCalcom ? 'calcom' : 'big') // 'big' | 'paragraph' | 'glyphs' | 'calcom'
 
   // Cal.com preview state
-  const [calcomFont, setCalcomFont] = useState('calsansui')
+  const [calcomFont, setCalcomFont] = useState('calsans2')
   const [calcomRoles, setCalcomRoles] = useState(DEFAULT_CALCOM_ROLES)
   const [activeCalcomRole, setActiveCalcomRole] = useState(null)
 
@@ -392,8 +393,16 @@ export default function App() {
     if (!fontSlug) return
 
     const special = matchSpecial(fontSlug)
-    const resolvedSlug = special ? 'calsansui' : fontSlug
-    const matched = matchFont(resolvedSlug)
+    let matched
+    let resolvedSlug
+    if (special?.file) {
+      const entry = Object.entries(fontModules).find(([path]) => path.endsWith('/' + special.file))
+      matched = entry ? { url: entry[1], filename: special.file } : null
+      resolvedSlug = fontSlug
+    } else {
+      resolvedSlug = special ? 'calsansui' : fontSlug
+      matched = matchFont(resolvedSlug)
+    }
     if (!matched) return
 
     const loadRouteFont = async () => {
@@ -572,7 +581,7 @@ export default function App() {
     const r = calcomRoles[role] ?? calcomRoles.eventDesc
     const merged = { ...axisValues, ...r.axisOverrides }
     const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-    if (role === 'eventTitle') {
+    if (role === 'eventTitle' && calcomFont !== 'calsans2') {
       return {
         fontFamily: "'Cal Sans', sans-serif",
         fontSize: `${r.size}px`,
@@ -585,15 +594,17 @@ export default function App() {
     }
     const family = calcomFont === 'calsansui'
       ? (fontFace ? fontFace.family : '"Inter", system-ui, sans-serif')
-      : '"Inter", system-ui, -apple-system, sans-serif'
+      : calcomFont === 'calsans2'
+        ? '"CalSans2"'
+        : '"Inter", system-ui, -apple-system, sans-serif'
     return {
       fontFamily: family,
       fontSize: `${r.size}px`,
       letterSpacing: `${r.tracking}em`,
       lineHeight: r.leading,
-      fontVariationSettings: calcomFont === 'calsansui' ? fvs : 'normal',
+      fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
       fontSynthesis: 'none',
-      fontFeatureSettings: '"calt" 0, "ss20" 0',
+      fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
     }
   }
 
@@ -601,7 +612,7 @@ export default function App() {
     const r = cossRoles[role] ?? cossRoles.cardDesc
     const merged = { ...axisValues, ...r.axisOverrides }
     const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-    if (role === 'pageTitle') {
+    if (role === 'pageTitle' && calcomFont !== 'calsans2') {
       return {
         fontFamily: "'Cal Sans', sans-serif",
         fontSize: `${r.size}px`,
@@ -614,15 +625,17 @@ export default function App() {
     }
     const family = calcomFont === 'calsansui'
       ? (fontFace ? fontFace.family : '"Inter", system-ui, sans-serif')
-      : '"Inter", system-ui, -apple-system, sans-serif'
+      : calcomFont === 'calsans2'
+        ? '"CalSans2"'
+        : '"Inter", system-ui, -apple-system, sans-serif'
     return {
       fontFamily: family,
       fontSize: `${r.size}px`,
       letterSpacing: `${r.tracking}em`,
       lineHeight: r.leading,
-      fontVariationSettings: calcomFont === 'calsansui' ? fvs : 'normal',
+      fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
       fontSynthesis: 'none',
-      fontFeatureSettings: '"calt" 0, "ss20" 0',
+      fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
     }
   }
 
@@ -954,8 +967,8 @@ export default function App() {
             <div className="sidebar-section">
               <div className="section-label">Font</div>
               <label className="calcom-radio-label">
-                <input type="radio" name="calcom-font" value="calsansui" checked={calcomFont === 'calsansui'} onChange={() => setCalcomFont('calsansui')} />
-                Cal Sans UI 1.727
+                <input type="radio" name="calcom-font" value="calsans2" checked={calcomFont === 'calsans2'} onChange={() => setCalcomFont('calsans2')} />
+                Cal Sans 2
               </label>
               <label className="calcom-radio-label">
                 <input type="radio" name="calcom-font" value="inter" checked={calcomFont === 'inter'} onChange={() => setCalcomFont('inter')} />
@@ -1382,7 +1395,9 @@ export default function App() {
               const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
               const family = calcomFont === 'inter'
                 ? '"Inter", system-ui, sans-serif'
-                : fontFace ? fontFace.family : 'serif'
+                : calcomFont === 'calsans2'
+                  ? '"CalSans2"'
+                  : fontFace ? fontFace.family : 'serif'
               const isActive = activeCalcomRole === key
               return (
                 <button
@@ -1395,7 +1410,7 @@ export default function App() {
                     style={{
                       fontFamily: family,
                       fontSize: `${Math.min(r.size, 22)}px`,
-                      fontVariationSettings: calcomFont === 'calsansui' ? fvs : 'normal',
+                      fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
                       fontSynthesis: 'none',
                       lineHeight: 1.3,
                     }}
@@ -1441,7 +1456,9 @@ export default function App() {
               const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
               const family = calcomFont === 'inter'
                 ? '"Inter", system-ui, sans-serif'
-                : fontFace ? fontFace.family : 'serif'
+                : calcomFont === 'calsans2'
+                  ? '"CalSans2"'
+                  : fontFace ? fontFace.family : 'serif'
               const isActive = activeCossRole === key
               return (
                 <button
@@ -1454,7 +1471,7 @@ export default function App() {
                     style={{
                       fontFamily: family,
                       fontSize: `${Math.min(r.size, 22)}px`,
-                      fontVariationSettings: calcomFont === 'calsansui' ? fvs : 'normal',
+                      fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
                       fontSynthesis: 'none',
                       lineHeight: 1.3,
                     }}
