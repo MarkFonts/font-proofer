@@ -4,6 +4,17 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync, readdirSync } fro
 import { createRequire } from 'module'
 import routes from './src/routes.config.js'
 
+const SPECIAL_SLUG_NAMES = {
+  calsansui: 'Cal Sans UI',
+  calsans2: 'Cal Sans 2',
+}
+
+const SPECIAL_SLUG_FILES = {
+  calsansui: 'CalSansUI-VariableFont 1.730 [opsz,wght,GEOM,YTAS,SHRP].ttf',
+  calsans:   'CalSansUI-VariableFont 1.730 [opsz,wght,GEOM,YTAS,SHRP].ttf',
+  calsans2:  'CalSans-VariableFont 2 [opsz,wght,GEOM,YTAS,SHRP].ttf',
+}
+
 function normalize(s) {
   return s.toLowerCase().replace(/[-_\s]/g, '').replace(/var|demo|variable|display|text/g, '')
 }
@@ -101,7 +112,7 @@ async function generateOgImages() {
     if (done.has(fontSlug)) continue
     done.add(fontSlug)
 
-    const file = findFontFile(fontSlug)
+    const file = SPECIAL_SLUG_FILES[fontSlug] ?? findFontFile(fontSlug)
     if (!file) {
       console.warn(`[og] No font file found for slug "${fontSlug}" — skipping`)
       continue
@@ -211,9 +222,8 @@ export default defineConfig({
           const dir = `dist/${clientSlug}/${fontSlug}`
           mkdirSync(dir, { recursive: true })
           const fontFile = findFontFile(fontSlug)
-          const fontDisplayName = fontFile
-            ? fileToDisplayName(fontFile)
-            : fontSlug.charAt(0).toUpperCase() + fontSlug.slice(1)
+          const fontDisplayName = SPECIAL_SLUG_NAMES[fontSlug]
+            ?? (fontFile ? fileToDisplayName(fontFile) : fontSlug.charAt(0).toUpperCase() + fontSlug.slice(1))
           const title = `${fontDisplayName} — Font Proofer`
           const html = base
             .replace('<title>Font Proofer</title>', `<title>${title}</title>`)

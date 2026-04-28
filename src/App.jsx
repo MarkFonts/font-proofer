@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, forwardRef } from 'react'
 import './App.css'
 import fontAxesData from 'virtual:font-axes'
 import logoGif from '/public/logo.gif'
@@ -66,9 +66,9 @@ function normalize(s) {
 
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
 const SPECIAL_FONTS = {
-  calsansui: { name: 'CalSansUI' },
-  calsans:   { name: 'Cal Sans (UI)' },
-  calsans2:  { name: 'Cal Sans 2', file: 'CalSans-VariableFont 2 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsansui: { name: 'CalSansUI',      file: 'CalSansUI-VariableFont 1.730 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsans:   { name: 'Cal Sans (UI)',  file: 'CalSansUI-VariableFont 1.730 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsans2:  { name: 'Cal Sans 2',     file: 'CalSans-VariableFont 2 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
 }
 
 function matchSpecial(slug) {
@@ -284,6 +284,8 @@ export default function App() {
   const { clientSlug, fontSlug } = parseRoute()
   const clientLabel = clientSlug ? toDisplayName(clientSlug) : null
   const isCalcom = clientSlug?.toLowerCase() === 'calcom'
+  const calcomFontPrimary = fontSlug === 'calsans2' ? 'calsans2' : 'calsansui'
+  const calcomFontPrimaryLabel = fontSlug === 'calsans2' ? 'Cal Sans 2' : 'Cal Sans UI 1.730'
 
   // Font loading
   const [fontName, setFontName] = useState(null)
@@ -300,7 +302,7 @@ export default function App() {
   const [mode, setMode] = useState(isCalcom ? 'calcom' : 'big') // 'big' | 'paragraph' | 'glyphs' | 'calcom'
 
   // Cal.com preview state
-  const [calcomFont, setCalcomFont] = useState('calsans2')
+  const [calcomFont, setCalcomFont] = useState(calcomFontPrimary)
   const [calcomRoles, setCalcomRoles] = useState(DEFAULT_CALCOM_ROLES)
   const [activeCalcomRole, setActiveCalcomRole] = useState(null)
 
@@ -353,6 +355,10 @@ export default function App() {
 
   // Glyph set selection
   const [activeGlyphSet, setActiveGlyphSet] = useState('Uppercase')
+
+  const animFrameRef = useRef(null)
+  const partyStartRef = useRef(null)
+  const partyARef = useRef(null)
 
   const fileInputRef = useRef(null)
   const previewAreaRef = useRef(null)
@@ -439,6 +445,41 @@ export default function App() {
     }
     loadRouteFont().catch(console.error)
   }, [fontSlug])
+
+  // ── Big Word icon animation (A glyph only) ───────────────────────────────
+  useEffect(() => {
+    if (mode !== 'big') {
+      cancelAnimationFrame(animFrameRef.current)
+      if (partyARef.current) partyARef.current.style.fontVariationSettings = ''
+      return
+    }
+    const STEP_MS = 350
+    const KF = [
+      { opsz: 10, wght: 700, SHRP: 0 },
+      { opsz: 32, wght: 700, SHRP: 0 },
+      { opsz: 32, wght: 700, SHRP: 100 },
+      { opsz: 32, wght: 400, SHRP: 100 },
+      { opsz: 10, wght: 400, SHRP: 100 },
+      { opsz: 10, wght: 400, SHRP: 0 },
+    ]
+    partyStartRef.current = null
+    function step(ts) {
+      if (partyStartRef.current === null) partyStartRef.current = ts
+      const elapsed = (ts - partyStartRef.current) % (STEP_MS * KF.length)
+      const idx = Math.floor(elapsed / STEP_MS)
+      const t = (elapsed % STEP_MS) / STEP_MS
+      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
+      const from = KF[idx], to = KF[(idx + 1) % KF.length]
+      const fvs = Object.keys(from).map(k => `"${k}" ${from[k] + (to[k] - from[k]) * ease}`).join(', ')
+      if (partyARef.current) partyARef.current.style.fontVariationSettings = fvs
+      animFrameRef.current = requestAnimationFrame(step)
+    }
+    animFrameRef.current = requestAnimationFrame(step)
+    return () => {
+      cancelAnimationFrame(animFrameRef.current)
+      if (partyARef.current) partyARef.current.style.fontVariationSettings = ''
+    }
+  }, [mode])
 
   // ── Font loading ───────────────────────────────────────────────────────────
   const loadFont = useCallback(async (file) => {
@@ -935,7 +976,7 @@ export default function App() {
               </div>
             )}
             <ModeBtn active={mode === 'big'} onClick={() => setMode('big')}>
-              <BigIcon /> Big Word
+              <BigIcon ref={partyARef} /> Big Word
             </ModeBtn>
             <div className="mode-btn-row">
               <ModeBtn active={mode === 'paragraph'} onClick={() => setMode('paragraph')}>
@@ -967,8 +1008,8 @@ export default function App() {
             <div className="sidebar-section">
               <div className="section-label">Font</div>
               <label className="calcom-radio-label">
-                <input type="radio" name="calcom-font" value="calsans2" checked={calcomFont === 'calsans2'} onChange={() => setCalcomFont('calsans2')} />
-                Cal Sans 2
+                <input type="radio" name="calcom-font" value={calcomFontPrimary} checked={calcomFont === calcomFontPrimary} onChange={() => setCalcomFont(calcomFontPrimary)} />
+                {calcomFontPrimaryLabel}
               </label>
               <label className="calcom-radio-label">
                 <input type="radio" name="calcom-font" value="inter" checked={calcomFont === 'inter'} onChange={() => setCalcomFont('inter')} />
@@ -2101,9 +2142,9 @@ function CalIcon() {
     </svg>
   )
 }
-function BigIcon() {
-  return <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><text x="1" y="12" fontSize="13" fill="currentColor" fontFamily="'CalSansUI', system-ui, sans-serif">A</text></svg>
-}
+const BigIcon = forwardRef(function BigIcon(_, ref) {
+  return <svg ref={ref} width="20" height="14" viewBox="0 0 20 14" fill="none"><text x="10" y="12" textAnchor="middle" fontSize="13" fill="currentColor" fontFamily="'CalSansUI', system-ui, sans-serif" style={{fontSynthesis:'none'}}>Aa</text></svg>
+})
 function ParaIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
