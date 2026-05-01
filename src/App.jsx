@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, forwardRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
 import fontAxesData from 'virtual:font-axes'
 import logoGif from '/public/logo.gif'
@@ -356,9 +356,7 @@ export default function App() {
   // Glyph set selection
   const [activeGlyphSet, setActiveGlyphSet] = useState('Uppercase')
 
-  const animFrameRef = useRef(null)
-  const partyStartRef = useRef(null)
-  const partyARef = useRef(null)
+
 
   const fileInputRef = useRef(null)
   const previewAreaRef = useRef(null)
@@ -446,40 +444,6 @@ export default function App() {
     loadRouteFont().catch(console.error)
   }, [fontSlug])
 
-  // ── Big Word icon animation (A glyph only) ───────────────────────────────
-  useEffect(() => {
-    if (mode !== 'big') {
-      cancelAnimationFrame(animFrameRef.current)
-      if (partyARef.current) partyARef.current.style.fontVariationSettings = ''
-      return
-    }
-    const STEP_MS = 350
-    const KF = [
-      { opsz: 10, wght: 700, SHRP: 0 },
-      { opsz: 32, wght: 700, SHRP: 0 },
-      { opsz: 32, wght: 700, SHRP: 100 },
-      { opsz: 32, wght: 400, SHRP: 100 },
-      { opsz: 10, wght: 400, SHRP: 100 },
-      { opsz: 10, wght: 400, SHRP: 0 },
-    ]
-    partyStartRef.current = null
-    function step(ts) {
-      if (partyStartRef.current === null) partyStartRef.current = ts
-      const elapsed = (ts - partyStartRef.current) % (STEP_MS * KF.length)
-      const idx = Math.floor(elapsed / STEP_MS)
-      const t = (elapsed % STEP_MS) / STEP_MS
-      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
-      const from = KF[idx], to = KF[(idx + 1) % KF.length]
-      const fvs = Object.keys(from).map(k => `"${k}" ${from[k] + (to[k] - from[k]) * ease}`).join(', ')
-      if (partyARef.current) partyARef.current.style.fontVariationSettings = fvs
-      animFrameRef.current = requestAnimationFrame(step)
-    }
-    animFrameRef.current = requestAnimationFrame(step)
-    return () => {
-      cancelAnimationFrame(animFrameRef.current)
-      if (partyARef.current) partyARef.current.style.fontVariationSettings = ''
-    }
-  }, [mode])
 
   // ── Font loading ───────────────────────────────────────────────────────────
   const loadFont = useCallback(async (file) => {
@@ -976,7 +940,7 @@ export default function App() {
               </div>
             )}
             <ModeBtn active={mode === 'big'} onClick={() => setMode('big')}>
-              <BigIcon ref={partyARef} /> Big Word
+              <BigIcon className={mode === 'big' ? 'aa-animated' : undefined} /> Big Word
             </ModeBtn>
             <div className="mode-btn-row">
               <ModeBtn active={mode === 'paragraph'} onClick={() => setMode('paragraph')}>
@@ -2142,9 +2106,9 @@ function CalIcon() {
     </svg>
   )
 }
-const BigIcon = forwardRef(function BigIcon(_, ref) {
-  return <svg ref={ref} width="20" height="14" viewBox="0 0 20 14" fill="none"><text x="10" y="12" textAnchor="middle" fontSize="13" fill="currentColor" fontFamily="'CalSansUI', system-ui, sans-serif" style={{fontSynthesis:'none'}}>Aa</text></svg>
-})
+function BigIcon({ className }) {
+  return <svg className={className} width="20" height="14" viewBox="0 0 20 14" fill="none"><text x="10" y="12" textAnchor="middle" fontSize="13" fill="currentColor" fontFamily="'CalSansUI', system-ui, sans-serif" style={{fontSynthesis:'none'}}>Aa</text></svg>
+}
 function ParaIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

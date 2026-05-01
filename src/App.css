@@ -270,6 +270,19 @@
   color: var(--text);
 }
 
+@keyframes aa-party {
+  0%     { font-variation-settings: 'opsz' 10, 'wght' 700, 'SHRP' 0; }
+  16.67% { font-variation-settings: 'opsz' 32, 'wght' 700, 'SHRP' 0; }
+  33.33% { font-variation-settings: 'opsz' 32, 'wght' 700, 'SHRP' 100; }
+  50%    { font-variation-settings: 'opsz' 32, 'wght' 400, 'SHRP' 100; }
+  66.67% { font-variation-settings: 'opsz' 10, 'wght' 400, 'SHRP' 100; }
+  83.33% { font-variation-settings: 'opsz' 10, 'wght' 400, 'SHRP' 0; }
+  100%   { font-variation-settings: 'opsz' 10, 'wght' 700, 'SHRP' 0; }
+}
+.aa-animated {
+  animation: aa-party 2.1s ease-in-out infinite;
+}
+
 /* ── Slider row ──────────────────────────────────────────────────────────── */
 .slider-track-wrap {
   position: relative;
