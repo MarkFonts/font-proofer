@@ -68,7 +68,7 @@ function normalize(s) {
 const SPECIAL_FONTS = {
   calsansui: { name: 'CalSansUI',      file: 'CalSansUI-VariableFont 1.730 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
   calsans:   { name: 'Cal Sans (UI)',  file: 'CalSansUI-VariableFont 1.730 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
-  calsans2:  { name: 'Cal Sans 2',     file: 'CalSans-VariableFont 2 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsans2:  { name: 'Cal Sans 2',     file: 'CalSans-VariableFont 1.902 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
 }
 
 function matchSpecial(slug) {
@@ -224,13 +224,52 @@ function caretAtStart(el) {
   return pre.toString().length === 0
 }
 
-const GLYPH_SETS = {
-  'Uppercase': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-  'Lowercase': 'abcdefghijklmnopqrstuvwxyz',
-  'Numerals': '0123456789',
-  'Punctuation': '.,;:!?\'"-()[]{}/@#$%^&*+=<>\\|`~',
-  'Accents': 'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ',
-}
+const GLYPH_SETS = (() => {
+  const groups = {
+    'Uppercase': [
+      ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      ...'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ',
+      'ẞ',
+      ...'ĀĂĄĆĈĊČĎĐĒĔĖĘĚĜĞĠĢĤĦĨĪĬĮİĲĴĶĹĻĽĿŁŃŅŇŊŌŎŐŒŔŖŘŚŜŞŠŢŤŦŨŪŬŮŰŲŴŶŸŹŻŽ',
+    ],
+    'Lowercase': [
+      ...'abcdefghijklmnopqrstuvwxyz',
+      'ß',
+      ...'àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ',
+      ...'āăąćĉċčďđēĕėęěĝğġģĥħĩīĭįıĳĵķĸĺļľŀłńņňŉŋōŏőœŕŗřśŝşšţťŧũūŭůűųŵŷźżž',
+    ],
+    'Numerals': [
+      ...'0123456789',
+      ...'⁰¹²³⁴⁵⁶⁷⁸⁹',
+      ...'₀₁₂₃₄₅₆₇₈₉',
+      ...'¼½¾⅓⅔⅛⅜⅝⅞',
+      ...'ªº',
+    ],
+    'Symbols': [
+      ...'.,:;!¡?¿',
+      '"', "'",
+      ...'-‒–—…',
+      ...'()[]{}',
+      ...'/\\|',
+      ...'@#%&*+=<>~`^_',
+      ...'‘’“”‚„«»‹›',
+      ...'©®™°•·¶§¦',
+      ...'±×÷≠≈≤≥∞',
+      ...'$€£¥¢₩₪₫₿₺₽₹₴₵₱₸₼₾⃁',
+    ],
+    'Miscellaneous': [
+      ...'´¨¯˜ˆˇ˘˙˚˛˝¸',
+      '◌̀', '◌́', '◌̂', '◌̃',
+      '◌̄', '◌̆', '◌̇', '◌̈',
+      '◌̉', '◌̊', '◌̋', '◌̌',
+      '◌̛', '◌̣', '◌̤', '◌̥',
+      '◌̦', '◌̧', '◌̨', '◌̩',
+      '◌̮', '◌̰', '◌̱', '◌̲',
+      '◌̶', '◌̸',
+    ],
+  }
+  return { 'All': Object.values(groups).flat(), ...groups }
+})()
 
 // ── Slider row component ─────────────────────────────────────────────────────
 function SliderRow({ label, tag, value, min, max, step, onChange, display, lockedAbove }) {
@@ -1369,12 +1408,16 @@ export default function App() {
               lineHeight: 1,
               transition: 'font-variation-settings 0.15s ease',
             }}>
-              {[...GLYPH_SETS[activeGlyphSet]].map((char, i) => (
-                <div key={i} className="glyph-cell">
-                  <div className="glyph-char">{char}</div>
-                  <div className="glyph-code">U+{char.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}</div>
-                </div>
-              ))}
+              {GLYPH_SETS[activeGlyphSet].map((glyph, i) => {
+                const isCombining = glyph.charCodeAt(0) === 0x25CC
+                const cp = glyph.codePointAt(isCombining ? 1 : 0)
+                return (
+                  <div key={i} className="glyph-cell">
+                    <div className="glyph-char">{glyph}</div>
+                    <div className="glyph-code">U+{cp.toString(16).toUpperCase().padStart(4, '0')}</div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
