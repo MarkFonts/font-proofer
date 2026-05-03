@@ -66,8 +66,8 @@ function normalize(s) {
 
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
 const SPECIAL_FONTS = {
-  calsansui: { name: 'CalSansUI',      file: 'CalSansUI-VariableFont 1.730 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
-  calsans:   { name: 'Cal Sans (UI)',  file: 'CalSansUI-VariableFont 1.730 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsansui: { name: 'CalSans',        file: 'CalSans-VariableFont 1.903 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsans:   { name: 'Cal Sans',       file: 'CalSans-VariableFont 1.903 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
   calsans2:  { name: 'Cal Sans 2',     file: 'CalSans-VariableFont 1.903 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
 }
 
@@ -324,7 +324,7 @@ export default function App() {
   const clientLabel = clientSlug ? toDisplayName(clientSlug) : null
   const isCalcom = clientSlug?.toLowerCase() === 'calcom'
   const calcomFontPrimary = fontSlug === 'calsans2' ? 'calsans2' : 'calsansui'
-  const calcomFontPrimaryLabel = fontSlug === 'calsans2' ? 'Cal Sans 2' : 'Cal Sans UI 1.730'
+  const calcomFontPrimaryLabel = fontSlug === 'calsans2' ? 'Cal Sans 2' : 'Cal Sans 1.903'
 
   // Font loading
   const [fontName, setFontName] = useState(null)
