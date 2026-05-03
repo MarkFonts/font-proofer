@@ -324,7 +324,7 @@ export default function App() {
   const clientLabel = clientSlug ? toDisplayName(clientSlug) : null
   const isCalcom = clientSlug?.toLowerCase() === 'calcom'
   const calcomFontPrimary = fontSlug === 'calsans2' ? 'calsans2' : 'calsansui'
-  const calcomFontPrimaryLabel = fontSlug === 'calsans2' ? 'Cal Sans 2' : 'Cal Sans 2'
+  const calcomFontPrimaryLabel = fontSlug === 'calsans2' ? 'Cal Sans 2' : 'Cal Sans 1.730'
 
   // Font loading
   const [fontName, setFontName] = useState(null)
