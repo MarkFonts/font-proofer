@@ -68,7 +68,7 @@ function normalize(s) {
 const SPECIAL_FONTS = {
   calsansui: { name: 'CalSansUI',      file: 'CalSansUI-VariableFont 1.730 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
   calsans:   { name: 'Cal Sans (UI)',  file: 'CalSansUI-VariableFont 1.730 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
-  calsans2:  { name: 'Cal Sans 2',     file: 'CalSans-VariableFont 1.902 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsans2:  { name: 'Cal Sans 2',     file: 'CalSans-VariableFont 1.903 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
 }
 
 function matchSpecial(slug) {
