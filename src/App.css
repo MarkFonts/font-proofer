@@ -1070,6 +1070,7 @@
   padding: 32px 32px 48px;
   min-height: 100%;
   overflow-y: auto;
+  container-type: inline-size;
 }
 
 .calcom-card {
@@ -1303,15 +1304,17 @@
 }
 
 /* ── CalcomPreview responsive ─────────────────────────────────────────────── */
+/* .calcom-page padding: @media because you can't container-query the container itself */
 @media (max-width: 900px) {
   .calcom-page { padding: 16px; }
 }
-
 @media (max-width: 680px) {
-  .calcom-page {
-    padding: 0;
-    align-items: stretch;
-  }
+  .calcom-page { padding: 0; align-items: stretch; }
+}
+
+/* Card layout: @container so breakpoints fire on preview-area width, not viewport.
+   Stacks at ≤660px preview — roughly a 920px viewport with the proofer sidebar. */
+@container (max-width: 660px) {
   .calcom-card {
     flex-direction: column;
     border-radius: 0;
@@ -1334,7 +1337,7 @@
   .calcom-calendar-wrap {
     padding: 24px 20px 16px;
   }
-  /* Available days show as tappable tiles on mobile */
+  /* Available days show as tappable tiles */
   .calcom-day:not(.empty):not(.past) {
     background: #1a1a1a;
   }
