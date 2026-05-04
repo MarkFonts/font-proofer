@@ -1309,7 +1309,7 @@
   .calcom-page { padding: 16px; }
 }
 @media (max-width: 680px) {
-  .calcom-page { padding: 0; align-items: stretch; }
+  .calcom-page { padding: 16px 0 0; align-items: stretch; }
 }
 
 /* Card layout: @container so breakpoints fire on preview-area width, not viewport.
@@ -1317,9 +1317,10 @@
 @container (max-width: 660px) {
   .calcom-card {
     flex-direction: column;
-    border-radius: 0;
+    border-radius: 12px 12px 0 0;
     border-left: none;
     border-right: none;
+    border-bottom: none;
     max-width: none;
   }
   .calcom-left {
