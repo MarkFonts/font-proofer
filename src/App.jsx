@@ -289,6 +289,7 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display, locke
           type="text"
           inputMode="numeric"
           value={display != null ? String(display).replace('-', '−') : value}
+          onKeyDown={e => { if (allowAuto && e.key === 'a') { e.preventDefault(); onChange('auto') } }}
           onChange={e => {
             const raw = String(e.target.value).replace('−', '-').trim()
             if (allowAuto && raw.toLowerCase() === 'auto') { onChange('auto'); return }
