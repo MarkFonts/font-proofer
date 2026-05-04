@@ -2,6 +2,8 @@
 
 A minimal, opinionated font proofing tool for sending to clients.
 
+The user is the font designer.
+
 The premise is simple: a typeface designer finishes a build, drops a font file into the project, pushes to GitHub, and sends a link. The client opens it in a browser and sees the font — no install, no account, no friction.
 
 ---
