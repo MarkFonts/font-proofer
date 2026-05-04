@@ -1852,6 +1852,15 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
 
   return (
     <div className="coss-shell">
+      {/* Mobile top bar */}
+      <div className="coss-mobile-bar">
+        <span className="coss-mobile-wordmark">Cal.com</span>
+        <div className="coss-logo-actions">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-logo-icon"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <img src={cossCalAvatar} alt="" className="coss-avatar-img" />
+        </div>
+      </div>
+
       {/* Sidebar */}
       <aside className="coss-sidebar">
         <div className="coss-sidebar-top">
@@ -2144,6 +2153,23 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
         </>)}
 
       </main>
+
+      {/* Mobile bottom nav */}
+      <nav className="coss-bottom-nav">
+        <button className="coss-bottom-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+        </button>
+        <button className="coss-bottom-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+        </button>
+        <button className="coss-bottom-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </button>
+        <button className="coss-bottom-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </button>
+        <button className="coss-bottom-btn coss-bottom-btn--fab">+</button>
+      </nav>
     </div>
   )
 }
