@@ -13,6 +13,7 @@
 
 # Linker files
 *.ilk
+*\ alias
 
 # Debugger Files
 *.pdb
