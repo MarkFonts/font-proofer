@@ -302,7 +302,6 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display, locke
           step={step}
           value={value}
           onChange={e => onChange(parseFloat(e.target.value))}
-          onPointerDown={e => e.currentTarget.setPointerCapture(e.pointerId)}
         />
       </div>
     </div>
@@ -606,6 +605,7 @@ export default function App() {
     letterSpacing: `${letterSpacing}em`,
     lineHeight: lineHeight,
     fontVariationSettings,
+    fontOpticalSizing: 'none',
     fontSynthesis: 'none',
     fontFeatureSettings: '"calt" 0, "ss20" 0',
     textAlign,
@@ -632,6 +632,7 @@ export default function App() {
         letterSpacing: `${r.tracking}em`,
         lineHeight: r.leading,
         fontVariationSettings: 'normal',
+        fontOpticalSizing: 'none',
         fontSynthesis: 'none',
         fontFeatureSettings: 'normal',
       }
@@ -647,6 +648,7 @@ export default function App() {
       letterSpacing: `${r.tracking}em`,
       lineHeight: r.leading,
       fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
+      fontOpticalSizing: 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
     }
@@ -663,6 +665,7 @@ export default function App() {
         letterSpacing: `${r.tracking}em`,
         lineHeight: r.leading,
         fontVariationSettings: 'normal',
+        fontOpticalSizing: 'none',
         fontSynthesis: 'none',
         fontFeatureSettings: 'normal',
       }
@@ -678,6 +681,7 @@ export default function App() {
       letterSpacing: `${r.tracking}em`,
       lineHeight: r.leading,
       fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
+      fontOpticalSizing: 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
     }
@@ -723,6 +727,7 @@ export default function App() {
       letterSpacing: `${s.tracking}em`,
       lineHeight: s.leading,
       fontVariationSettings: fvs,
+      fontOpticalSizing: 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "ss20" 0',
       textAlign,
@@ -1404,6 +1409,7 @@ export default function App() {
             <div className="glyphs-grid" style={{
               fontFamily: previewStyle.fontFamily,
               fontVariationSettings,
+              fontOpticalSizing: 'none',
               fontSize: `${Math.min(fontSize, 120)}px`,
               lineHeight: 1,
               transition: 'font-variation-settings 0.15s ease',
@@ -1459,6 +1465,7 @@ export default function App() {
                       fontFamily: family,
                       fontSize: `${Math.min(r.size, 22)}px`,
                       fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
+                      fontOpticalSizing: 'none',
                       fontSynthesis: 'none',
                       lineHeight: 1.3,
                     }}
@@ -1520,6 +1527,7 @@ export default function App() {
                       fontFamily: family,
                       fontSize: `${Math.min(r.size, 22)}px`,
                       fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
+                      fontOpticalSizing: 'none',
                       fontSynthesis: 'none',
                       lineHeight: 1.3,
                     }}
@@ -1589,6 +1597,7 @@ export default function App() {
                       fontStyle,
                       fontSize: `${Math.min(s.size, 22)}px`,
                       fontVariationSettings: fvs,
+                      fontOpticalSizing: 'none',
                       fontSynthesis: 'none',
                       lineHeight: 1.3,
                     }}
