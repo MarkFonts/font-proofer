@@ -164,7 +164,7 @@ const CALCOM_ROLE_LABELS = {
 }
 const DEFAULT_CALCOM_ROLES = {
   eventHost:  { size: 14, tracking: 0,      leading: 1.4, axisOverrides: {} },
-  eventTitle: { size: 28, tracking: -0.015, leading: 1.1, axisOverrides: { wght: 700, opsz: 32, GEOM: 50 } },
+  eventTitle: { size: 28, tracking: 0, interTracking: -0.015, leading: 1.1, axisOverrides: { wght: 700, opsz: 'auto', GEOM: 50 } },
   eventDesc:  { size: 13, tracking: 0,      leading: 1.5, axisOverrides: {} },
   eventMeta:  { size: 13, tracking: 0,      leading: 1.4, axisOverrides: {} },
   calHeader:  { size: 11, tracking: 0.05,   leading: 1,   axisOverrides: { wght: 500 } },
@@ -179,7 +179,7 @@ const COSS_ROLE_LABELS = {
 }
 const DEFAULT_COSS_ROLES = {
   navLabel:  { size: 14, tracking: 0,      leading: 1.4, axisOverrides: {} },
-  pageTitle: { size: 20, tracking: -0.01,  leading: 1.2, axisOverrides: { wght: 700 } },
+  pageTitle: { size: 20, tracking: -0.01,  leading: 1.2, axisOverrides: { wght: 700, opsz: 'auto', GEOM: 50 } },
   cardTitle: { size: 14, tracking: 0,      leading: 1.3, axisOverrides: { wght: 500 } },
   cardSlug:  { size: 12, tracking: 0,      leading: 1.4, axisOverrides: {} },
   cardDesc:  { size: 13, tracking: 0,      leading: 1.5, axisOverrides: {} },
@@ -272,10 +272,11 @@ const GLYPH_SETS = (() => {
 })()
 
 // ── Slider row component ─────────────────────────────────────────────────────
-function SliderRow({ label, tag, value, min, max, step, onChange, display, lockedAbove }) {
+function SliderRow({ label, tag, value, min, max, step, onChange, display, lockedAbove, allowAuto, autoValue }) {
   const lockedPct = lockedAbove != null
     ? Math.max(0, Math.min(100, (lockedAbove - min) / (max - min) * 100))
     : null
+  const isAuto = allowAuto && value === 'auto'
   return (
     <div className="slider-row">
       <div className="slider-label">
@@ -288,7 +289,11 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display, locke
           type="text"
           inputMode="numeric"
           value={display != null ? String(display).replace('-', '−') : value}
-          onChange={e => onChange(parseFloat(String(e.target.value).replace('−', '-')))}
+          onChange={e => {
+            const raw = String(e.target.value).replace('−', '-').trim()
+            if (allowAuto && raw.toLowerCase() === 'auto') { onChange('auto'); return }
+            onChange(parseFloat(raw))
+          }}
         />
       </div>
       <div
@@ -300,7 +305,7 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display, locke
           min={min}
           max={max}
           step={step}
-          value={value}
+          value={isAuto ? Math.min(max, Math.max(min, autoValue ?? (min + max) / 2)) : value}
           onChange={e => onChange(parseFloat(e.target.value))}
         />
       </div>
@@ -593,6 +598,7 @@ export default function App() {
   }, [handleDrop])
   // ── Font variation string ─────────────────────────────────────────────────
   const fontVariationSettings = Object.entries(axisValues)
+    .filter(([, val]) => val !== 'auto')
     .map(([tag, val]) => `"${tag}" ${val}`)
     .join(', ') || 'normal'
 
@@ -605,7 +611,7 @@ export default function App() {
     letterSpacing: `${letterSpacing}em`,
     lineHeight: lineHeight,
     fontVariationSettings,
-    fontOpticalSizing: 'none',
+    fontOpticalSizing: axisValues['opsz'] === 'auto' ? 'auto' : 'none',
     fontSynthesis: 'none',
     fontFeatureSettings: '"calt" 0, "ss20" 0',
     textAlign,
@@ -624,12 +630,13 @@ export default function App() {
   const roleStyle = (role) => {
     const r = calcomRoles[role] ?? calcomRoles.eventDesc
     const merged = { ...axisValues, ...r.axisOverrides }
-    const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    const opszAuto = merged['opsz'] === 'auto'
     if (role === 'eventTitle' && calcomFont !== 'calsans2') {
       return {
         fontFamily: "'Cal Sans', sans-serif",
         fontSize: `${r.size}px`,
-        letterSpacing: `${r.tracking}em`,
+        letterSpacing: `${r.interTracking ?? r.tracking}em`,
         lineHeight: r.leading,
         fontVariationSettings: 'normal',
         fontOpticalSizing: 'none',
@@ -648,7 +655,7 @@ export default function App() {
       letterSpacing: `${r.tracking}em`,
       lineHeight: r.leading,
       fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
-      fontOpticalSizing: 'none',
+      fontOpticalSizing: (calcomFont === 'calsansui' || calcomFont === 'calsans2') && opszAuto ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
     }
@@ -657,7 +664,8 @@ export default function App() {
   const cossRoleStyle = (role) => {
     const r = cossRoles[role] ?? cossRoles.cardDesc
     const merged = { ...axisValues, ...r.axisOverrides }
-    const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    const opszAuto = merged['opsz'] === 'auto'
     if (role === 'pageTitle' && calcomFont !== 'calsans2') {
       return {
         fontFamily: "'Cal Sans', sans-serif",
@@ -681,7 +689,7 @@ export default function App() {
       letterSpacing: `${r.tracking}em`,
       lineHeight: r.leading,
       fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
-      fontOpticalSizing: 'none',
+      fontOpticalSizing: (calcomFont === 'calsansui' || calcomFont === 'calsans2') && opszAuto ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
     }
@@ -719,7 +727,7 @@ export default function App() {
   const blockStyle = (type) => {
     const s = paraStyles[type] ?? paraStyles.p
     const merged = { ...axisValues, ...s.axisOverrides }
-    const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     return {
       fontFamily: fontFace ? fontFace.family : 'serif',
       fontStyle,
@@ -727,7 +735,7 @@ export default function App() {
       letterSpacing: `${s.tracking}em`,
       lineHeight: s.leading,
       fontVariationSettings: fvs,
-      fontOpticalSizing: 'none',
+      fontOpticalSizing: merged['opsz'] === 'auto' ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "ss20" 0',
       textAlign,
@@ -1257,6 +1265,13 @@ export default function App() {
                   : effectiveCossRole
                   ? (cossRoles[effectiveCossRole].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
                   : (axisValues[axis.tag] ?? axis.defaultVal)
+                const autoOpszValue = effectiveCalcomRole
+                  ? calcomRoles[effectiveCalcomRole].size
+                  : effectiveCossRole
+                  ? cossRoles[effectiveCossRole].size
+                  : effectiveParaStyle
+                  ? paraStyles[effectiveParaStyle].size
+                  : fontSize
                 return (
                   <SliderRow
                     key={axis.tag}
@@ -1286,7 +1301,9 @@ export default function App() {
                         setAxisValues(prev => ({ ...prev, [axis.tag]: v }))
                       }
                     }}
-                    display={Math.round(val)}
+                    allowAuto={axis.tag === 'opsz'}
+                    autoValue={axis.tag === 'opsz' ? autoOpszValue : undefined}
+                    display={axis.tag === 'opsz' && val === 'auto' ? 'auto' : Math.round(val)}
                   />
                 )
               })}
@@ -1480,7 +1497,7 @@ export default function App() {
                       const isLocal = axis.tag in r.axisOverrides
                       return (
                         <span key={axis.tag} className={`para-styles-spec${isLocal ? ' para-styles-spec--local' : ''}`}>
-                          {axis.tag} {Number.isInteger(val) ? val : val.toFixed(1)}
+                          {axis.tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
                         </span>
                       )
                     })}
@@ -1542,7 +1559,7 @@ export default function App() {
                       const isLocal = axis.tag in r.axisOverrides
                       return (
                         <span key={axis.tag} className={`para-styles-spec${isLocal ? ' para-styles-spec--local' : ''}`}>
-                          {axis.tag} {Number.isInteger(val) ? val : val.toFixed(1)}
+                          {axis.tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
                         </span>
                       )
                     })}
@@ -1608,7 +1625,7 @@ export default function App() {
                     <span className="para-styles-spec">{s.size}px</span>
                     {Object.entries(s.axisOverrides).map(([tag, val]) => (
                       <span key={tag} className="para-styles-spec">
-                        {tag} {Number.isInteger(val) ? val : val.toFixed(1)}
+                        {tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
                       </span>
                     ))}
                   </span>
