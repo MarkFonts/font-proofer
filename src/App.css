@@ -538,6 +538,8 @@
   overflow-x: hidden;
   background: var(--bg);
   position: relative;
+  container-type: inline-size;
+  container-name: preview;
 }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
@@ -1768,10 +1770,13 @@
 }
 
 /* ── CossPreview responsive ──────────────────────────────────────────────── */
+/* .coss-shell itself: queried against .preview-area (its nearest named container) */
+@container preview (max-width: 680px) {
+  .coss-shell { flex-direction: column; }
+}
+
+/* Children of .coss-shell: queried against .coss-shell (their nearest container) */
 @container (max-width: 680px) {
-  .coss-shell {
-    flex-direction: column;
-  }
   .coss-sidebar { display: none; }
 
   .coss-mobile-bar {
