@@ -66,9 +66,9 @@ function normalize(s) {
 
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
 const SPECIAL_FONTS = {
-  calsansui: { name: 'CalSans',        file: 'CalSans-VariableFont 1.903 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
-  calsans:   { name: 'Cal Sans',       file: 'CalSans-VariableFont 1.903 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
-  calsans2:  { name: 'Cal Sans 2',     file: 'CalSans-VariableFont 1.903 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsansui: { name: 'CalSans',        file: 'CalSans-VariableFont 1.905 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsans:   { name: 'Cal Sans',       file: 'CalSans-VariableFont 1.905 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsans2:  { name: 'Cal Sans 2',     file: 'CalSans-VariableFont 1.905 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
 }
 
 function matchSpecial(slug) {
@@ -639,7 +639,7 @@ export default function App() {
     const family = calcomFont === 'calsansui'
       ? (fontFace ? fontFace.family : '"Inter", system-ui, sans-serif')
       : calcomFont === 'calsans2'
-        ? '"CalSans2"'
+        ? '"CalSans"'
         : '"Inter", system-ui, -apple-system, sans-serif'
     return {
       fontFamily: family,
@@ -670,7 +670,7 @@ export default function App() {
     const family = calcomFont === 'calsansui'
       ? (fontFace ? fontFace.family : '"Inter", system-ui, sans-serif')
       : calcomFont === 'calsans2'
-        ? '"CalSans2"'
+        ? '"CalSans"'
         : '"Inter", system-ui, -apple-system, sans-serif'
     return {
       fontFamily: family,
@@ -1444,7 +1444,7 @@ export default function App() {
               const family = calcomFont === 'inter'
                 ? '"Inter", system-ui, sans-serif'
                 : calcomFont === 'calsans2'
-                  ? '"CalSans2"'
+                  ? '"CalSans"'
                   : fontFace ? fontFace.family : 'serif'
               const isActive = activeCalcomRole === key
               return (
@@ -1505,7 +1505,7 @@ export default function App() {
               const family = calcomFont === 'inter'
                 ? '"Inter", system-ui, sans-serif'
                 : calcomFont === 'calsans2'
-                  ? '"CalSans2"'
+                  ? '"CalSans"'
                   : fontFace ? fontFace.family : 'serif'
               const isActive = activeCossRole === key
               return (
