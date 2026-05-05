@@ -1868,6 +1868,8 @@
 [data-theme="light"] .coss-card-desc               { color: #4b5563; }
 [data-theme="light"] .coss-badge--duration         { background: #f3f4f6; color: #374151; }
 [data-theme="light"] .coss-badge--confirm          { background: #f3f4f6; color: #374151; }
+[data-theme="light"] .coss-badge--hidden           { background: rgba(245,158,11,0.1); color: #b45309; }
+[data-theme="light"] .coss-badge--paid             { background: rgba(34,197,94,0.1);  color: #15803d; }
 [data-theme="light"] .coss-toggle.on               { background: #111827; }
 [data-theme="light"] .coss-toggle.off              { background: #d1d5db; }
 [data-theme="light"] .coss-icon-btn                { color: #9ca3af; }
@@ -1920,6 +1922,8 @@
   [data-theme="auto"] .coss-card-desc              { color: #4b5563; }
   [data-theme="auto"] .coss-badge--duration        { background: #f3f4f6; color: #374151; }
   [data-theme="auto"] .coss-badge--confirm         { background: #f3f4f6; color: #374151; }
+  [data-theme="auto"] .coss-badge--hidden          { background: rgba(245,158,11,0.1); color: #b45309; }
+  [data-theme="auto"] .coss-badge--paid            { background: rgba(34,197,94,0.1);  color: #15803d; }
   [data-theme="auto"] .coss-toggle.on              { background: #111827; }
   [data-theme="auto"] .coss-toggle.off             { background: #d1d5db; }
   [data-theme="auto"] .coss-icon-btn               { color: #9ca3af; }
