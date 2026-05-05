@@ -1934,7 +1934,7 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
 
         <div className="coss-card-list">
           {eventTypes.map(et => (
-            <div key={et.id} className="coss-event-card">
+            <div key={et.id} className={`coss-event-card${et.badges.includes('paid') ? ' coss-event-card--paid' : et.badges.includes('hidden') ? ' coss-event-card--hidden' : ''}`}>
               <div className="coss-card-left">
                 <div className="coss-card-title-row">
                   <span className={`coss-card-title ${roleClass('cardTitle')}`} style={roleStyle('cardTitle')}

@@ -1547,7 +1547,20 @@
   border: 1px solid rgba(255,255,255,0.07);
   background: #1e1e1e;
   gap: 12px;
+  position: relative;
 }
+.coss-event-card--paid::before,
+.coss-event-card--hidden::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 99px;
+}
+.coss-event-card--paid::before   { background: #22c55e; }
+.coss-event-card--hidden::before { background: #f59e0b; }
 .coss-card-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
 .coss-card-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .coss-card-title {
