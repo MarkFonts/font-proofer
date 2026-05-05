@@ -188,10 +188,10 @@ const DEFAULT_COSS_ROLES = {
 
 // ── Paragraph style model ────────────────────────────────────────────────────
 const DEFAULT_PARA_STYLES = {
-  h1: { size: 57, leading: 1.1, tracking: 0,     axisOverrides: { wght: 700 } },
-  h2: { size: 32, leading: 1.2, tracking: 0,     axisOverrides: { wght: 400 } },
-  h3: { size: 22, leading: 1.3, tracking: 0,     axisOverrides: {} },
-  p:  { size: 18, leading: 1.6, tracking: 0,     axisOverrides: {} },
+  h1: { size: 57, leading: 1.1, tracking: 0,     axisOverrides: { wght: 700, opsz: 'auto' } },
+  h2: { size: 32, leading: 1.2, tracking: 0,     axisOverrides: { wght: 400, opsz: 'auto' } },
+  h3: { size: 22, leading: 1.3, tracking: 0,     axisOverrides: { opsz: 'auto' } },
+  p:  { size: 18, leading: 1.6, tracking: 0,     axisOverrides: { opsz: 'auto' } },
 }
 
 // ── Cursor utilities ─────────────────────────────────────────────────────────
