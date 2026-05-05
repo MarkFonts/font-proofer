@@ -1,0 +1,156 @@
+name: Bump Cal Sans Font
+
+# Drop the new versioned .ttf into src/fonts/ and push, then trigger this.
+# It renames the file to the canonical (version-free) name in both repos,
+# migrates any code references that still use a versioned filename,
+# and records the version in font-versions.json.
+
+on:
+  workflow_dispatch:
+    inputs:
+      font:
+        description: 'Font family'
+        required: true
+        default: 'calsans'
+        type: choice
+        options: [calsans, calsansui]
+      version:
+        description: 'New version (e.g. 1.911)'
+        required: true
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.WORDMARK_DEPLOY_TOKEN2 }}
+
+      - name: Resolve font prefix
+        id: meta
+        run: |
+          if [ "${{ inputs.font }}" = "calsans" ]; then
+            echo "prefix=CalSans" >> $GITHUB_OUTPUT
+          else
+            echo "prefix=CalSansUI" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Move versioned file to canonical name
+        run: |
+          PREFIX="${{ steps.meta.outputs.prefix }}"
+          AXES="[opsz,wght,GEOM,YTAS,SHRP]"
+          VERSIONED="src/fonts/$PREFIX-VariableFont ${{ inputs.version }} $AXES.ttf"
+          CANONICAL="src/fonts/$PREFIX-VariableFont $AXES.ttf"
+
+          if [ -f "$VERSIONED" ]; then
+            mv "$VERSIONED" "$CANONICAL"
+            echo "Renamed: $(basename "$VERSIONED") → $(basename "$CANONICAL")"
+          elif [ -f "$CANONICAL" ]; then
+            echo "Canonical already in place — no versioned file to move"
+          else
+            echo "::error::Expected font file not found: $VERSIONED"
+            exit 1
+          fi
+
+      - name: Migrate versioned references to canonical in code
+        run: |
+          python3 - <<'EOF'
+          import re, glob, sys
+
+          prefix = "${{ steps.meta.outputs.prefix }}"
+          axes   = "[opsz,wght,GEOM,YTAS,SHRP]"
+          canon  = f"{prefix}-VariableFont {axes}"
+          # matches e.g. "CalSans-VariableFont 1.910 [opsz,wght,GEOM,YTAS,SHRP]"
+          pattern = re.compile(
+              re.escape(f"{prefix}-VariableFont ") + r"\d+\.\d+ " + re.escape(axes)
+          )
+
+          changed = []
+          for path in glob.glob("src/**/*", recursive=True):
+              if not path.endswith((".css", ".jsx", ".js")):
+                  continue
+              text = open(path).read()
+              updated = pattern.sub(canon, text)
+              if updated != text:
+                  open(path, "w").write(updated)
+                  changed.append(path)
+
+          if changed:
+              print("Updated references in:", *changed, sep="\n  ")
+          else:
+              print("No versioned references found — already canonical")
+          EOF
+
+      - name: Update font-versions.json
+        run: |
+          python3 - <<'EOF'
+          import json, os
+
+          path = "font-versions.json"
+          versions = json.load(open(path)) if os.path.exists(path) else {}
+          versions["${{ steps.meta.outputs.prefix }}"] = "${{ inputs.version }}"
+          open(path, "w").write(json.dumps(versions, indent=2) + "\n")
+          print(json.dumps(versions, indent=2))
+          EOF
+
+      - name: Commit font-proofer
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --staged --quiet && echo "Nothing to commit" && exit 0
+          git commit -m "Bump ${{ steps.meta.outputs.prefix }} to ${{ inputs.version }}"
+          git push
+
+      - name: Clone wordmark
+        env:
+          TOKEN: ${{ secrets.WORDMARK_DEPLOY_TOKEN2 }}
+        run: |
+          git clone https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git wordmark-repo
+          git -C wordmark-repo remote set-url origin \
+            https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git
+
+      - name: Copy canonical font + migrate references in wordmark
+        run: |
+          PREFIX="${{ steps.meta.outputs.prefix }}"
+          AXES="[opsz,wght,GEOM,YTAS,SHRP]"
+          CANONICAL="$PREFIX-VariableFont $AXES.ttf"
+
+          cp "src/fonts/$CANONICAL" "wordmark-repo/fonts/$CANONICAL"
+
+          python3 - <<'EOF'
+          import re, glob
+
+          prefix = "${{ steps.meta.outputs.prefix }}"
+          axes   = "[opsz,wght,GEOM,YTAS,SHRP]"
+          canon  = f"{prefix}-VariableFont {axes}"
+          pattern = re.compile(
+              re.escape(f"{prefix}-VariableFont ") + r"\d+\.\d+ " + re.escape(axes)
+          )
+
+          changed = []
+          for path in glob.glob("wordmark-repo/**/*", recursive=True):
+              if not path.endswith((".css", ".js")):
+                  continue
+              text = open(path).read()
+              updated = pattern.sub(canon, text)
+              if updated != text:
+                  open(path, "w").write(updated)
+                  changed.append(path)
+
+          if changed:
+              print("Updated references in:", *changed, sep="\n  ")
+          else:
+              print("No versioned references found in wordmark")
+          EOF
+
+      - name: Commit wordmark
+        run: |
+          cd wordmark-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --staged --quiet && echo "Nothing to commit" && exit 0
+          git commit -m "Bump ${{ steps.meta.outputs.prefix }} to ${{ inputs.version }}"
+          git push
