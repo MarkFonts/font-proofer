@@ -1591,7 +1591,7 @@
 .coss-badge--duration { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
 .coss-badge--confirm  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
 .coss-badge--hidden   { background: rgba(245,158,11,0.15);  color: #fbbf24; }
-.coss-badge--paid     { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
+.coss-badge--paid     { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.38); }
 .coss-badge-icon { width: 10px; height: 10px; flex-shrink: 0; }
 
 .coss-card-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
