@@ -271,6 +271,72 @@ const GLYPH_SETS = (() => {
   return { 'All': Object.values(groups).flat(), ...groups }
 })()
 
+// ── TTC helpers ──────────────────────────────────────────────────────────────
+function parseTTCOffsets(buffer) {
+  const data = new DataView(buffer)
+  const numFonts = data.getUint32(8)
+  return Array.from({ length: numFonts }, (_, i) => data.getUint32(12 + i * 4))
+}
+
+function getFontNameInTTC(buffer, fontOffset) {
+  const data = new DataView(buffer)
+  const numTables = data.getUint16(fontOffset + 4)
+  let nameOff = 0
+  for (let i = 0; i < numTables; i++) {
+    const r = fontOffset + 12 + i * 16
+    const tag = String.fromCharCode(data.getUint8(r), data.getUint8(r+1), data.getUint8(r+2), data.getUint8(r+3))
+    if (tag === 'name') { nameOff = data.getUint32(r + 8); break }
+  }
+  if (!nameOff) return null
+  const count = data.getUint16(nameOff + 2)
+  const base = nameOff + data.getUint16(nameOff + 4)
+  for (const targetId of [4, 1]) {
+    for (let i = 0; i < count; i++) {
+      const r = nameOff + 6 + i * 12
+      if (data.getUint16(r + 6) !== targetId) continue
+      if (data.getUint16(r) === 3 && data.getUint16(r + 2) === 1) {
+        const len = data.getUint16(r + 8), off = data.getUint16(r + 10)
+        return Array.from({ length: len / 2 }, (_, j) => String.fromCharCode(data.getUint16(base + off + j * 2))).join('')
+      }
+    }
+  }
+  return null
+}
+
+function extractFontFromTTC(buffer, fontOffset) {
+  const data = new DataView(buffer)
+  const src = new Uint8Array(buffer)
+  const numTables = data.getUint16(fontOffset + 4)
+  const tables = Array.from({ length: numTables }, (_, i) => {
+    const r = fontOffset + 12 + i * 16
+    return {
+      tag: String.fromCharCode(data.getUint8(r), data.getUint8(r+1), data.getUint8(r+2), data.getUint8(r+3)),
+      checksum: data.getUint32(r + 4),
+      offset: data.getUint32(r + 8),
+      length: data.getUint32(r + 12),
+    }
+  })
+  const headerSize = 12 + numTables * 16
+  let cursor = headerSize
+  const newOffsets = tables.map(t => { const o = cursor; cursor = o + ((t.length + 3) & ~3); return o })
+  const out = new Uint8Array(cursor)
+  const outView = new DataView(out.buffer)
+  outView.setUint32(0, data.getUint32(fontOffset))       // sfVersion
+  outView.setUint16(4, numTables)
+  outView.setUint16(6, data.getUint16(fontOffset + 6))   // searchRange
+  outView.setUint16(8, data.getUint16(fontOffset + 8))   // entrySelector
+  outView.setUint16(10, data.getUint16(fontOffset + 10)) // rangeShift
+  tables.forEach((t, i) => {
+    const r = 12 + i * 16
+    t.tag.split('').forEach((c, j) => { out[r + j] = c.charCodeAt(0) })
+    outView.setUint32(r + 4, t.checksum)
+    outView.setUint32(r + 8, newOffsets[i])
+    outView.setUint32(r + 12, t.length)
+    out.set(src.subarray(t.offset, t.offset + t.length), newOffsets[i])
+  })
+  return out.buffer
+}
+
 // ── Slider row component ─────────────────────────────────────────────────────
 function SliderRow({ label, tag, value, min, max, step, onChange, display, lockedAbove, allowAuto, autoValue }) {
   const lockedPct = lockedAbove != null
@@ -353,7 +419,12 @@ export default function App() {
   const [axisValues, setAxisValues] = useState({})
   const [namedInstances, setNamedInstances] = useState([]) // [{name, coordinates: {tag: value}}]
   const [isDragging, setIsDragging] = useState(false)
+  const [ttcFonts, setTtcFonts] = useState([])
+  const [ttcIndex, setTtcIndex] = useState(0)
   const fontObjectUrl = useRef(null)
+  const ttcBufferRef = useRef(null)
+  const ttcOffsetsRef = useRef([])
+  const fontFamilyRef = useRef('')
 
   // View mode
   const [mode, setMode] = useState(isCalcom ? 'calcom' : 'big') // 'big' | 'paragraph' | 'glyphs' | 'calcom'
@@ -505,28 +576,69 @@ export default function App() {
   // ── Font loading ───────────────────────────────────────────────────────────
   const loadFont = useCallback(async (file) => {
     try {
-      if (fontObjectUrl.current) {
-        URL.revokeObjectURL(fontObjectUrl.current)
-      }
+      if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
 
-      const url = URL.createObjectURL(file)
-      fontObjectUrl.current = url
+      const buffer = await file.arrayBuffer()
+      const isTTC = new DataView(buffer).getUint32(0) === 0x74746366
 
       const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
       const name = `${baseName} Preview`
-      const face = new FontFace(name, `url(${url})`)
+      fontFamilyRef.current = name
+
+      if (isTTC) {
+        const offsets = parseTTCOffsets(buffer)
+        const fonts = offsets.map((off, i) => getFontNameInTTC(buffer, off) || `Font ${i + 1}`)
+        ttcBufferRef.current = buffer
+        ttcOffsetsRef.current = offsets
+        setTtcFonts(fonts)
+        setTtcIndex(0)
+        const extracted = extractFontFromTTC(buffer, offsets[0])
+        const url = URL.createObjectURL(new Blob([extracted], { type: 'font/ttf' }))
+        fontObjectUrl.current = url
+        const face = new FontFace(name, `url(${url})`)
+        const loaded = await face.load()
+        document.fonts.add(loaded)
+        setFontFace(loaded)
+        setFontName(file.name.replace(/\.[^/.]+$/, ''))
+        autoFitSize(name)
+        await detectAxes(new File([extracted], 'extracted.ttf'))
+      } else {
+        ttcBufferRef.current = null
+        ttcOffsetsRef.current = []
+        setTtcFonts([])
+        setTtcIndex(0)
+        const url = URL.createObjectURL(file)
+        fontObjectUrl.current = url
+        const face = new FontFace(name, `url(${url})`)
+        const loaded = await face.load()
+        document.fonts.add(loaded)
+        setFontFace(loaded)
+        setFontName(file.name.replace(/\.[^/.]+$/, ''))
+        autoFitSize(name)
+        await detectAxes(file)
+      }
+    } catch (err) {
+      console.error('Font load error', err)
+    }
+  }, [autoFitSize])
+
+  const selectTTCFont = useCallback(async (index) => {
+    try {
+      const buffer = ttcBufferRef.current
+      const offsets = ttcOffsetsRef.current
+      if (!buffer || !offsets[index]) return
+      if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
+      const extracted = extractFontFromTTC(buffer, offsets[index])
+      const url = URL.createObjectURL(new Blob([extracted], { type: 'font/ttf' }))
+      fontObjectUrl.current = url
+      const face = new FontFace(fontFamilyRef.current, `url(${url})`)
       const loaded = await face.load()
       document.fonts.add(loaded)
       setFontFace(loaded)
-      setFontName(file.name.replace(/\.[^/.]+$/, ''))
-      autoFitSize(name)
-
-      // Try to read variable font axes via opentype.js style
-      // We'll use a simple approach: check if font has variation settings
-      // by using the font's internal data
-      await detectAxes(file, name)
+      setTtcIndex(index)
+      await detectAxes(new File([extracted], 'extracted.ttf'))
     } catch (err) {
-      console.error('Font load error', err)
+      console.error('TTC font switch error', err)
     }
   }, [])
 
@@ -1112,6 +1224,17 @@ export default function App() {
                 onClick={() => setIsItalic(true)}
               >Italic</button>
             </div>
+          )}
+          {ttcFonts.length > 1 && (
+            <select
+              className="instance-select"
+              value={ttcIndex}
+              onChange={e => selectTTCFont(Number(e.target.value))}
+            >
+              {ttcFonts.map((name, i) => (
+                <option key={i} value={i}>{name}</option>
+              ))}
+            </select>
           )}
           {namedInstances.length > 0 && (() => {
             const currentCoords = effectiveParaStyle
