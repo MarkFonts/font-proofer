@@ -277,6 +277,15 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display, locke
     ? Math.max(0, Math.min(100, (lockedAbove - min) / (max - min) * 100))
     : null
   const isAuto = allowAuto && value === 'auto'
+  const hintShownRef = useRef(false)
+  const [showHint, setShowHint] = useState(false)
+  const handleFocus = () => {
+    if (allowAuto && !hintShownRef.current) {
+      hintShownRef.current = true
+      setShowHint(true)
+      setTimeout(() => setShowHint(false), 3000)
+    }
+  }
   return (
     <div className="slider-row">
       <div className="slider-label">
@@ -286,17 +295,21 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display, locke
         </span>
         <input
           className="slider-number"
-          type="text"
-          inputMode="numeric"
-          value={display != null ? String(display).replace('-', '−') : value}
+          type={allowAuto ? 'text' : 'number'}
+          inputMode={allowAuto ? 'numeric' : undefined}
+          step={allowAuto ? undefined : step}
+          value={allowAuto ? (display != null ? String(display).replace('-', '−') : value) : value}
+          onFocus={handleFocus}
           onKeyDown={e => { if (allowAuto && e.key === 'a') { e.preventDefault(); onChange('auto') } }}
           onChange={e => {
+            if (!allowAuto) { onChange(parseFloat(e.target.value)); return }
             const raw = String(e.target.value).replace('−', '-').trim()
-            if (allowAuto && raw.toLowerCase() === 'auto') { onChange('auto'); return }
+            if (raw.toLowerCase() === 'auto') { onChange('auto'); return }
             onChange(parseFloat(raw))
           }}
         />
       </div>
+      {showHint && <div className="slider-auto-hint">hint: type "a" for auto</div>}
       <div
         className="slider-track-wrap"
         style={lockedPct != null ? { '--locked-pct': `${lockedPct}%` } : undefined}

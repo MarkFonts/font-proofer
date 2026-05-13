@@ -58,6 +58,8 @@ The workflow for building these is intentionally low-fi: screenshots are saved l
 
 **Typography controls only.** Size, tracking, leading, alignment. Variable axes when present, auto-detected from the font binary. No color pickers, no OpenType feature panels, no animation tools.
 
+**Paragraph body size is aware of optimal line-length, based on column width.** In paragraph mode, the body (`p`) size slider enforces a comfortable maximum that scales with column width — wider column, higher ceiling; narrower column, lower ceiling. The slider track reflects this: the usable range is shown in the normal track color, and the region beyond the comfortable max dims out. The value is also clamped reactively as the column narrows. Heading sizes are unconstrained.
+
 **Editable preview text.** Clients can type their own words directly into the preview — this is often the most useful thing.
 
 ---

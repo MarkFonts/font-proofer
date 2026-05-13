@@ -166,6 +166,10 @@ input.slider-number:focus {
   border-color: var(--text-muted);
 }
 
+input[type="number"]::-webkit-inner-spin-button {
+  opacity: 1;
+}
+
 input[type="text"] {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
