@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import './App.css'
 import fontAxesData from 'virtual:font-axes'
 import logoGif from '/public/logo.gif'
@@ -344,22 +345,31 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display, locke
     : null
   const isAuto = allowAuto && value === 'auto'
   const hintShownRef = useRef(false)
-  const [showHint, setShowHint] = useState(false)
+  const [hintPos, setHintPos] = useState(null)
+  const inputRef = useRef(null)
   const handleFocus = () => {
-    if (allowAuto && !hintShownRef.current) {
+    if (allowAuto && !isAuto && !hintShownRef.current && inputRef.current) {
       hintShownRef.current = true
-      setShowHint(true)
-      setTimeout(() => setShowHint(false), 3000)
+      const rect = inputRef.current.getBoundingClientRect()
+      setHintPos({ top: rect.bottom + 6, left: rect.left })
+      setTimeout(() => setHintPos(null), 3000)
     }
   }
   return (
     <div className="slider-row">
+      {hintPos && createPortal(
+        <div className="slider-auto-hint" style={{ top: hintPos.top, left: hintPos.left }}>
+          hint: type "a" for auto
+        </div>,
+        document.body
+      )}
       <div className="slider-label">
         <span className="slider-label-left">
           <span className={`slider-label-text${tag ? ' slider-label-text--tagged' : ''}`}>{label}</span>
           {tag && <span className="slider-tag">{tag}</span>}
         </span>
         <input
+          ref={inputRef}
           className="slider-number"
           type={allowAuto ? 'text' : 'number'}
           inputMode={allowAuto ? 'numeric' : undefined}
@@ -375,7 +385,6 @@ function SliderRow({ label, tag, value, min, max, step, onChange, display, locke
           }}
         />
       </div>
-      {showHint && <div className="slider-auto-hint">hint: type "a" for auto</div>}
       <div
         className="slider-track-wrap"
         style={lockedPct != null ? { '--locked-pct': `${lockedPct}%` } : undefined}
