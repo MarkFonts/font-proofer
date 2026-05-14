@@ -55,9 +55,11 @@
   --sidebar-width: 260px;
   --header-height: 64px;
   font-family: 'CalSansUI', system-ui, sans-serif;
+  color-scheme: dark;
 }
 
 [data-theme="light"] {
+  color-scheme: light;
   --bg: #f5faff;
   --bg-elevated: #eaf3fb;
   --bg-hover: #ddeaf6;
@@ -74,6 +76,7 @@
 
 @media (prefers-color-scheme: light) {
   [data-theme="auto"] {
+    color-scheme: light;
     --bg: #f5faff;
     --bg-elevated: #eaf3fb;
     --bg-hover: #ddeaf6;
