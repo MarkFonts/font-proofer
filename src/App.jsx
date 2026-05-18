@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import './App.css'
 import fontAxesData from 'virtual:font-axes'
@@ -555,6 +555,9 @@ export default function App() {
   const [scalePairText, setScalePairText] = useState(SCALE_PAIR_TEXT)
   const [scaleAxisOverrides, setScaleAxisOverrides] = useState(() => ({ ...DEFAULT_SCALE_AXIS_OVERRIDES }))
   const [activeScaleStep, setActiveScaleStep] = useState(null)
+  const [scaleStepRangeEnd, setScaleStepRangeEnd] = useState(null)
+  const [extraScaleSteps, setExtraScaleSteps] = useState(new Set())
+  const [scaleMultiSelectMode, setScaleMultiSelectMode] = useState(false)
   const [scaleStepsPanelOpen, setScaleStepsPanelOpen] = useState(false)
 
   const fileInputRef = useRef(null)
@@ -847,6 +850,17 @@ export default function App() {
   const effectiveCalcomRole = mode === 'calcom' ? activeCalcomRole : null
   const effectiveCossRole = mode === 'coss' ? activeCossRole : null
   const effectiveScaleStep = mode === 'scale' ? activeScaleStep : null
+  const selectedScaleSteps = useMemo(() => {
+    if (!effectiveScaleStep) return []
+    const keys = TAILWIND_SCALE.map(s => s.key)
+    const rangeKeys = (() => {
+      if (!scaleStepRangeEnd) return [effectiveScaleStep]
+      const a = keys.indexOf(effectiveScaleStep), b = keys.indexOf(scaleStepRangeEnd)
+      return keys.slice(...(a < b ? [a, b + 1] : [b, a + 1]))
+    })()
+    const all = new Set([...rangeKeys, ...extraScaleSteps])
+    return keys.filter(k => all.has(k))
+  }, [effectiveScaleStep, scaleStepRangeEnd, extraScaleSteps])
 
   const roleStyle = (role) => {
     const r = calcomRoles[role] ?? calcomRoles.eventDesc
@@ -1139,7 +1153,7 @@ export default function App() {
       <nav className="mobile-tabs">
         {isCalcom && <button className={`mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><CalIcon /> cal.com/peer</button>}
         {isCalcom && <button className={`mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><CalIcon /> booking events</button>}
-        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><BigIcon /> Big Word</button>
+        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><BigIcon className={mode === 'big' ? 'aa-animated' : undefined} /> Big Word</button>
         <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><ParaIcon /> Paragraph</button>
         <button className={`mobile-tab ${mode === 'scale' ? 'active' : ''}`} onClick={() => setMode('scale')}><ScaleIcon /> Type Scale</button>
         <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><GlyphIcon /> Glyphs</button>
@@ -1180,18 +1194,54 @@ export default function App() {
               {k}
             </button>
           ))}
-          {mode === 'scale' && visibleScaleSteps.map(step => (
+          {mode === 'scale' && (
             <button
-              key={step.key}
-              className={`mobile-sub-btn ${activeScaleStep === step.key ? 'active' : ''}`}
-              onClick={() => {
-                setActiveScaleStep(prev => prev === step.key ? null : step.key)
-                setActiveParaStyle(null)
-              }}
-            >
-              {step.key}
-            </button>
-          ))}
+              className={`mobile-multi-btn ${scaleMultiSelectMode ? 'active' : ''}`}
+              onClick={() => setScaleMultiSelectMode(p => !p)}
+              title="Select multiple steps"
+            ><MultiSelectIcon /></button>
+          )}
+          {mode === 'scale' && visibleScaleSteps.map(step => {
+            const isSelected = selectedScaleSteps.includes(step.key) || activeScaleStep === step.key
+            return (
+              <button
+                key={step.key}
+                className={`mobile-sub-btn ${isSelected ? 'active' : ''}`}
+                onClick={() => {
+                  if (scaleMultiSelectMode) {
+                    if (!activeScaleStep) {
+                      setActiveScaleStep(step.key)
+                    } else if (step.key === activeScaleStep) {
+                      const next = new Set(extraScaleSteps)
+                      if (next.size > 0) {
+                        const first = [...next][0]
+                        setActiveScaleStep(first)
+                        next.delete(first)
+                        setExtraScaleSteps(next)
+                      } else {
+                        setActiveScaleStep(null)
+                      }
+                      setScaleStepRangeEnd(null)
+                    } else {
+                      setExtraScaleSteps(prev => {
+                        const next = new Set(prev)
+                        next.has(step.key) ? next.delete(step.key) : next.add(step.key)
+                        return next
+                      })
+                    }
+                  } else {
+                    setActiveScaleStep(prev => prev === step.key ? null : step.key)
+                    setScaleStepRangeEnd(null)
+                    setExtraScaleSteps(new Set())
+                    setActiveParaStyle(null)
+                  }
+                }}
+              >
+                {scaleMultiSelectMode && <span className={`mobile-sub-radio ${isSelected ? 'selected' : ''}`} />}
+                {step.key}
+              </button>
+            )
+          })}
           {mode === 'scale' && scalePairSizes.size > 0 && <span className="mobile-sub-divider" />}
           {mode === 'scale' && ['lg', 'base', 'sm', 'xs'].map(opt => {
             const key = `text-${opt}`
@@ -1490,10 +1540,11 @@ export default function App() {
               const inst = namedInstances.find(i => i.name === name)
               if (!inst) return
               if (effectiveScaleStep) {
-                setScaleAxisOverrides(prev => ({
-                  ...prev,
-                  [effectiveScaleStep]: { ...inst.coordinates }
-                }))
+                setScaleAxisOverrides(prev => {
+                  const next = { ...prev }
+                  selectedScaleSteps.forEach(k => { next[k] = { ...inst.coordinates } })
+                  return next
+                })
               } else if (effectiveParaStyle) {
                 setParaStyles(prev => ({
                   ...prev,
@@ -1593,8 +1644,8 @@ export default function App() {
                 <div className="section-label">
                   Variable Axes
                   {effectiveScaleStep && (
-                    <button className="section-label-exit" onClick={() => setActiveScaleStep(null)}>
-                      {effectiveScaleStep} ×
+                    <button className="section-label-exit" onClick={() => { setActiveScaleStep(null); setScaleStepRangeEnd(null); setExtraScaleSteps(new Set()) }}>
+                      {selectedScaleSteps.length > 1 ? `${selectedScaleSteps.length} steps` : effectiveScaleStep} ×
                     </button>
                   )}
                   {mode === 'scale' && effectiveParaStyle && (
@@ -1630,10 +1681,11 @@ export default function App() {
                       style={axesDirty ? {} : { pointerEvents: 'none' }}
                       onClick={() => {
                         if (effectiveScaleStep) {
-                          setScaleAxisOverrides(prev => ({
-                            ...prev,
-                            [effectiveScaleStep]: { ...DEFAULT_SCALE_AXIS_OVERRIDES[effectiveScaleStep] }
-                          }))
+                          setScaleAxisOverrides(prev => {
+                            const next = { ...prev }
+                            selectedScaleSteps.forEach(k => { next[k] = { ...DEFAULT_SCALE_AXIS_OVERRIDES[k] } })
+                            return next
+                          })
                         } else if (effectiveParaStyle) {
                           setParaStyles(prev => ({
                             ...prev,
@@ -1668,6 +1720,8 @@ export default function App() {
                   ? (calcomRoles[effectiveCalcomRole].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
                   : effectiveCossRole
                   ? (cossRoles[effectiveCossRole].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
+                  : (mode === 'scale' && axis.tag === 'opsz')
+                  ? (() => { const v = scaleAxisOverrides[TAILWIND_SCALE[0].key]?.opsz ?? 'auto'; return TAILWIND_SCALE.every(s => (scaleAxisOverrides[s.key]?.opsz ?? 'auto') === v) ? v : 'auto' })()
                   : (axisValues[axis.tag] ?? axis.defaultVal)
                 const autoOpszValue = effectiveScaleStep
                   ? (TAILWIND_SCALE.find(s => s.key === effectiveScaleStep)?.pxSize ?? fontSize)
@@ -1689,10 +1743,11 @@ export default function App() {
                     step={(axis.max - axis.min) > 10 ? 1 : 0.01}
                     onChange={v => {
                       if (effectiveScaleStep) {
-                        setScaleAxisOverrides(prev => ({
-                          ...prev,
-                          [effectiveScaleStep]: { ...prev[effectiveScaleStep], [axis.tag]: v }
-                        }))
+                        setScaleAxisOverrides(prev => {
+                          const next = { ...prev }
+                          selectedScaleSteps.forEach(k => { next[k] = { ...next[k], [axis.tag]: v } })
+                          return next
+                        })
                       } else if (effectiveParaStyle) {
                         setParaStyles(prev => ({
                           ...prev,
@@ -1708,6 +1763,12 @@ export default function App() {
                           ...prev,
                           [effectiveCossRole]: { ...prev[effectiveCossRole], axisOverrides: { ...prev[effectiveCossRole].axisOverrides, [axis.tag]: v } }
                         }))
+                      } else if (mode === 'scale' && axis.tag === 'opsz') {
+                        setScaleAxisOverrides(prev => {
+                          const next = { ...prev }
+                          TAILWIND_SCALE.forEach(s => { next[s.key] = { ...next[s.key], opsz: v } })
+                          return next
+                        })
                       } else {
                         setAxisValues(prev => ({ ...prev, [axis.tag]: v }))
                       }
@@ -1837,9 +1898,11 @@ export default function App() {
             {visibleScaleSteps.map(step => (
               <div
                 key={step.key}
-                className={`scale-row${activeScaleStep === step.key ? ' scale-row--selected' : ''}`}
+                className={`scale-row${selectedScaleSteps.includes(step.key) || activeScaleStep === step.key ? ' scale-row--selected' : ''}`}
                 onClick={() => {
                   setActiveScaleStep(k => k === step.key ? null : step.key)
+                  setScaleStepRangeEnd(null)
+                  setExtraScaleSteps(new Set())
                   setActiveParaStyle(null)
                 }}
               >
@@ -2064,20 +2127,54 @@ export default function App() {
             className="para-styles-panel scale-steps-panel"
             style={{ top: rect.bottom + 8, left: rect.left, '--caret-x': `${rect.width / 2}px` }}
           >
+            <div className="scale-steps-header">
+              <button
+                className={`scale-multi-btn ${scaleMultiSelectMode ? 'active' : ''}`}
+                onClick={() => setScaleMultiSelectMode(p => !p)}
+                title="Select multiple steps"
+              ><MultiSelectIcon /></button>
+            </div>
             {visibleScaleSteps.map(step => {
-              const isActive = activeScaleStep === step.key
+              const isActive = selectedScaleSteps.includes(step.key) || activeScaleStep === step.key
               const overrides = scaleAxisOverrides[step.key] ?? {}
               const localOverrides = Object.entries(overrides).filter(([tag]) => tag !== 'opsz' || overrides[tag] !== 'auto')
               return (
                 <button
                   key={step.key}
                   className={`para-styles-row ${isActive ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveScaleStep(prev => prev === step.key ? null : step.key)
-                    setActiveParaStyle(null)
-                    setScaleStepsPanelOpen(false)
+                  onClick={(e) => {
+                    if (e.shiftKey && activeScaleStep && activeScaleStep !== step.key) {
+                      setScaleStepRangeEnd(step.key)
+                    } else if (scaleMultiSelectMode) {
+                      if (!activeScaleStep) {
+                        setActiveScaleStep(step.key)
+                      } else if (step.key === activeScaleStep) {
+                        const next = new Set(extraScaleSteps)
+                        if (next.size > 0) {
+                          const first = [...next][0]
+                          setActiveScaleStep(first)
+                          next.delete(first)
+                          setExtraScaleSteps(next)
+                        } else {
+                          setActiveScaleStep(null)
+                        }
+                        setScaleStepRangeEnd(null)
+                      } else {
+                        setExtraScaleSteps(prev => {
+                          const next = new Set(prev)
+                          next.has(step.key) ? next.delete(step.key) : next.add(step.key)
+                          return next
+                        })
+                      }
+                    } else {
+                      setActiveScaleStep(prev => prev === step.key ? null : step.key)
+                      setScaleStepRangeEnd(null)
+                      setExtraScaleSteps(new Set())
+                      setActiveParaStyle(null)
+                    }
                   }}
                 >
+                  <span className="scale-step-radio" />
                   <span
                     className="para-styles-preview"
                     style={{
@@ -2804,6 +2901,17 @@ function AlignRightIcon() {
     </svg>
   )
 }
+function MultiSelectIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+      <circle cx="3" cy="4" r="1.5" />
+      <line x1="6.5" y1="4" x2="12" y2="4" />
+      <circle cx="3" cy="10" r="1.5" />
+      <line x1="6.5" y1="10" x2="12" y2="10" />
+    </svg>
+  )
+}
+
 function ResetIcon() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
