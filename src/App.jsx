@@ -195,6 +195,30 @@ const DEFAULT_PARA_STYLES = {
   p:  { size: 18, leading: 1.6, tracking: 0,     axisOverrides: { opsz: 'auto' } },
 }
 
+// ── Tailwind type scale ───────────────────────────────────────────────────────
+const TAILWIND_SCALE = [
+  { key: 'text-xs',   pxSize: 12,  lh: 1 / 0.75 },
+  { key: 'text-sm',   pxSize: 14,  lh: 1.25 / 0.875 },
+  { key: 'text-base', pxSize: 16,  lh: 1.5 },
+  { key: 'text-lg',   pxSize: 18,  lh: 1.75 / 1.125 },
+  { key: 'text-xl',   pxSize: 20,  lh: 1.75 / 1.25 },
+  { key: 'text-2xl',  pxSize: 24,  lh: 2 / 1.5 },
+  { key: 'text-3xl',  pxSize: 30,  lh: 2.25 / 1.875 },
+  { key: 'text-4xl',  pxSize: 36,  lh: 2.5 / 2.25 },
+  { key: 'text-5xl',  pxSize: 48,  lh: 1 },
+  { key: 'text-6xl',  pxSize: 60,  lh: 1 },
+  { key: 'text-7xl',  pxSize: 72,  lh: 1 },
+  { key: 'text-8xl',  pxSize: 96,  lh: 1 },
+  { key: 'text-9xl',  pxSize: 128, lh: 1 },
+]
+// xs–lg are always visible; xl–9xl are controlled by scaleMaxXl
+const TAILWIND_BASE = TAILWIND_SCALE.slice(0, 4)
+const TAILWIND_XL   = TAILWIND_SCALE.slice(4)
+
+const SCALE_PAIR_TEXT = 'A wonderful serenity has taken possession of my entire soul, like these sweet mornings of spring which I enjoy with my whole heart. I am alone, and feel the charm of existence in this spot, which was created for the bliss of souls like mine.'
+
+const DEFAULT_SCALE_AXIS_OVERRIDES = Object.fromEntries(TAILWIND_SCALE.map(s => [s.key, { opsz: 'auto' }]))
+
 // ── Cursor utilities ─────────────────────────────────────────────────────────
 function placeCursorAtEnd(el) {
   const range = document.createRange()
@@ -301,6 +325,34 @@ function getFontNameInTTC(buffer, fontOffset) {
       }
     }
   }
+  return null
+}
+
+// nameID priority: 16 (Preferred Family) → 1 (Family) → 4 (Full Name)
+function readFamilyNameFromBuffer(buffer, fontOffset = 0) {
+  try {
+    const data = new DataView(buffer)
+    const numTables = data.getUint16(fontOffset + 4)
+    let nameOff = 0
+    for (let i = 0; i < numTables; i++) {
+      const r = fontOffset + 12 + i * 16
+      const tag = String.fromCharCode(data.getUint8(r), data.getUint8(r+1), data.getUint8(r+2), data.getUint8(r+3))
+      if (tag === 'name') { nameOff = data.getUint32(r + 8); break }
+    }
+    if (!nameOff) return null
+    const count = data.getUint16(nameOff + 2)
+    const base = nameOff + data.getUint16(nameOff + 4)
+    for (const targetId of [16, 1, 4]) {
+      for (let i = 0; i < count; i++) {
+        const r = nameOff + 6 + i * 12
+        if (data.getUint16(r + 6) !== targetId) continue
+        if (data.getUint16(r) === 3 && data.getUint16(r + 2) === 1) {
+          const len = data.getUint16(r + 8), off = data.getUint16(r + 10)
+          return Array.from({ length: len / 2 }, (_, j) => String.fromCharCode(data.getUint16(base + off + j * 2))).join('')
+        }
+      }
+    }
+  } catch {}
   return null
 }
 
@@ -493,7 +545,17 @@ export default function App() {
   // Glyph set selection
   const [activeGlyphSet, setActiveGlyphSet] = useState('Uppercase')
 
+  // Parsed PS family name for scale label default
+  const [fontFamilyLabel, setFontFamilyLabel] = useState('')
 
+  // Scale mode state
+  const [scaleMaxXl, setScaleMaxXl] = useState(9)
+  const [scalePairSizes, setScalePairSizes] = useState(new Set()) // active body pair sizes
+  const [scaleLabelText, setScaleLabelText] = useState('')
+  const [scalePairText, setScalePairText] = useState(SCALE_PAIR_TEXT)
+  const [scaleAxisOverrides, setScaleAxisOverrides] = useState(() => ({ ...DEFAULT_SCALE_AXIS_OVERRIDES }))
+  const [activeScaleStep, setActiveScaleStep] = useState(null)
+  const [scaleStepsPanelOpen, setScaleStepsPanelOpen] = useState(false)
 
   const fileInputRef = useRef(null)
   const previewAreaRef = useRef(null)
@@ -506,11 +568,21 @@ export default function App() {
   const calcomPanelPopoverRef = useRef(null)
   const cossPanelBtnRef = useRef(null)
   const cossPanelPopoverRef = useRef(null)
+  const scaleRowRefs = useRef({})
+  const scalePairRefs = useRef({})
+  const scalePanelBtnRef = useRef(null)
+  const scalePanelPopoverRef = useRef(null)
 
   const bigEditorCallback = useCallback(el => {
     bigEditorRef.current = el
     if (el && !el.textContent) el.textContent = SAMPLE_BIG
   }, [])
+
+  // ── Sync scale label text with parsed PS family name ─────────────────────
+  useEffect(() => {
+    setScaleLabelText(fontFamilyLabel)
+    Object.values(scaleRowRefs.current).forEach(el => { if (el) el.textContent = fontFamilyLabel })
+  }, [fontFamilyLabel])
 
   // ── Auto-fit font size to preview width ────────────────────────────────────
   const autoFitSize = useCallback((fontFamily) => {
@@ -557,6 +629,11 @@ export default function App() {
       setFontFace(loaded)
       setFontName(matched.filename.replace(/\.[^/.]+$/, ''))
       autoFitSize(name)
+
+      // Parse PS family name for scale label
+      fetch(matched.url).then(r => r.arrayBuffer()).then(buf => {
+        setFontFamilyLabel(readFamilyNameFromBuffer(buf) ?? special?.name ?? baseName)
+      }).catch(() => setFontFamilyLabel(special?.name ?? baseName))
 
       // Load italic companion (registers under same family with style:'italic')
       const italicMatch = matchItalicFont(resolvedSlug)
@@ -609,6 +686,7 @@ export default function App() {
         document.fonts.add(loaded)
         setFontFace(loaded)
         setFontName(file.name.replace(/\.[^/.]+$/, ''))
+        setFontFamilyLabel(readFamilyNameFromBuffer(buffer, offsets[0]) ?? baseName)
         autoFitSize(name)
         await detectAxes(new File([extracted], 'extracted.ttf'))
       } else {
@@ -623,6 +701,7 @@ export default function App() {
         document.fonts.add(loaded)
         setFontFace(loaded)
         setFontName(file.name.replace(/\.[^/.]+$/, ''))
+        setFontFamilyLabel(readFamilyNameFromBuffer(buffer) ?? baseName)
         autoFitSize(name)
         await detectAxes(file)
       }
@@ -645,6 +724,8 @@ export default function App() {
       document.fonts.add(loaded)
       setFontFace(loaded)
       setTtcIndex(index)
+      const familyName = readFamilyNameFromBuffer(buffer, offsets[index])
+      if (familyName) setFontFamilyLabel(familyName)
       await detectAxes(new File([extracted], 'extracted.ttf'))
     } catch (err) {
       console.error('TTC font switch error', err)
@@ -755,12 +836,17 @@ export default function App() {
     transition: 'font-variation-settings 0.15s ease',
   }
 
-  // ── Active style for sidebar controls in paragraph mode ──────────────────
-  const effectiveParaStyle = mode === 'paragraph' ? (activeParaStyle ?? 'p') : null
+  // ── Active style for sidebar controls in paragraph/scale mode ────────────
+  const effectiveParaStyle = mode === 'paragraph'
+    ? (activeParaStyle ?? 'p')
+    : mode === 'scale'
+    ? activeParaStyle   // null unless user picks one from the dropdown
+    : null
 
   // ── Active role for calcom mode ───────────────────────────────────────────
   const effectiveCalcomRole = mode === 'calcom' ? activeCalcomRole : null
   const effectiveCossRole = mode === 'coss' ? activeCossRole : null
+  const effectiveScaleStep = mode === 'scale' ? activeScaleStep : null
 
   const roleStyle = (role) => {
     const r = calcomRoles[role] ?? calcomRoles.eventDesc
@@ -885,6 +971,50 @@ export default function App() {
     }
   }
 
+  // ── Scale mode helpers ────────────────────────────────────────────────────
+  const scaleStepStyle = (step) => {
+    const overrides = scaleAxisOverrides[step.key] ?? { opsz: 'auto' }
+    const merged = { opsz: 'auto', ...axisValues, ...overrides }
+    const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    return {
+      fontFamily: fontFace ? fontFace.family : 'serif',
+      fontStyle,
+      fontSize: `${step.pxSize}px`,
+      lineHeight: step.lh,
+      letterSpacing: 0,
+      fontVariationSettings: fvs,
+      fontOpticalSizing: merged.opsz === 'auto' ? 'auto' : 'none',
+      fontSynthesis: 'none',
+      fontFeatureSettings: '"calt" 0, "ss20" 0',
+      color: 'var(--text)',
+      transition: 'font-variation-settings 0.15s ease',
+    }
+  }
+
+  const visibleScaleSteps = [
+    ...TAILWIND_XL.slice(0, scaleMaxXl).reverse(),
+    ...[...TAILWIND_BASE].reverse(),
+  ]
+
+  // Descending (lg → xs), matching the button order in the sidebar
+  const scalePairSteps = [...TAILWIND_SCALE].filter(s => scalePairSizes.has(s.key)).reverse()
+
+  const handleScaleLabelInput = useCallback((key, e) => {
+    const text = e.currentTarget.textContent
+    setScaleLabelText(text)
+    Object.entries(scaleRowRefs.current).forEach(([k, el]) => {
+      if (k !== key && el) el.textContent = text
+    })
+  }, [])
+
+  const handleScalePairInput = useCallback((key, e) => {
+    const text = e.currentTarget.textContent
+    setScalePairText(text)
+    Object.entries(scalePairRefs.current).forEach(([k, el]) => {
+      if (k !== key && el) el.textContent = text
+    })
+  }, [])
+
   const handleBlockInput = useCallback((id, e) => {
     const text = e.currentTarget.textContent
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, text } : b))
@@ -976,6 +1106,19 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler)
   }, [cossPanelOpen])
 
+  useEffect(() => {
+    if (!scaleStepsPanelOpen) return
+    const handler = (e) => {
+      if (
+        scalePanelBtnRef.current?.contains(e.target) ||
+        scalePanelPopoverRef.current?.contains(e.target)
+      ) return
+      setScaleStepsPanelOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [scaleStepsPanelOpen])
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
@@ -998,11 +1141,12 @@ export default function App() {
         {isCalcom && <button className={`mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><CalIcon /> booking events</button>}
         <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><BigIcon /> Big Word</button>
         <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><ParaIcon /> Paragraph</button>
+        <button className={`mobile-tab ${mode === 'scale' ? 'active' : ''}`} onClick={() => setMode('scale')}><ScaleIcon /> Type Scale</button>
         <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><GlyphIcon /> Glyphs</button>
       </nav>
 
       {/* Mobile sub-bar: context-sensitive chips */}
-      {fontName && (mode === 'glyphs' || mode === 'paragraph') && (
+      {fontName && (mode === 'glyphs' || mode === 'paragraph' || mode === 'scale') && (
         <div className="mobile-sub-bar">
           {mode === 'glyphs' && Object.keys(GLYPH_SETS).map(k => (
             <button
@@ -1036,6 +1180,35 @@ export default function App() {
               {k}
             </button>
           ))}
+          {mode === 'scale' && visibleScaleSteps.map(step => (
+            <button
+              key={step.key}
+              className={`mobile-sub-btn ${activeScaleStep === step.key ? 'active' : ''}`}
+              onClick={() => {
+                setActiveScaleStep(prev => prev === step.key ? null : step.key)
+                setActiveParaStyle(null)
+              }}
+            >
+              {step.key}
+            </button>
+          ))}
+          {mode === 'scale' && scalePairSizes.size > 0 && <span className="mobile-sub-divider" />}
+          {mode === 'scale' && ['lg', 'base', 'sm', 'xs'].map(opt => {
+            const key = `text-${opt}`
+            return (
+              <button
+                key={opt}
+                className={`mobile-sub-btn ${scalePairSizes.has(key) ? 'active' : ''}`}
+                onClick={() => setScalePairSizes(prev => {
+                  const next = new Set(prev)
+                  next.has(key) ? next.delete(key) : next.add(key)
+                  return next
+                })}
+              >
+                {key}
+              </button>
+            )
+          })}
         </div>
       )}
 
@@ -1144,11 +1317,70 @@ export default function App() {
                 </button>
               )}
             </div>
+            <div className="mode-btn-row">
+              <ModeBtn active={mode === 'scale'} onClick={() => setMode('scale')}>
+                <ScaleIcon /> Type Scale
+              </ModeBtn>
+              {fontName && mode === 'scale' && (
+                <button
+                  ref={scalePanelBtnRef}
+                  className={`align-btn styles-toggle-btn ${scaleStepsPanelOpen ? 'active' : ''}`}
+                  title="Scale steps panel"
+                  onClick={() => setScaleStepsPanelOpen(p => !p)}
+                >
+                  <SlidersIcon />
+                </button>
+              )}
+            </div>
             <ModeBtn active={mode === 'glyphs'} onClick={() => setMode('glyphs')}>
               <GlyphIcon /> Glyphs
             </ModeBtn>
           </div>
         </div>
+
+        {/* Scale mode controls */}
+        {mode === 'scale' && fontName && (
+          <>
+            <div className="sidebar-divider" />
+            <div className="sidebar-section">
+              <div className="section-label">Type Scale</div>
+              <div className="slider-label">
+                <span className="slider-label-left">
+                  <span className="slider-label-text">Max xl tier</span>
+                </span>
+                <input
+                  className="slider-number"
+                  type="number"
+                  min={1}
+                  max={9}
+                  step={1}
+                  value={scaleMaxXl}
+                  onChange={e => setScaleMaxXl(Math.min(9, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+                />
+              </div>
+              <div className="section-label" style={{ marginTop: 4 }}>Body Pairing</div>
+              <div className="scale-pair-seg">
+                {['lg', 'base', 'sm', 'xs'].map(opt => {
+                  const key = `text-${opt}`
+                  const active = scalePairSizes.has(key)
+                  return (
+                    <button
+                      key={opt}
+                      className={`scale-pair-btn ${active ? 'active' : ''}`}
+                      onClick={() => setScalePairSizes(prev => {
+                        const next = new Set(prev)
+                        next.has(key) ? next.delete(key) : next.add(key)
+                        return next
+                      })}
+                    >
+                      {key}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="sidebar-divider" />
 
@@ -1171,7 +1403,7 @@ export default function App() {
         )}
 
         {/* Typography controls */}
-        {mode !== 'calcom' && (
+        {mode !== 'calcom' && mode !== 'scale' && (
         <div className="sidebar-section">
           <div className="typography-header">
             <div className="section-label">
@@ -1246,7 +1478,9 @@ export default function App() {
             </select>
           )}
           {namedInstances.length > 0 && (() => {
-            const currentCoords = effectiveParaStyle
+            const currentCoords = effectiveScaleStep
+              ? { ...axisValues, ...scaleAxisOverrides[effectiveScaleStep] }
+              : effectiveParaStyle
               ? { ...axisValues, ...paraStyles[effectiveParaStyle].axisOverrides }
               : axisValues
             const activeInst = namedInstances.find(inst =>
@@ -1255,7 +1489,12 @@ export default function App() {
             const applyInstance = (name) => {
               const inst = namedInstances.find(i => i.name === name)
               if (!inst) return
-              if (effectiveParaStyle) {
+              if (effectiveScaleStep) {
+                setScaleAxisOverrides(prev => ({
+                  ...prev,
+                  [effectiveScaleStep]: { ...inst.coordinates }
+                }))
+              } else if (effectiveParaStyle) {
                 setParaStyles(prev => ({
                   ...prev,
                   [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: { ...inst.coordinates } }
@@ -1353,6 +1592,16 @@ export default function App() {
               <div className="typography-header">
                 <div className="section-label">
                   Variable Axes
+                  {effectiveScaleStep && (
+                    <button className="section-label-exit" onClick={() => setActiveScaleStep(null)}>
+                      {effectiveScaleStep} ×
+                    </button>
+                  )}
+                  {mode === 'scale' && effectiveParaStyle && (
+                    <button className="section-label-exit" onClick={() => setActiveParaStyle(null)}>
+                      {effectiveParaStyle === 'p' ? 'Para' : effectiveParaStyle.toUpperCase()} ×
+                    </button>
+                  )}
                   {effectiveCalcomRole && (
                     <button className="section-label-exit" onClick={() => setActiveCalcomRole(null)} title="Back to master">
                       {CALCOM_ROLE_LABELS[effectiveCalcomRole]} ×
@@ -1365,7 +1614,9 @@ export default function App() {
                   )}
                 </div>
                 {(() => {
-                  const axesDirty = effectiveParaStyle
+                  const axesDirty = effectiveScaleStep
+                    ? JSON.stringify(scaleAxisOverrides[effectiveScaleStep]) !== JSON.stringify(DEFAULT_SCALE_AXIS_OVERRIDES[effectiveScaleStep])
+                    : effectiveParaStyle
                     ? JSON.stringify(paraStyles[effectiveParaStyle].axisOverrides) !== JSON.stringify(DEFAULT_PARA_STYLES[effectiveParaStyle].axisOverrides)
                     : effectiveCalcomRole
                     ? JSON.stringify(calcomRoles[effectiveCalcomRole].axisOverrides) !== JSON.stringify(DEFAULT_CALCOM_ROLES[effectiveCalcomRole].axisOverrides)
@@ -1378,7 +1629,12 @@ export default function App() {
                       title="Reset axes"
                       style={axesDirty ? {} : { pointerEvents: 'none' }}
                       onClick={() => {
-                        if (effectiveParaStyle) {
+                        if (effectiveScaleStep) {
+                          setScaleAxisOverrides(prev => ({
+                            ...prev,
+                            [effectiveScaleStep]: { ...DEFAULT_SCALE_AXIS_OVERRIDES[effectiveScaleStep] }
+                          }))
+                        } else if (effectiveParaStyle) {
                           setParaStyles(prev => ({
                             ...prev,
                             [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: { ...DEFAULT_PARA_STYLES[effectiveParaStyle].axisOverrides } }
@@ -1404,14 +1660,18 @@ export default function App() {
                 })()}
               </div>
               {variationAxes.map(axis => {
-                const val = effectiveParaStyle
+                const val = effectiveScaleStep
+                  ? (scaleAxisOverrides[effectiveScaleStep]?.[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
+                  : effectiveParaStyle
                   ? (paraStyles[effectiveParaStyle].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
                   : effectiveCalcomRole
                   ? (calcomRoles[effectiveCalcomRole].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
                   : effectiveCossRole
                   ? (cossRoles[effectiveCossRole].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
                   : (axisValues[axis.tag] ?? axis.defaultVal)
-                const autoOpszValue = effectiveCalcomRole
+                const autoOpszValue = effectiveScaleStep
+                  ? (TAILWIND_SCALE.find(s => s.key === effectiveScaleStep)?.pxSize ?? fontSize)
+                  : effectiveCalcomRole
                   ? calcomRoles[effectiveCalcomRole].size
                   : effectiveCossRole
                   ? cossRoles[effectiveCossRole].size
@@ -1428,7 +1688,12 @@ export default function App() {
                     max={axis.max}
                     step={(axis.max - axis.min) > 10 ? 1 : 0.01}
                     onChange={v => {
-                      if (effectiveParaStyle) {
+                      if (effectiveScaleStep) {
+                        setScaleAxisOverrides(prev => ({
+                          ...prev,
+                          [effectiveScaleStep]: { ...prev[effectiveScaleStep], [axis.tag]: v }
+                        }))
+                      } else if (effectiveParaStyle) {
                         setParaStyles(prev => ({
                           ...prev,
                           [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: { ...prev[effectiveParaStyle].axisOverrides, [axis.tag]: v } }
@@ -1564,6 +1829,78 @@ export default function App() {
                   onKeyDown={e => handleBlockKeyDown(block.id, e)}
                 />
               ))}
+          </div>
+        )}
+
+        {fontName && mode === 'scale' && (
+          <div className="preview-scale">
+            {visibleScaleSteps.map(step => (
+              <div
+                key={step.key}
+                className={`scale-row${activeScaleStep === step.key ? ' scale-row--selected' : ''}`}
+                onClick={() => {
+                  setActiveScaleStep(k => k === step.key ? null : step.key)
+                  setActiveParaStyle(null)
+                }}
+              >
+                <div className="scale-row-meta">
+                  <span className="scale-row-tag">
+                    {step.key}
+                    {scalePairSteps.length > 0 && (
+                      <span className="scale-row-with">
+                        {' with '}
+                        {scalePairSteps.map(p => p.key).join(', ')}
+                      </span>
+                    )}
+                  </span>
+                  <span className="scale-row-px">
+                    {step.pxSize}px
+                    {scalePairSteps.length > 0 && (
+                      <span> / {scalePairSteps.map(p => `${p.pxSize}px`).join(', ')}</span>
+                    )}
+                  </span>
+                </div>
+                <div
+                  ref={el => {
+                    if (el) {
+                      scaleRowRefs.current[step.key] = el
+                      if (!el.textContent) el.textContent = scaleLabelText
+                    } else {
+                      delete scaleRowRefs.current[step.key]
+                    }
+                  }}
+                  contentEditable
+                  suppressContentEditableWarning
+                  spellCheck={false}
+                  className="scale-row-text"
+                  style={scaleStepStyle(step)}
+                  onInput={e => handleScaleLabelInput(step.key, e)}
+                  onClick={e => e.stopPropagation()}
+                />
+                {scalePairSteps.map(pairStep => (
+                  <div
+                    key={pairStep.key}
+                    ref={el => {
+                      const refKey = `${step.key}__${pairStep.key}`
+                      if (el) {
+                        scalePairRefs.current[refKey] = el
+                        if (!el.textContent) el.textContent = scalePairText
+                      } else {
+                        delete scalePairRefs.current[refKey]
+                      }
+                    }}
+                    contentEditable
+                    suppressContentEditableWarning
+                    spellCheck={false}
+                    className="scale-pair-text"
+                    data-pair-size={pairStep.key}
+                    style={scaleStepStyle(pairStep)}
+                    onInput={e => handleScalePairInput(`${step.key}__${pairStep.key}`, e)}
+                    onClick={e => e.stopPropagation()}
+                  />
+                ))}
+              </div>
+            ))}
           </div>
         )}
 
@@ -1709,6 +2046,55 @@ export default function App() {
                         </span>
                       )
                     })}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )
+      })()}
+
+      {/* Scale steps panel popover */}
+      {scaleStepsPanelOpen && mode === 'scale' && fontName && (() => {
+        const rect = scalePanelBtnRef.current?.getBoundingClientRect()
+        if (!rect) return null
+        return (
+          <div
+            ref={scalePanelPopoverRef}
+            className="para-styles-panel scale-steps-panel"
+            style={{ top: rect.bottom + 8, left: rect.left, '--caret-x': `${rect.width / 2}px` }}
+          >
+            {visibleScaleSteps.map(step => {
+              const isActive = activeScaleStep === step.key
+              const overrides = scaleAxisOverrides[step.key] ?? {}
+              const localOverrides = Object.entries(overrides).filter(([tag]) => tag !== 'opsz' || overrides[tag] !== 'auto')
+              return (
+                <button
+                  key={step.key}
+                  className={`para-styles-row ${isActive ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveScaleStep(prev => prev === step.key ? null : step.key)
+                    setActiveParaStyle(null)
+                    setScaleStepsPanelOpen(false)
+                  }}
+                >
+                  <span
+                    className="para-styles-preview"
+                    style={{
+                      ...scaleStepStyle(step),
+                      fontSize: `${Math.min(step.pxSize, 20)}px`,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {step.key}
+                  </span>
+                  <span className="para-styles-specs">
+                    <span className="para-styles-spec">{step.pxSize}px</span>
+                    {localOverrides.map(([tag, val]) => (
+                      <span key={tag} className="para-styles-spec para-styles-spec--local">
+                        {tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
+                      </span>
+                    ))}
                   </span>
                 </button>
               )
@@ -2369,6 +2755,15 @@ function GlyphIcon() {
       <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
       <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
       <rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+    </svg>
+  )
+}
+function ScaleIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="1" y="1.5" width="12" height="3" rx="0.75" fill="currentColor"/>
+      <rect x="1" y="6.5" width="12" height="2" rx="0.75" fill="currentColor"/>
+      <rect x="1" y="10.5" width="12" height="1.25" rx="0.625" fill="currentColor"/>
     </svg>
   )
 }

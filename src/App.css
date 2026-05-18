@@ -846,6 +846,113 @@
   letter-spacing: 0.04em;
 }
 
+/* ── Type Scale mode ─────────────────────────────────────────────────────── */
+.preview-scale {
+  padding: 32px 48px 64px;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.scale-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background 0.1s;
+}
+
+.scale-row:first-child {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.scale-row:hover {
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+
+.scale-row--selected {
+  outline: 1px solid var(--border);
+  outline-offset: -1px;
+}
+
+.scale-row-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 4px;
+  pointer-events: none;
+}
+
+.scale-row-tag {
+  font-family: 'CalSansUI', system-ui, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.scale-row-px {
+  font-family: 'CalSansUI', system-ui, monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+.scale-row-text {
+  outline: none;
+  cursor: text;
+  padding: 0 4px;
+  word-break: break-word;
+}
+
+.scale-pair-text {
+  outline: none;
+  cursor: text;
+  padding: 2px 4px 8px;
+  word-break: break-word;
+  color: var(--text-muted);
+}
+
+/* ── Scale pairing chicklet toggles ──────────────────────────────────────── */
+.scale-pair-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.scale-pair-btn {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: 'CalSansUI', system-ui, sans-serif;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--border);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.scale-pair-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.scale-pair-btn.active {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+/* ── Scale steps panel (taller, scrollable) ──────────────────────────────── */
+.scale-steps-panel {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
 /* ── Desktop preset bar ──────────────────────────────────────────────────── */
 .preview-preset-bar {
   position: fixed;
@@ -906,17 +1013,23 @@
     order: 1;
     flex-shrink: 0;
     border-bottom: 1px solid var(--border-subtle);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+
+  .mobile-tabs::-webkit-scrollbar { display: none; }
 
   /* sub-bar order: 2, preview: 3, sidebar: 4 */
 
   .mobile-tab {
-    flex: 1;
+    flex: none;
+    white-space: nowrap;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 12px 8px;
+    padding: 12px 14px;
     font-size: 12px;
     font-family: 'CalSansUI', system-ui, sans-serif;
     color: var(--text-muted);
@@ -990,8 +1103,9 @@
   .preview-area {
     order: 4;
     flex: 1;
-    height: auto;
+    height: 0;
     min-height: 0;
+    overflow-y: auto;
   }
 
   .sidebar {
