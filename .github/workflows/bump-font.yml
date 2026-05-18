@@ -76,8 +76,9 @@ jobs:
           )
 
           changed = []
-          for path in glob.glob("src/**/*", recursive=True):
-              if not path.endswith((".css", ".jsx", ".js")):
+          paths = glob.glob("src/**/*", recursive=True) + glob.glob("*.js") + glob.glob("*.ts") + glob.glob("*.mjs")
+          for path in paths:
+              if not path.endswith((".css", ".jsx", ".js", ".ts", ".mjs")):
                   continue
               text = open(path).read()
               updated = pattern.sub(canon, text)
