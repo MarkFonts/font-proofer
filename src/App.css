@@ -864,6 +864,7 @@
   transition: background 0.1s;
   position: relative;
   z-index: 1;
+  outline: none;
 }
 
 .scale-row:first-child {
@@ -914,6 +915,7 @@
   padding: 2px 4px 8px;
   word-break: break-word;
   color: var(--text-muted);
+  overflow: hidden;
 }
 
 /* ── Scale pairing chicklet toggles ──────────────────────────────────────── */
@@ -961,6 +963,9 @@
   position: absolute;
   top: 0;
   bottom: 0;
+  width: 20px !important;
+  z-index: 10;
+  touch-action: none;
 }
 
 .scale-margin-fill {

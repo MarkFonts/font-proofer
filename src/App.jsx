@@ -541,17 +541,11 @@ export default function App() {
   const [scaleBaseMargin, setScaleBaseMargin] = useState(80)
   const scaleBaseMarginRef = useRef(80)
   useEffect(() => { scaleBaseMarginRef.current = scaleBaseMargin }, [scaleBaseMargin])
-  const maxScaleBaseMarginRef = useRef(80)
+  const maxScaleBaseMarginRef = useRef(600)
   useEffect(() => {
-    if (!fontFace || !previewAreaRef.current) { maxScaleBaseMarginRef.current = 80; return }
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    ctx.font = `16px "${fontFace.family}"` // text-base as reference
-    const wWidth = ctx.measureText('w').width
-    const areaWidth = previewAreaRef.current.clientWidth
-    maxScaleBaseMarginRef.current = wWidth > 0
-      ? Math.max(80, Math.round(areaWidth - 45 * wWidth))
-      : 80
+    if (!previewAreaRef.current) return
+    // Leave at least 200px of body column; account for 96px of preview-scale horizontal padding
+    maxScaleBaseMarginRef.current = Math.max(80, previewAreaRef.current.clientWidth - 96 - 200)
   }, [fontFace])
 
   // Typography controls
@@ -980,17 +974,25 @@ export default function App() {
 
   const handleScaleEscapeBarMouseDown = useCallback((e) => {
     e.preventDefault()
-    const startX = e.clientX
+    document.body.style.userSelect = 'none'
+    const startX = e.touches ? e.touches[0].clientX : e.clientX
     const startMargin = scaleBaseMarginRef.current
     const onMove = (e) => {
-      setScaleBaseMargin(Math.max(10, Math.min(maxScaleBaseMarginRef.current, startMargin - (e.clientX - startX))))
+      if (e.cancelable) e.preventDefault()
+      const x = e.touches ? e.touches[0].clientX : e.clientX
+      setScaleBaseMargin(Math.max(10, Math.min(maxScaleBaseMarginRef.current, startMargin - (x - startX))))
     }
     const onUp = () => {
+      document.body.style.userSelect = ''
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onUp)
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
+    window.addEventListener('touchmove', onMove, { passive: false })
+    window.addEventListener('touchend', onUp)
   }, [])
 
   // Clamp base step font size to maintain ~60 chars/line at current column width
@@ -1957,6 +1959,7 @@ export default function App() {
                     className="escape-bar scale-escape-bar"
                     style={{ right: `${escapeRight}px` }}
                     onMouseDown={handleScaleEscapeBarMouseDown}
+                    onTouchStart={handleScaleEscapeBarMouseDown}
                     title="Drag to adjust body column width"
                   />
                 </>
