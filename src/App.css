@@ -862,6 +862,8 @@
   cursor: pointer;
   border-radius: var(--radius);
   transition: background 0.1s;
+  position: relative;
+  z-index: 1;
 }
 
 .scale-row:first-child {
@@ -951,7 +953,7 @@
   overflow-y: auto;
 }
 
-.scale-base-section {
+.preview-scale {
   position: relative;
 }
 
@@ -961,10 +963,16 @@
   bottom: 0;
 }
 
-.scale-row-px-original {
-  opacity: 0.4;
-  font-size: 0.85em;
+.scale-margin-fill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg);
+  pointer-events: none;
+  z-index: 0;
 }
+
 
 .mobile-sidebar-handle {
   display: none;

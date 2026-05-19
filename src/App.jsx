@@ -1945,95 +1945,95 @@ export default function App() {
         )}
 
         {fontName && mode === 'scale' && (() => {
-          const xlSteps = TAILWIND_XL.slice(0, scaleMaxXl).reverse()
-          const baseSteps = [...TAILWIND_BASE].reverse()
-          const renderRow = (step, effectivePxSize) => (
-            <div
-              key={step.key}
-              className={`scale-row${selectedScaleSteps.includes(step.key) || activeScaleStep === step.key ? ' scale-row--selected' : ''}`}
-              onClick={() => {
-                setActiveScaleStep(k => k === step.key ? null : step.key)
-                setScaleStepRangeEnd(null)
-                setExtraScaleSteps(new Set())
-                setActiveParaStyle(null)
-              }}
-            >
-              <div className="scale-row-meta">
-                <span className="scale-row-tag">
-                  {step.key}
-                  {scalePairSteps.length > 0 && (
-                    <span className="scale-row-with">
-                      {' with '}
-                      {scalePairSteps.map(p => p.key).join(', ')}
-                    </span>
-                  )}
-                </span>
-                <span className="scale-row-px">
-                  {effectivePxSize != null && Math.round(effectivePxSize) !== step.pxSize
-                    ? <>{Math.round(effectivePxSize)}<span className="scale-row-px-original">/{step.pxSize}</span>px</>
-                    : <>{step.pxSize}px</>}
-                  {scalePairSteps.length > 0 && (
-                    <span> / {scalePairSteps.map(p => `${p.pxSize}px`).join(', ')}</span>
-                  )}
-                </span>
-              </div>
-              <div
-                ref={el => {
-                  if (el) {
-                    scaleRowRefs.current[step.key] = el
-                    if (!el.textContent) el.textContent = scaleLabelText
-                  } else {
-                    delete scaleRowRefs.current[step.key]
-                  }
-                }}
-                contentEditable
-                suppressContentEditableWarning
-                spellCheck={false}
-                className="scale-row-text"
-                style={scaleStepStyle(step, effectivePxSize)}
-                onInput={e => handleScaleLabelInput(step.key, e)}
-                onClick={e => e.stopPropagation()}
-              />
-              {scalePairSteps.map(pairStep => (
-                <div
-                  key={pairStep.key}
-                  ref={el => {
-                    const refKey = `${step.key}__${pairStep.key}`
-                    if (el) {
-                      scalePairRefs.current[refKey] = el
-                      if (!el.textContent) el.textContent = scalePairText
-                    } else {
-                      delete scalePairRefs.current[refKey]
-                    }
-                  }}
-                  contentEditable
-                  suppressContentEditableWarning
-                  spellCheck={false}
-                  className="scale-pair-text"
-                  data-pair-size={pairStep.key}
-                  style={scaleStepStyle(pairStep)}
-                  onInput={e => handleScalePairInput(`${step.key}__${pairStep.key}`, e)}
-                  onClick={e => e.stopPropagation()}
-                />
-              ))}
-            </div>
-          )
+          const hasPairs = scalePairSizes.size > 0
+          // escape bar at right: 48(padding) + scaleBaseMargin - 14(handle offset)
+          const escapeRight = 34 + scaleBaseMargin
           return (
             <div className="preview-scale">
-              {xlSteps.map(step => renderRow(step, null))}
-              <div className="scale-base-section" style={{ paddingRight: scaleBaseMargin }}>
+              {hasPairs && (
+                <>
+                  <div className="scale-margin-fill" style={{ width: `${48 + scaleBaseMargin}px` }} />
+                  <div
+                    className="escape-bar scale-escape-bar"
+                    style={{ right: `${escapeRight}px` }}
+                    onMouseDown={handleScaleEscapeBarMouseDown}
+                    title="Drag to adjust body column width"
+                  />
+                </>
+              )}
+              {visibleScaleSteps.map(step => (
                 <div
-                  className="escape-bar scale-escape-bar"
-                  style={{ right: `${scaleBaseMargin - 14}px` }}
-                  onMouseDown={handleScaleEscapeBarMouseDown}
-                  title="Drag to adjust column width"
-                />
-                {baseSteps.map(step => {
-                  const clamped = scaleBaseClampPx != null ? Math.min(step.pxSize, scaleBaseClampPx) : null
-                  const effective = clamped != null && clamped < step.pxSize ? clamped : null
-                  return renderRow(step, effective)
-                })}
-              </div>
+                  key={step.key}
+                  className={`scale-row${selectedScaleSteps.includes(step.key) || activeScaleStep === step.key ? ' scale-row--selected' : ''}`}
+                  onClick={() => {
+                    setActiveScaleStep(k => k === step.key ? null : step.key)
+                    setScaleStepRangeEnd(null)
+                    setExtraScaleSteps(new Set())
+                    setActiveParaStyle(null)
+                  }}
+                >
+                  <div className="scale-row-meta">
+                    <span className="scale-row-tag">
+                      {step.key}
+                      {scalePairSteps.length > 0 && (
+                        <span className="scale-row-with">
+                          {' with '}
+                          {scalePairSteps.map(p => p.key).join(', ')}
+                        </span>
+                      )}
+                    </span>
+                    <span className="scale-row-px">
+                      {step.pxSize}px
+                      {scalePairSteps.length > 0 && (
+                        <span> / {scalePairSteps.map(p => `${p.pxSize}px`).join(', ')}</span>
+                      )}
+                    </span>
+                  </div>
+                  <div
+                    ref={el => {
+                      if (el) {
+                        scaleRowRefs.current[step.key] = el
+                        if (!el.textContent) el.textContent = scaleLabelText
+                      } else {
+                        delete scaleRowRefs.current[step.key]
+                      }
+                    }}
+                    contentEditable
+                    suppressContentEditableWarning
+                    spellCheck={false}
+                    className="scale-row-text"
+                    style={scaleStepStyle(step)}
+                    onInput={e => handleScaleLabelInput(step.key, e)}
+                    onClick={e => e.stopPropagation()}
+                  />
+                  {scalePairSteps.map(pairStep => {
+                    const clamped = scaleBaseClampPx != null ? Math.min(pairStep.pxSize, scaleBaseClampPx) : null
+                    const effective = clamped != null && clamped < pairStep.pxSize ? clamped : null
+                    return (
+                      <div
+                        key={pairStep.key}
+                        ref={el => {
+                          const refKey = `${step.key}__${pairStep.key}`
+                          if (el) {
+                            scalePairRefs.current[refKey] = el
+                            if (!el.textContent) el.textContent = scalePairText
+                          } else {
+                            delete scalePairRefs.current[refKey]
+                          }
+                        }}
+                        contentEditable
+                        suppressContentEditableWarning
+                        spellCheck={false}
+                        className="scale-pair-text"
+                        data-pair-size={pairStep.key}
+                        style={{ ...scaleStepStyle(pairStep, effective), maxWidth: hasPairs ? `calc(100% - ${scaleBaseMargin}px)` : undefined }}
+                        onInput={e => handleScalePairInput(`${step.key}__${pairStep.key}`, e)}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    )
+                  })}
+                </div>
+              ))}
             </div>
           )
         })()}
