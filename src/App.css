@@ -97,6 +97,42 @@
   overflow-y: auto;
   overflow-x: hidden;
   flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.desktop-collapsed {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-right: none;
+}
+
+.sidebar-bumpout {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 70px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 150;
+  color: var(--text-dim);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s, box-shadow 0.15s;
+}
+.sidebar-bumpout:hover {
+  background: var(--bg-elevated);
+  box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+}
+
+@media (max-width: 768px) {
+  .sidebar-bumpout { display: none; }
 }
 
 .sidebar-logo {

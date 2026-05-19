@@ -517,6 +517,7 @@ export default function App() {
 
   // Mobile sidebar collapse
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true)
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
 
   // Paragraph escape bar (right margin, px)
   const [rightMargin, setRightMargin] = useState(80)
@@ -1308,12 +1309,20 @@ export default function App() {
       )}
 
       {/* Sidebar */}
+      <button
+        className="sidebar-bumpout"
+        style={{ left: desktopSidebarOpen ? 'var(--sidebar-width)' : '0' }}
+        onClick={() => setDesktopSidebarOpen(p => !p)}
+        title={desktopSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+      >
+        {desktopSidebarOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+      </button>
       {!mobileSidebarOpen && (
         <button className="mobile-sidebar-lift-tab" onClick={() => setMobileSidebarOpen(true)}>
           <ChevronUpIcon />
         </button>
       )}
-      <aside className={`sidebar${mobileSidebarOpen ? '' : ' mobile-collapsed'}`}>
+      <aside className={`sidebar${mobileSidebarOpen ? '' : ' mobile-collapsed'}${desktopSidebarOpen ? '' : ' desktop-collapsed'}`}>
         <button className="mobile-sidebar-handle" onClick={() => setMobileSidebarOpen(false)}>
           <ChevronDownIcon />
         </button>
@@ -2975,6 +2984,22 @@ function AlignRightIcon() {
     </svg>
   )
 }
+function ChevronLeftIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="9,2 4,7 9,12" />
+    </svg>
+  )
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="5,2 10,7 5,12" />
+    </svg>
+  )
+}
+
 function ChevronDownIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
