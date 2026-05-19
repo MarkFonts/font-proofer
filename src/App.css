@@ -602,6 +602,7 @@
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: stable;
   background: var(--bg);
   position: relative;
   container-type: inline-size;
