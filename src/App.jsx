@@ -515,6 +515,9 @@ export default function App() {
   // Coss roles panel
   const [cossPanelOpen, setCossPanelOpen] = useState(false)
 
+  // Mobile sidebar collapse
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true)
+
   // Paragraph escape bar (right margin, px)
   const [rightMargin, setRightMargin] = useState(80)
   const rightMarginRef = useRef(80)
@@ -533,6 +536,23 @@ export default function App() {
       ? Math.max(80, Math.round(areaWidth - 45 * wWidth))
       : 80
   }, [fontFace, paraStyles.p.size])
+
+  // Scale base section escape bar
+  const [scaleBaseMargin, setScaleBaseMargin] = useState(80)
+  const scaleBaseMarginRef = useRef(80)
+  useEffect(() => { scaleBaseMarginRef.current = scaleBaseMargin }, [scaleBaseMargin])
+  const maxScaleBaseMarginRef = useRef(80)
+  useEffect(() => {
+    if (!fontFace || !previewAreaRef.current) { maxScaleBaseMarginRef.current = 80; return }
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    ctx.font = `16px "${fontFace.family}"` // text-base as reference
+    const wWidth = ctx.measureText('w').width
+    const areaWidth = previewAreaRef.current.clientWidth
+    maxScaleBaseMarginRef.current = wWidth > 0
+      ? Math.max(80, Math.round(areaWidth - 45 * wWidth))
+      : 80
+  }, [fontFace])
 
   // Typography controls
   const [fontSize, setFontSize] = useState(200)
@@ -958,6 +978,29 @@ export default function App() {
     window.addEventListener('mouseup', onUp)
   }, [])
 
+  const handleScaleEscapeBarMouseDown = useCallback((e) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startMargin = scaleBaseMarginRef.current
+    const onMove = (e) => {
+      setScaleBaseMargin(Math.max(10, Math.min(maxScaleBaseMarginRef.current, startMargin - (e.clientX - startX))))
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [])
+
+  // Clamp base step font size to maintain ~60 chars/line at current column width
+  const scaleBaseClampPx = useMemo(() => {
+    if (!previewAreaRef.current) return null
+    const colWidth = previewAreaRef.current.clientWidth - scaleBaseMargin
+    return Math.max(8, colWidth / 24)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scaleBaseMargin])
+
   // ── Per-block style (paragraph mode) ─────────────────────────────────────
   const blockStyle = (type) => {
     const s = paraStyles[type] ?? paraStyles.p
@@ -986,14 +1029,14 @@ export default function App() {
   }
 
   // ── Scale mode helpers ────────────────────────────────────────────────────
-  const scaleStepStyle = (step) => {
+  const scaleStepStyle = (step, effectivePxSize) => {
     const overrides = scaleAxisOverrides[step.key] ?? { opsz: 'auto' }
     const merged = { opsz: 'auto', ...axisValues, ...overrides }
     const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     return {
       fontFamily: fontFace ? fontFace.family : 'serif',
       fontStyle,
-      fontSize: `${step.pxSize}px`,
+      fontSize: `${effectivePxSize ?? step.pxSize}px`,
       lineHeight: step.lh,
       letterSpacing: 0,
       fontVariationSettings: fvs,
@@ -1263,7 +1306,15 @@ export default function App() {
       )}
 
       {/* Sidebar */}
-      <aside className="sidebar">
+      {!mobileSidebarOpen && (
+        <button className="mobile-sidebar-lift-tab" onClick={() => setMobileSidebarOpen(true)}>
+          <ChevronUpIcon />
+        </button>
+      )}
+      <aside className={`sidebar${mobileSidebarOpen ? '' : ' mobile-collapsed'}`}>
+        <button className="mobile-sidebar-handle" onClick={() => setMobileSidebarOpen(false)}>
+          <ChevronDownIcon />
+        </button>
         {/* Logo */}
         <div className="sidebar-logo">
           {SHOW_CLIENT_LOGO && clientSlug && clientSlug !== 'wordmark' ? (
@@ -1893,79 +1944,99 @@ export default function App() {
           </div>
         )}
 
-        {fontName && mode === 'scale' && (
-          <div className="preview-scale">
-            {visibleScaleSteps.map(step => (
+        {fontName && mode === 'scale' && (() => {
+          const xlSteps = TAILWIND_XL.slice(0, scaleMaxXl).reverse()
+          const baseSteps = [...TAILWIND_BASE].reverse()
+          const renderRow = (step, effectivePxSize) => (
+            <div
+              key={step.key}
+              className={`scale-row${selectedScaleSteps.includes(step.key) || activeScaleStep === step.key ? ' scale-row--selected' : ''}`}
+              onClick={() => {
+                setActiveScaleStep(k => k === step.key ? null : step.key)
+                setScaleStepRangeEnd(null)
+                setExtraScaleSteps(new Set())
+                setActiveParaStyle(null)
+              }}
+            >
+              <div className="scale-row-meta">
+                <span className="scale-row-tag">
+                  {step.key}
+                  {scalePairSteps.length > 0 && (
+                    <span className="scale-row-with">
+                      {' with '}
+                      {scalePairSteps.map(p => p.key).join(', ')}
+                    </span>
+                  )}
+                </span>
+                <span className="scale-row-px">
+                  {effectivePxSize != null && Math.round(effectivePxSize) !== step.pxSize
+                    ? <>{Math.round(effectivePxSize)}<span className="scale-row-px-original">/{step.pxSize}</span>px</>
+                    : <>{step.pxSize}px</>}
+                  {scalePairSteps.length > 0 && (
+                    <span> / {scalePairSteps.map(p => `${p.pxSize}px`).join(', ')}</span>
+                  )}
+                </span>
+              </div>
               <div
-                key={step.key}
-                className={`scale-row${selectedScaleSteps.includes(step.key) || activeScaleStep === step.key ? ' scale-row--selected' : ''}`}
-                onClick={() => {
-                  setActiveScaleStep(k => k === step.key ? null : step.key)
-                  setScaleStepRangeEnd(null)
-                  setExtraScaleSteps(new Set())
-                  setActiveParaStyle(null)
+                ref={el => {
+                  if (el) {
+                    scaleRowRefs.current[step.key] = el
+                    if (!el.textContent) el.textContent = scaleLabelText
+                  } else {
+                    delete scaleRowRefs.current[step.key]
+                  }
                 }}
-              >
-                <div className="scale-row-meta">
-                  <span className="scale-row-tag">
-                    {step.key}
-                    {scalePairSteps.length > 0 && (
-                      <span className="scale-row-with">
-                        {' with '}
-                        {scalePairSteps.map(p => p.key).join(', ')}
-                      </span>
-                    )}
-                  </span>
-                  <span className="scale-row-px">
-                    {step.pxSize}px
-                    {scalePairSteps.length > 0 && (
-                      <span> / {scalePairSteps.map(p => `${p.pxSize}px`).join(', ')}</span>
-                    )}
-                  </span>
-                </div>
+                contentEditable
+                suppressContentEditableWarning
+                spellCheck={false}
+                className="scale-row-text"
+                style={scaleStepStyle(step, effectivePxSize)}
+                onInput={e => handleScaleLabelInput(step.key, e)}
+                onClick={e => e.stopPropagation()}
+              />
+              {scalePairSteps.map(pairStep => (
                 <div
+                  key={pairStep.key}
                   ref={el => {
+                    const refKey = `${step.key}__${pairStep.key}`
                     if (el) {
-                      scaleRowRefs.current[step.key] = el
-                      if (!el.textContent) el.textContent = scaleLabelText
+                      scalePairRefs.current[refKey] = el
+                      if (!el.textContent) el.textContent = scalePairText
                     } else {
-                      delete scaleRowRefs.current[step.key]
+                      delete scalePairRefs.current[refKey]
                     }
                   }}
                   contentEditable
                   suppressContentEditableWarning
                   spellCheck={false}
-                  className="scale-row-text"
-                  style={scaleStepStyle(step)}
-                  onInput={e => handleScaleLabelInput(step.key, e)}
+                  className="scale-pair-text"
+                  data-pair-size={pairStep.key}
+                  style={scaleStepStyle(pairStep)}
+                  onInput={e => handleScalePairInput(`${step.key}__${pairStep.key}`, e)}
                   onClick={e => e.stopPropagation()}
                 />
-                {scalePairSteps.map(pairStep => (
-                  <div
-                    key={pairStep.key}
-                    ref={el => {
-                      const refKey = `${step.key}__${pairStep.key}`
-                      if (el) {
-                        scalePairRefs.current[refKey] = el
-                        if (!el.textContent) el.textContent = scalePairText
-                      } else {
-                        delete scalePairRefs.current[refKey]
-                      }
-                    }}
-                    contentEditable
-                    suppressContentEditableWarning
-                    spellCheck={false}
-                    className="scale-pair-text"
-                    data-pair-size={pairStep.key}
-                    style={scaleStepStyle(pairStep)}
-                    onInput={e => handleScalePairInput(`${step.key}__${pairStep.key}`, e)}
-                    onClick={e => e.stopPropagation()}
-                  />
-                ))}
+              ))}
+            </div>
+          )
+          return (
+            <div className="preview-scale">
+              {xlSteps.map(step => renderRow(step, null))}
+              <div className="scale-base-section" style={{ paddingRight: scaleBaseMargin }}>
+                <div
+                  className="escape-bar scale-escape-bar"
+                  style={{ right: `${scaleBaseMargin - 14}px` }}
+                  onMouseDown={handleScaleEscapeBarMouseDown}
+                  title="Drag to adjust column width"
+                />
+                {baseSteps.map(step => {
+                  const clamped = scaleBaseClampPx != null ? Math.min(step.pxSize, scaleBaseClampPx) : null
+                  const effective = clamped != null && clamped < step.pxSize ? clamped : null
+                  return renderRow(step, effective)
+                })}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )
+        })()}
 
         {fontName && mode === 'glyphs' && (
           <div className="preview-glyphs">
@@ -2901,6 +2972,22 @@ function AlignRightIcon() {
     </svg>
   )
 }
+function ChevronDownIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="3,6 8,11 13,6" />
+    </svg>
+  )
+}
+
+function ChevronUpIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="3,10 8,5 13,10" />
+    </svg>
+  )
+}
+
 function MultiSelectIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
