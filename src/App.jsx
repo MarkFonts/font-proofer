@@ -58,6 +58,16 @@ function toDisplayName(slug) {
   return slug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
 }
 
+// ── Hash ↔ mode mapping ───────────────────────────────────────────────────────
+const HASH_TO_MODE = { '#big': 'big', '#paragraph': 'paragraph', '#glyphs': 'glyphs', '#type-scale': 'scale', '#calcom': 'calcom', '#coss': 'coss' }
+const MODE_TO_HASH = { big: '#big', paragraph: '#paragraph', glyphs: '#glyphs', scale: '#type-scale', calcom: '#calcom', coss: '#coss' }
+
+function resolveInitialMode(isCalcom) {
+  const fromHash = HASH_TO_MODE[window.location.hash]
+  if (fromHash === 'calcom' || fromHash === 'coss') return isCalcom ? fromHash : 'paragraph'
+  return fromHash ?? 'paragraph'
+}
+
 // ── Font fuzzy matching ──────────────────────────────────────────────────────
 const fontModules = import.meta.glob('/src/fonts/*.{ttf,otf,woff,woff2}', { eager: true, query: '?url', import: 'default' })
 
@@ -356,6 +366,32 @@ function readFamilyNameFromBuffer(buffer, fontOffset = 0) {
   return null
 }
 
+function readVersionFromBuffer(buffer, fontOffset = 0) {
+  try {
+    const data = new DataView(buffer)
+    const numTables = data.getUint16(fontOffset + 4)
+    let nameOff = 0
+    for (let i = 0; i < numTables; i++) {
+      const r = fontOffset + 12 + i * 16
+      const tag = String.fromCharCode(data.getUint8(r), data.getUint8(r+1), data.getUint8(r+2), data.getUint8(r+3))
+      if (tag === 'name') { nameOff = data.getUint32(r + 8); break }
+    }
+    if (!nameOff) return null
+    const count = data.getUint16(nameOff + 2)
+    const base = nameOff + data.getUint16(nameOff + 4)
+    for (let i = 0; i < count; i++) {
+      const r = nameOff + 6 + i * 12
+      if (data.getUint16(r + 6) !== 5) continue
+      if (data.getUint16(r) === 3 && data.getUint16(r + 2) === 1) {
+        const len = data.getUint16(r + 8), off = data.getUint16(r + 10)
+        const str = Array.from({ length: len / 2 }, (_, j) => String.fromCharCode(data.getUint16(base + off + j * 2))).join('')
+        return str.replace(/^Version\s+/i, '').trim()
+      }
+    }
+  } catch {}
+  return null
+}
+
 function extractFontFromTTC(buffer, fontOffset) {
   const data = new DataView(buffer)
   const src = new Uint8Array(buffer)
@@ -473,6 +509,7 @@ export default function App() {
 
   // Font loading
   const [fontName, setFontName] = useState(null)
+  const [fontVersion, setFontVersion] = useState(null)
   const [fontFace, setFontFace] = useState(null)
   const [italicFontFace, setItalicFontFace] = useState(null)
   const [isItalic, setIsItalic] = useState(false)
@@ -488,7 +525,7 @@ export default function App() {
   const fontFamilyRef = useRef('')
 
   // View mode
-  const [mode, setMode] = useState(isCalcom ? 'calcom' : 'big') // 'big' | 'paragraph' | 'glyphs' | 'calcom'
+  const [mode, setMode] = useState(() => resolveInitialMode(isCalcom)) // 'big' | 'paragraph' | 'glyphs' | 'scale' | 'calcom' | 'coss'
 
   // Cal.com preview state
   const [calcomFont, setCalcomFont] = useState(calcomFontPrimary)
@@ -596,6 +633,12 @@ export default function App() {
     if (el && !el.textContent) el.textContent = SAMPLE_BIG
   }, [])
 
+  // ── Sync URL hash with active mode ───────────────────────────────────────
+  useEffect(() => {
+    const hash = MODE_TO_HASH[mode]
+    if (hash) window.history.replaceState(null, null, window.location.pathname + hash)
+  }, [mode])
+
   // ── Sync scale label text with parsed PS family name ─────────────────────
   useEffect(() => {
     setScaleLabelText(fontFamilyLabel)
@@ -648,10 +691,11 @@ export default function App() {
       setFontName(matched.filename.replace(/\.[^/.]+$/, ''))
       autoFitSize(name)
 
-      // Parse PS family name for scale label
+      // Parse PS family name and version for scale label / footer
       fetch(matched.url).then(r => r.arrayBuffer()).then(buf => {
         setFontFamilyLabel(readFamilyNameFromBuffer(buf) ?? special?.name ?? baseName)
-      }).catch(() => setFontFamilyLabel(special?.name ?? baseName))
+        setFontVersion(readVersionFromBuffer(buf))
+      }).catch(() => { setFontFamilyLabel(special?.name ?? baseName); setFontVersion(null) })
 
       // Load italic companion (registers under same family with style:'italic')
       const italicMatch = matchItalicFont(resolvedSlug)
@@ -705,6 +749,7 @@ export default function App() {
         setFontFace(loaded)
         setFontName(file.name.replace(/\.[^/.]+$/, ''))
         setFontFamilyLabel(readFamilyNameFromBuffer(buffer, offsets[0]) ?? baseName)
+        setFontVersion(readVersionFromBuffer(buffer, offsets[0]))
         autoFitSize(name)
         await detectAxes(new File([extracted], 'extracted.ttf'))
       } else {
@@ -720,6 +765,7 @@ export default function App() {
         setFontFace(loaded)
         setFontName(file.name.replace(/\.[^/.]+$/, ''))
         setFontFamilyLabel(readFamilyNameFromBuffer(buffer) ?? baseName)
+        setFontVersion(readVersionFromBuffer(buffer))
         autoFitSize(name)
         await detectAxes(file)
       }
@@ -744,6 +790,7 @@ export default function App() {
       setTtcIndex(index)
       const familyName = readFamilyNameFromBuffer(buffer, offsets[index])
       if (familyName) setFontFamilyLabel(familyName)
+      setFontVersion(readVersionFromBuffer(buffer, offsets[index]))
       await detectAxes(new File([extracted], 'extracted.ttf'))
     } catch (err) {
       console.error('TTC font switch error', err)
@@ -1802,7 +1849,7 @@ export default function App() {
                     value={val}
                     min={axis.min}
                     max={axis.max}
-                    step={(axis.max - axis.min) > 10 ? 1 : 0.01}
+                    step={axis.tag === 'opsz' ? 0.25 : (axis.max - axis.min) > 10 ? 1 : 0.01}
                     onChange={v => {
                       if (effectiveScaleStep) {
                         setScaleAxisOverrides(prev => {
@@ -1867,6 +1914,7 @@ export default function App() {
         )}
         {/* Copyright footer */}
         <div className="sidebar-footer">
+          {fontVersion && <div className="font-version">v{fontVersion}</div>}
           {clientSlug && clientSlug !== 'wordmark'
             ? `\u00A9${new Date().getFullYear()} ${clientLabel}, courtesy of WORDMARK. Please do not distribute without approval and understanding of IP holder.`
             : `\u00A9${new Date().getFullYear()} WORDMARK.`

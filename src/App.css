@@ -50,6 +50,10 @@
   color: var(--text-dim);
   font-family: 'CalSansUI', system-ui, sans-serif;
 }
+.font-version {
+  margin-bottom: 4px;
+  opacity: 0.7;
+}
 
 /* ── Drop overlay ────────────────────────────────────────────────────────── */
 .drop-overlay {
