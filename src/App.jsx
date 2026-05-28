@@ -77,9 +77,9 @@ function normalize(s) {
 
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
 const SPECIAL_FONTS = {
-  calsansui: { name: 'CalSans',        file: 'CalSans-VariableFont [opsz,wght,GEOM,YTAS,SHRP].ttf' },
-  calsans:   { name: 'Cal Sans',       file: 'CalSans-VariableFont [opsz,wght,GEOM,YTAS,SHRP].ttf' },
-  calsans2:  { name: 'Cal Sans 2',     file: 'CalSans-VariableFont [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsansui: { name: 'CalSans',        file: 'CalSans-VariableFont 1.953 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsans:   { name: 'Cal Sans',       file: 'CalSans-VariableFont 1.953 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsans2:  { name: 'Cal Sans 2',     file: 'CalSans-VariableFont 1.953 [opsz,wght,GEOM,YTAS,SHRP].ttf' },
 }
 
 function matchSpecial(slug) {
