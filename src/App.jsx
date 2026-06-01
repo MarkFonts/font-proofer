@@ -612,6 +612,7 @@ export default function App() {
   const [scaleMultiSelectMode, setScaleMultiSelectMode] = useState(false)
   const [scaleStepsPanelOpen, setScaleStepsPanelOpen] = useState(false)
 
+  const dragCounterRef = useRef(0)
   const fileInputRef = useRef(null)
   const previewAreaRef = useRef(null)
   const bigEditorRef = useRef(null)
@@ -859,24 +860,28 @@ export default function App() {
   // ── Drop zone ──────────────────────────────────────────────────────────────
   const handleDrop = useCallback((e) => {
     e.preventDefault()
+    dragCounterRef.current = 0
     setIsDragging(false)
     const file = e.dataTransfer.files[0]
     if (file) loadFont(file)
   }, [loadFont])
 
-  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true) }
-  const handleDragLeave = () => setIsDragging(false)
+  const handleDragEnter = useCallback((e) => { e.preventDefault(); dragCounterRef.current++; setIsDragging(true) }, [])
+  const handleDragOver  = useCallback((e) => { e.preventDefault() }, [])
+  const handleDragLeave = useCallback(() => { if (--dragCounterRef.current <= 0) { dragCounterRef.current = 0; setIsDragging(false) } }, [])
 
   useEffect(() => {
-    window.addEventListener('dragover', handleDragOver)
+    window.addEventListener('dragenter', handleDragEnter)
+    window.addEventListener('dragover',  handleDragOver)
     window.addEventListener('dragleave', handleDragLeave)
     window.addEventListener('drop', handleDrop)
     return () => {
-      window.removeEventListener('dragover', handleDragOver)
+      window.removeEventListener('dragenter', handleDragEnter)
+      window.removeEventListener('dragover',  handleDragOver)
       window.removeEventListener('dragleave', handleDragLeave)
       window.removeEventListener('drop', handleDrop)
     }
-  }, [handleDrop])
+  }, [handleDragEnter, handleDragOver, handleDragLeave, handleDrop])
   // ── Font variation string ─────────────────────────────────────────────────
   const fontVariationSettings = Object.entries(axisValues)
     .filter(([, val]) => val !== 'auto')
