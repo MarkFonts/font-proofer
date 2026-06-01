@@ -2169,7 +2169,7 @@ export default function App() {
                   <span className="para-styles-specs">
                     <span className="para-styles-spec">{r.size}px</span>
                     <span className="para-styles-spec">{r.tracking.toFixed(3)}</span>
-                    {variationAxes.map(axis => {
+                    {calcomFont !== 'inter' && variationAxes.map(axis => {
                       const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
                       return (
@@ -2231,7 +2231,7 @@ export default function App() {
                   <span className="para-styles-specs">
                     <span className="para-styles-spec">{r.size}px</span>
                     <span className="para-styles-spec">{r.tracking.toFixed(3)}</span>
-                    {variationAxes.map(axis => {
+                    {calcomFont !== 'inter' && variationAxes.map(axis => {
                       const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
                       return (
