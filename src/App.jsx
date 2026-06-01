@@ -931,7 +931,7 @@ export default function App() {
     const opszAuto = merged['opsz'] === 'auto'
     if (role === 'eventTitle' && calcomFont !== 'calsans2') {
       return {
-        fontFamily: "'Cal Sans', sans-serif",
+        fontFamily: "'CalSansBold', sans-serif",
         fontSize: `${r.size}px`,
         letterSpacing: `${r.interTracking ?? r.tracking}em`,
         lineHeight: r.leading,
@@ -965,7 +965,7 @@ export default function App() {
     const opszAuto = merged['opsz'] === 'auto'
     if (role === 'pageTitle' && calcomFont !== 'calsans2') {
       return {
-        fontFamily: "'Cal Sans', sans-serif",
+        fontFamily: "'CalSansBold', sans-serif",
         fontSize: `${r.size}px`,
         letterSpacing: `${r.tracking}em`,
         lineHeight: r.leading,
