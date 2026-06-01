@@ -6,13 +6,13 @@ import routes from './src/routes.config.js'
 
 const SPECIAL_SLUG_NAMES = {
   calsansui: 'Cal Sans UI',
-  calsans2: 'Cal Sans 2',
+  calsans2: 'CalSans 2',
 }
 
 const SPECIAL_SLUG_FILES = {
-  calsansui: 'CalSans-VariableFont [opsz,wght,GEOM,YTAS,SHRP].ttf',
-  calsans:   'CalSans-VariableFont [opsz,wght,GEOM,YTAS,SHRP].ttf',
-  calsans2:  'CalSans-VariableFont [opsz,wght,GEOM,YTAS,SHRP].ttf',
+  calsansui: 'CalSans-VariableFont_[opsz,wght,GEOM,YTAS,SHRP].ttf',
+  calsans:   'CalSans-VariableFont_[opsz,wght,GEOM,YTAS,SHRP].ttf',
+  calsans2:  'CalSans-VariableFont_[opsz,wght,GEOM,YTAS,SHRP].ttf',
 }
 
 function normalize(s) {
