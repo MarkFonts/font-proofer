@@ -18,7 +18,7 @@
 
 @font-face {
   font-family: "CalSansUI";
-  src: url("./fonts/CalSans-VariableFont [opsz,wght,GEOM,YTAS,SHRP].ttf") format("truetype");
+  src: url("./fonts/CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf") format("truetype");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
@@ -26,7 +26,7 @@
 
 @font-face {
   font-family: "CalSans";
-  src: url("./fonts/CalSans-VariableFont [opsz,wght,GEOM,YTAS,SHRP].ttf") format("truetype");
+  src: url("./fonts/CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf") format("truetype");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;

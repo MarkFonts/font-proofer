@@ -100,7 +100,7 @@ async function generateOgImages() {
   const { default: satori } = await import('satori')
   const { Resvg } = await import('@resvg/resvg-js')
 
-  const calsansuiFile = findFontFile('calsansui')
+  const calsansuiFile = SPECIAL_SLUG_FILES.calsansui ?? findFontFile('calsansui')
   const uiFont = calsansuiFile
     ? await loadFontForSatori(`src/fonts/${calsansuiFile}`)
     : null
