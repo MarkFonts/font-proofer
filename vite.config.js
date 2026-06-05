@@ -5,14 +5,11 @@ import { createRequire } from 'module'
 import routes from './src/routes.config.js'
 
 const SPECIAL_SLUG_NAMES = {
-  calsansui: 'Cal Sans UI',
-  calsans2: 'CalSans 2',
+  calsans: 'CalSans',
 }
 
 const SPECIAL_SLUG_FILES = {
-  calsansui: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf',
-  calsans:   'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf',
-  calsans2:  'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf',
+  calsans: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf',
 }
 
 function normalize(s) {
@@ -100,7 +97,7 @@ async function generateOgImages() {
   const { default: satori } = await import('satori')
   const { Resvg } = await import('@resvg/resvg-js')
 
-  const calsansuiFile = SPECIAL_SLUG_FILES.calsansui ?? findFontFile('calsansui')
+  const calsansuiFile = SPECIAL_SLUG_FILES.calsans ?? findFontFile('calsans')
   const uiFont = calsansuiFile
     ? await loadFontForSatori(`src/fonts/${calsansuiFile}`)
     : null

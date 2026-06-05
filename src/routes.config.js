@@ -5,7 +5,6 @@ export default [
   { clientSlug: 'claude',   fontSlug: 'ernest'    },
   { clientSlug: 'weltkern', fontSlug: 'kloten'       },
   { clientSlug: 'weltkern', fontSlug: 'lausannemono' },
-  { clientSlug: 'calcom',   fontSlug: 'calsansui' },
-  { clientSlug: 'calcom',   fontSlug: 'calsans2'  },
+  { clientSlug: 'calcom',   fontSlug: 'calsans'   },
   { clientSlug: 'vercel',   fontSlug: 'geist'     },
 ]

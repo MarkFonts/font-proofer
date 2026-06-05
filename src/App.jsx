@@ -40,6 +40,7 @@ function ClientLogo({ slug, clientLabel }) {
 
 // ── URL route parsing ────────────────────────────────────────────────────────
 const BASE = '/font-proofer'
+const SLUG_REDIRECTS = { calsansui: 'calsans', calsans2: 'calsans' }
 function parseRoute() {
   const params = new URLSearchParams(window.location.search)
   const routeParam = params.get('route')
@@ -50,7 +51,11 @@ function parseRoute() {
     ? window.location.pathname.slice(BASE.length)
     : window.location.pathname
   const segments = path.split('/').filter(Boolean)
-  const [clientSlug, fontSlug] = segments
+  let [clientSlug, fontSlug] = segments
+  if (fontSlug && SLUG_REDIRECTS[fontSlug]) {
+    fontSlug = SLUG_REDIRECTS[fontSlug]
+    window.history.replaceState(null, null, `${BASE}/${clientSlug}/${fontSlug}${window.location.hash}`)
+  }
   return { clientSlug: clientSlug || null, fontSlug: fontSlug || null }
 }
 
@@ -77,9 +82,7 @@ function normalize(s) {
 
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
 const SPECIAL_FONTS = {
-  calsansui: { name: 'CalSans',    file: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf' },
-  calsans:   { name: 'Cal Sans',   file: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf' },
-  calsans2:  { name: 'CalSans 2',  file: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf' },
+  calsans: { name: 'CalSans', file: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf' },
 }
 
 function matchSpecial(slug) {
@@ -504,8 +507,8 @@ export default function App() {
   const { clientSlug, fontSlug } = parseRoute()
   const clientLabel = clientSlug ? toDisplayName(clientSlug) : null
   const isCalcom = clientSlug?.toLowerCase() === 'calcom'
-  const calcomFontPrimary = fontSlug === 'calsans2' ? 'calsans2' : 'calsansui'
-  const calcomFontPrimaryLabel = fontSlug === 'calsans2' ? 'CalSans' : 'Cal Sans 1.730'
+  const calcomFontPrimary = 'calsans'
+  const calcomFontPrimaryLabel = 'CalSans'
 
   // Font loading
   const [fontName, setFontName] = useState(null)
@@ -675,7 +678,7 @@ export default function App() {
       matched = entry ? { url: entry[1], filename: special.file } : null
       resolvedSlug = fontSlug
     } else {
-      resolvedSlug = special ? 'calsansui' : fontSlug
+      resolvedSlug = special ? 'calsans' : fontSlug
       matched = matchFont(resolvedSlug)
     }
     if (!matched) return
@@ -934,7 +937,7 @@ export default function App() {
     const merged = { ...axisValues, ...r.axisOverrides }
     const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     const opszAuto = merged['opsz'] === 'auto'
-    if (role === 'eventTitle' && calcomFont !== 'calsans2') {
+    if (role === 'eventTitle' && calcomFont !== 'calsans') {
       return {
         fontFamily: "'CalSansBold', sans-serif",
         fontSize: `${r.size}px`,
@@ -946,9 +949,9 @@ export default function App() {
         fontFeatureSettings: 'normal',
       }
     }
-    const family = calcomFont === 'calsansui'
+    const family = calcomFont === 'calsans'
       ? (fontFace ? fontFace.family : '"Inter", system-ui, sans-serif')
-      : calcomFont === 'calsans2'
+      : calcomFont === 'calsans'
         ? '"CalSans"'
         : '"Inter", system-ui, -apple-system, sans-serif'
     return {
@@ -956,8 +959,8 @@ export default function App() {
       fontSize: `${r.size}px`,
       letterSpacing: `${r.tracking}em`,
       lineHeight: r.leading,
-      fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
-      fontOpticalSizing: (calcomFont === 'calsansui' || calcomFont === 'calsans2') && opszAuto ? 'auto' : 'none',
+      fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
+      fontOpticalSizing: (calcomFont === 'calsans') && opszAuto ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
     }
@@ -968,7 +971,7 @@ export default function App() {
     const merged = { ...axisValues, ...r.axisOverrides }
     const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     const opszAuto = merged['opsz'] === 'auto'
-    if (role === 'pageTitle' && calcomFont !== 'calsans2') {
+    if (role === 'pageTitle' && calcomFont !== 'calsans') {
       return {
         fontFamily: "'CalSansBold', sans-serif",
         fontSize: `${r.size}px`,
@@ -980,9 +983,9 @@ export default function App() {
         fontFeatureSettings: 'normal',
       }
     }
-    const family = calcomFont === 'calsansui'
+    const family = calcomFont === 'calsans'
       ? (fontFace ? fontFace.family : '"Inter", system-ui, sans-serif')
-      : calcomFont === 'calsans2'
+      : calcomFont === 'calsans'
         ? '"CalSans"'
         : '"Inter", system-ui, -apple-system, sans-serif'
     return {
@@ -990,8 +993,8 @@ export default function App() {
       fontSize: `${r.size}px`,
       letterSpacing: `${r.tracking}em`,
       lineHeight: r.leading,
-      fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
-      fontOpticalSizing: (calcomFont === 'calsansui' || calcomFont === 'calsans2') && opszAuto ? 'auto' : 'none',
+      fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
+      fontOpticalSizing: (calcomFont === 'calsans') && opszAuto ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
     }
@@ -2157,7 +2160,7 @@ export default function App() {
               const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
               const family = calcomFont === 'inter'
                 ? '"Inter", system-ui, sans-serif'
-                : calcomFont === 'calsans2'
+                : calcomFont === 'calsans'
                   ? '"CalSans"'
                   : fontFace ? fontFace.family : 'serif'
               const isActive = activeCalcomRole === key
@@ -2172,7 +2175,7 @@ export default function App() {
                     style={{
                       fontFamily: family,
                       fontSize: `${Math.min(r.size, 22)}px`,
-                      fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
+                      fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
                       fontOpticalSizing: 'none',
                       fontSynthesis: 'none',
                       lineHeight: 1.3,
@@ -2219,7 +2222,7 @@ export default function App() {
               const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
               const family = calcomFont === 'inter'
                 ? '"Inter", system-ui, sans-serif'
-                : calcomFont === 'calsans2'
+                : calcomFont === 'calsans'
                   ? '"CalSans"'
                   : fontFace ? fontFace.family : 'serif'
               const isActive = activeCossRole === key
@@ -2234,7 +2237,7 @@ export default function App() {
                     style={{
                       fontFamily: family,
                       fontSize: `${Math.min(r.size, 22)}px`,
-                      fontVariationSettings: (calcomFont === 'calsansui' || calcomFont === 'calsans2') ? fvs : 'normal',
+                      fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
                       fontOpticalSizing: 'none',
                       fontSynthesis: 'none',
                       lineHeight: 1.3,
