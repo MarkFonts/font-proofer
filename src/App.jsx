@@ -77,9 +77,9 @@ function normalize(s) {
 
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
 const SPECIAL_FONTS = {
-  calsansui: { name: 'CalSans',        file: 'CalSans-VariableFont_[opsz,wght,GEOM,YTAS,SHRP].ttf' },
-  calsans:   { name: 'Cal Sans',       file: 'CalSans-VariableFont_[opsz,wght,GEOM,YTAS,SHRP].ttf' },
-  calsans2:  { name: 'CalSans 2',        file: 'CalSans-VariableFont_[opsz,wght,GEOM,YTAS,SHRP].ttf' },
+  calsansui: { name: 'CalSans',    file: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf' },
+  calsans:   { name: 'Cal Sans',   file: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf' },
+  calsans2:  { name: 'CalSans 2',  file: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf' },
 }
 
 function matchSpecial(slug) {
@@ -1618,18 +1618,27 @@ export default function App() {
               ))}
             </div>
           </div>
-          {italicFontFace && (
-            <div className="roman-italic-toggle">
-              <button
-                className={`roman-italic-btn${!isItalic ? ' active' : ''}`}
-                onClick={() => setIsItalic(false)}
-              >Roman</button>
-              <button
-                className={`roman-italic-btn${isItalic ? ' active' : ''}`}
-                onClick={() => setIsItalic(true)}
-              >Italic</button>
-            </div>
-          )}
+          {(italicFontFace || variationAxes.some(a => a.tag === 'ital')) && (() => {
+            const italAxis = variationAxes.find(a => a.tag === 'ital')
+            return (
+              <div className="roman-italic-toggle">
+                <button
+                  className={`roman-italic-btn${!isItalic ? ' active' : ''}`}
+                  onClick={() => {
+                    setIsItalic(false)
+                    if (italAxis) setAxisValues(prev => ({ ...prev, ital: italAxis.min ?? 0 }))
+                  }}
+                >Roman</button>
+                <button
+                  className={`roman-italic-btn${isItalic ? ' active' : ''}`}
+                  onClick={() => {
+                    setIsItalic(true)
+                    if (italAxis) setAxisValues(prev => ({ ...prev, ital: italAxis.max ?? 1 }))
+                  }}
+                >Italic</button>
+              </div>
+            )
+          })()}
           {ttcFonts.length > 1 && (
             <select
               className="instance-select"

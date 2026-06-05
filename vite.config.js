@@ -10,9 +10,9 @@ const SPECIAL_SLUG_NAMES = {
 }
 
 const SPECIAL_SLUG_FILES = {
-  calsansui: 'CalSans-VariableFont_[opsz,wght,GEOM,YTAS,SHRP].ttf',
-  calsans:   'CalSans-VariableFont_[opsz,wght,GEOM,YTAS,SHRP].ttf',
-  calsans2:  'CalSans-VariableFont_[opsz,wght,GEOM,YTAS,SHRP].ttf',
+  calsansui: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf',
+  calsans:   'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf',
+  calsans2:  'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf',
 }
 
 function normalize(s) {
