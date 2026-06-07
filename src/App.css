@@ -851,6 +851,24 @@
   padding: 40px 48px;
 }
 
+.glyph-match-note {
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-family: 'Cal Sans', sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 520px;
+}
+
+.glyph-match-note strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
 .glyphs-grid {
   display: flex;
   flex-wrap: wrap;

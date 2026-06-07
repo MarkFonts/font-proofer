@@ -262,6 +262,66 @@ function caretAtStart(el) {
   return pre.toString().length === 0
 }
 
+// Returns merged, sorted [start, end] codepoint ranges the font's cmap supports,
+// or null if no usable Unicode cmap is found. Handles formats 0, 4, 6, 12. (TTF/OTF only.)
+function parseCmapRanges(ab) {
+  try {
+    const data = new DataView(ab)
+    const numTables = data.getUint16(4)
+    let cmapOffset = 0
+    for (let i = 0; i < numTables; i++) {
+      const t = String.fromCharCode(data.getUint8(12+i*16), data.getUint8(13+i*16), data.getUint8(14+i*16), data.getUint8(15+i*16))
+      if (t === 'cmap') { cmapOffset = data.getUint32(12+i*16+8); break }
+    }
+    if (!cmapOffset) return null
+    const numSub = data.getUint16(cmapOffset + 2)
+    const subOffsets = []
+    for (let i = 0; i < numSub; i++) subOffsets.push(cmapOffset + data.getUint32(cmapOffset + 4 + i*8 + 4))
+    const cps = new Set()
+    for (const off of subOffsets) {
+      const format = data.getUint16(off)
+      if (format === 0) {
+        for (let c = 0; c < 256; c++) if (data.getUint8(off + 6 + c) !== 0) cps.add(c)
+      } else if (format === 4) {
+        const segX2 = data.getUint16(off + 6)
+        const endBase = off + 14, startBase = endBase + segX2 + 2
+        const deltaBase = startBase + segX2, rangeBase = deltaBase + segX2
+        for (let s = 0; s < segX2/2; s++) {
+          const end = data.getUint16(endBase + s*2), start = data.getUint16(startBase + s*2)
+          const delta = data.getInt16(deltaBase + s*2), ro = data.getUint16(rangeBase + s*2)
+          if (start === 0xFFFF) continue
+          for (let c = start; c <= end && c !== 0xFFFF; c++) {
+            let g
+            if (ro === 0) g = (c + delta) & 0xFFFF
+            else { g = data.getUint16(rangeBase + s*2 + ro + (c - start)*2); if (g !== 0) g = (g + delta) & 0xFFFF }
+            if (g !== 0) cps.add(c)
+          }
+        }
+      } else if (format === 6) {
+        const first = data.getUint16(off + 6), count = data.getUint16(off + 8)
+        for (let i = 0; i < count; i++) if (data.getUint16(off + 10 + i*2) !== 0) cps.add(first + i)
+      } else if (format === 12) {
+        const nGroups = data.getUint32(off + 12)
+        for (let gi = 0; gi < nGroups; gi++) {
+          const g = off + 16 + gi*12
+          const startC = data.getUint32(g), endC = data.getUint32(g + 4), startGID = data.getUint32(g + 8)
+          for (let c = startC; c <= endC; c++) if (startGID + (c - startC) !== 0) cps.add(c)
+        }
+      }
+    }
+    if (cps.size === 0) return null
+    const sorted = Array.from(cps).sort((a, b) => a - b)
+    const ranges = []
+    let s = sorted[0], p = sorted[0]
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] === p + 1) { p = sorted[i]; continue }
+      ranges.push([s, p]); s = p = sorted[i]
+    }
+    ranges.push([s, p])
+    return ranges
+  } catch { return null }
+}
+
 const GLYPH_SETS = (() => {
   const groups = {
     'Uppercase': [
@@ -519,6 +579,8 @@ export default function App() {
   const [variationAxes, setVariationAxes] = useState([]) // [{tag, name, min, max, defaultVal}]
   const [axisValues, setAxisValues] = useState({})
   const [namedInstances, setNamedInstances] = useState([]) // [{name, coordinates: {tag: value}}]
+  const [supportedRanges, setSupportedRanges] = useState(null) // [[start,end],...] cmap codepoint ranges, or null = show all
+  const [glyphMatchUnavailable, setGlyphMatchUnavailable] = useState(false) // true when a compressed (woff/woff2) upload blocks glyph matching
   const [isDragging, setIsDragging] = useState(false)
   const [ttcFonts, setTtcFonts] = useState([])
   const [ttcIndex, setTtcIndex] = useState(0)
@@ -714,9 +776,11 @@ export default function App() {
       }
 
       // Axes + instances from virtual module (covers TTF and woff2)
-      const { axes, instances } = fontAxesData[matched.filename] ?? { axes: [], instances: [] }
+      const { axes, instances, chars } = fontAxesData[matched.filename] ?? { axes: [], instances: [] }
       setVariationAxes(axes)
       setNamedInstances(instances)
+      setSupportedRanges(chars ?? null)
+      setGlyphMatchUnavailable(false)
       const defaults = {}
       axes.forEach(a => { defaults[a.tag] = a.defaultVal })
       setAxisValues(defaults)
@@ -802,11 +866,14 @@ export default function App() {
   }, [])
 
   const detectAxes = async (file) => {
+    setSupportedRanges(null)
+    setGlyphMatchUnavailable(false)
     // Try virtual module first (covers all font formats including woff2)
     const known = fontAxesData[file.name]
     if (known) {
       setVariationAxes(known.axes)
       setNamedInstances(known.instances)
+      setSupportedRanges(known.chars ?? null)
       const defaults = {}
       known.axes.forEach(a => { defaults[a.tag] = a.defaultVal })
       setAxisValues(defaults)
@@ -817,7 +884,8 @@ export default function App() {
       const buffer = await file.arrayBuffer()
       const data = new DataView(buffer)
       const sig = data.getUint32(0)
-      if (sig === 0x774F4646 || sig === 0x774F4632) { setVariationAxes([]); setNamedInstances([]); setAxisValues({}); return }
+      if (sig === 0x774F4646 || sig === 0x774F4632) { setVariationAxes([]); setNamedInstances([]); setAxisValues({}); setGlyphMatchUnavailable(true); return }
+      setSupportedRanges(parseCmapRanges(buffer))
       const numTables = data.getUint16(4)
       let fvarOffset = 0, nameOffset = 0
       for (let i = 0; i < numTables; i++) {
@@ -2117,6 +2185,11 @@ export default function App() {
 
         {fontName && mode === 'glyphs' && (
           <div className="preview-glyphs">
+            {glyphMatchUnavailable && (
+              <div className="glyph-match-note">
+                Showing every glyph in the set. To trim this to the characters this font actually contains, import an uncompressed <strong>.ttf</strong> or <strong>.otf</strong>.
+              </div>
+            )}
             <div className="glyphs-grid" style={{
               fontFamily: previewStyle.fontFamily,
               fontVariationSettings,
@@ -2125,7 +2198,12 @@ export default function App() {
               lineHeight: 1,
               transition: 'font-variation-settings 0.15s ease',
             }}>
-              {GLYPH_SETS[activeGlyphSet].map((glyph, i) => {
+              {GLYPH_SETS[activeGlyphSet].filter(glyph => {
+                if (!supportedRanges) return true
+                const isCombining = glyph.charCodeAt(0) === 0x25CC
+                const cp = glyph.codePointAt(isCombining ? 1 : 0)
+                return supportedRanges.some(([a, b]) => cp >= a && cp <= b)
+              }).map((glyph, i) => {
                 const isCombining = glyph.charCodeAt(0) === 0x25CC
                 const cp = glyph.codePointAt(isCombining ? 1 : 0)
                 return (

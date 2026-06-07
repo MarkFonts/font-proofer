@@ -24,9 +24,9 @@ Controls are kept to what matters: size, tracking, leading, alignment, and varia
 
 ## Deployment model
 
-Each client gets one link — their own Vercel deployment, configured for their font. There is no shared dashboard, no client management, no multi-tenant infrastructure. The designer sets up the deployment, embeds the font, and sends the URL. That's the full handoff.
+Each client gets one link — a route on the shared GitHub Pages site (workmark.nyc/font-proofer), configured for their font. There is no shared dashboard, no client management, no multi-tenant infrastructure. The designer sets up the route, embeds the font, and sends the URL. That's the full handoff.
 
-The repo may contain multiple routes (one per client or font family), but each deployment only ever exposes one. What a client can see is determined entirely by what the designer put there.
+The repo may contain multiple routes (one per client or font family). What a client can see is determined entirely by what the designer put there. Pushing to main triggers a GitHub Actions workflow that builds the app and deploys it to the MarkFonts/wordmark repo, which is served via GitHub Pages at workmark.nyc.
 
 ---
 
@@ -34,7 +34,7 @@ The repo may contain multiple routes (one per client or font family), but each d
 
 Some client deployments include additional tabs that show the font in context — a reconstruction of the client's actual product UI, built from screenshots. These are live components, not images, so the font renders real and editable rather than baked in.
 
-The workflow for building these is intentionally low-fi: screenshots are saved locally, and Claude reconstructs them as components by editing from those references. There is no automated pipeline for pulling from Vercel or syncing with the client's live site — it's a manual, per-client process, done when it adds value.
+The workflow for building these is intentionally low-fi: screenshots are saved locally, and Claude reconstructs them as components by editing from those references. There is no automated pipeline for syncing with the client's live site — it's a manual, per-client process, done when it adds value.
 
 ---
 
@@ -66,4 +66,4 @@ The workflow for building these is intentionally low-fi: screenshots are saved l
 
 ## Stack
 
-React + Vite. Deployed on Vercel free tier. Source on GitHub. No backend, no database, no auth.
+React + Vite. Deployed to GitHub Pages (workmark.nyc) via GitHub Actions. Source on GitHub. No backend, no database, no auth.

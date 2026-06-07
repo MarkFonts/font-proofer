@@ -84,6 +84,66 @@ function parseFontAxesFromBuffer(ab) {
   } catch { return { axes: [], instances: [] } }
 }
 
+// Returns merged, sorted [start, end] codepoint ranges the font's cmap supports,
+// or null if no usable Unicode cmap is found. Handles formats 0, 4, 6, 12.
+function parseCmapRangesFromBuffer(ab) {
+  try {
+    const data = new DataView(ab)
+    const numTables = data.getUint16(4)
+    let cmapOffset = 0
+    for (let i = 0; i < numTables; i++) {
+      const t = String.fromCharCode(data.getUint8(12+i*16), data.getUint8(13+i*16), data.getUint8(14+i*16), data.getUint8(15+i*16))
+      if (t === 'cmap') { cmapOffset = data.getUint32(12+i*16+8); break }
+    }
+    if (!cmapOffset) return null
+    const numSub = data.getUint16(cmapOffset + 2)
+    const subOffsets = []
+    for (let i = 0; i < numSub; i++) subOffsets.push(cmapOffset + data.getUint32(cmapOffset + 4 + i*8 + 4))
+    const cps = new Set()
+    for (const off of subOffsets) {
+      const format = data.getUint16(off)
+      if (format === 0) {
+        for (let c = 0; c < 256; c++) if (data.getUint8(off + 6 + c) !== 0) cps.add(c)
+      } else if (format === 4) {
+        const segX2 = data.getUint16(off + 6)
+        const endBase = off + 14, startBase = endBase + segX2 + 2
+        const deltaBase = startBase + segX2, rangeBase = deltaBase + segX2
+        for (let s = 0; s < segX2/2; s++) {
+          const end = data.getUint16(endBase + s*2), start = data.getUint16(startBase + s*2)
+          const delta = data.getInt16(deltaBase + s*2), ro = data.getUint16(rangeBase + s*2)
+          if (start === 0xFFFF) continue
+          for (let c = start; c <= end && c !== 0xFFFF; c++) {
+            let g
+            if (ro === 0) g = (c + delta) & 0xFFFF
+            else { g = data.getUint16(rangeBase + s*2 + ro + (c - start)*2); if (g !== 0) g = (g + delta) & 0xFFFF }
+            if (g !== 0) cps.add(c)
+          }
+        }
+      } else if (format === 6) {
+        const first = data.getUint16(off + 6), count = data.getUint16(off + 8)
+        for (let i = 0; i < count; i++) if (data.getUint16(off + 10 + i*2) !== 0) cps.add(first + i)
+      } else if (format === 12) {
+        const nGroups = data.getUint32(off + 12)
+        for (let gi = 0; gi < nGroups; gi++) {
+          const g = off + 16 + gi*12
+          const startC = data.getUint32(g), endC = data.getUint32(g + 4), startGID = data.getUint32(g + 8)
+          for (let c = startC; c <= endC; c++) if (startGID + (c - startC) !== 0) cps.add(c)
+        }
+      }
+    }
+    if (cps.size === 0) return null
+    const sorted = Array.from(cps).sort((a, b) => a - b)
+    const ranges = []
+    let s = sorted[0], p = sorted[0]
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] === p + 1) { p = sorted[i]; continue }
+      ranges.push([s, p]); s = p = sorted[i]
+    }
+    ranges.push([s, p])
+    return ranges
+  } catch { return null }
+}
+
 async function loadFontForSatori(filePath) {
   const buf = readFileSync(filePath)
   if (filePath.endsWith('.woff2')) {
@@ -194,10 +254,10 @@ export default defineConfig({
           try {
             const rawBuf = await loadFontForSatori(`src/fonts/${file}`)
             const ab = rawBuf.buffer.slice(rawBuf.byteOffset, rawBuf.byteOffset + rawBuf.byteLength)
-            result[file] = parseFontAxesFromBuffer(ab)
+            result[file] = { ...parseFontAxesFromBuffer(ab), chars: parseCmapRangesFromBuffer(ab) }
           } catch (e) {
             console.warn(`[font-axes] Failed to parse ${file}:`, e.message)
-            result[file] = { axes: [], instances: [] }
+            result[file] = { axes: [], instances: [], chars: null }
           }
           if (result[file].axes.length === 0) console.warn(`[font-axes] No axes found for ${file}`)
         }
