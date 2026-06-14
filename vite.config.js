@@ -6,10 +6,14 @@ import routes from './src/routes.config.js'
 
 const SPECIAL_SLUG_NAMES = {
   calsans: 'CalSans',
+  calsansflex: 'CalSans Flex',
+  switzerland2038: 'TWK Lausanne Olympic',
 }
 
 const SPECIAL_SLUG_FILES = {
-  calsans: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf',
+  calsans: 'CalSansVF.ttf',
+  calsansflex: 'CalSansFlex-Regular.ttf',
+  switzerland2038: 'TWKLausanneOlympic-500.ttf',
 }
 
 function normalize(s) {

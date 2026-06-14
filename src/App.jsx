@@ -82,7 +82,9 @@ function normalize(s) {
 
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
 const SPECIAL_FONTS = {
-  calsans: { name: 'CalSans', file: 'CalSans-VariableFont 1.993 [opsz,wght,GEOM,YTAS,SHRP,ital].ttf' },
+  calsans: { name: 'CalSans', file: 'CalSansVF.ttf' },
+  calsansflex: { name: 'CalSans Flex', file: 'CalSansFlex-Regular.ttf' },
+  switzerland2038: { name: 'TWK Lausanne Olympic', file: 'TWKLausanneOlympic-500.ttf' },
 }
 
 function matchSpecial(slug) {
