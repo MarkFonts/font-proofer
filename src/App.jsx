@@ -84,7 +84,7 @@ function normalize(s) {
 const SPECIAL_FONTS = {
   calsans: { name: 'CalSans', file: 'CalSansVF.ttf' },
   calsansflex: { name: 'CalSans Flex', file: 'CalSansFlex-Regular.ttf' },
-  switzerland2038: { name: 'TWK Lausanne Olympic', file: 'TWKLausanneOlympic-500.ttf' },
+  switzerland2038: { name: 'Switzerland 2038', file: 'Switzerland2038-500.ttf' },
 }
 
 function matchSpecial(slug) {
