@@ -83,7 +83,7 @@ function normalize(s) {
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
 const SPECIAL_FONTS = {
   calsans: { name: 'CalSans', file: 'CalSansVF.ttf' },
-  calsansflex: { name: 'CalSans Flex', file: 'CalSansFlex-Regular.ttf' },
+  calsansflex: { name: 'CalSans Flex', file: 'CalSansFlexVF.ttf' },
   switzerland2038: { name: 'Switzerland 2038', file: 'Switzerland2038-500.ttf' },
 }
 
