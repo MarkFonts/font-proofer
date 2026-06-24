@@ -964,7 +964,7 @@ export default function App() {
   const fontStyle = isItalic && italicFontFace ? 'italic' : 'normal'
 
   const previewStyle = {
-    fontFamily: fontFace ? fontFace.family : 'serif',
+    fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
     fontStyle,
     fontSize: `${fontSize}px`,
     letterSpacing: `${letterSpacing}em`,
@@ -1020,7 +1020,7 @@ export default function App() {
       }
     }
     const family = calcomFont === 'calsans'
-      ? (fontFace ? fontFace.family : '"Inter", system-ui, sans-serif')
+      ? (fontFace ? `"${fontFace.family}"` : '"Inter", system-ui, sans-serif')
       : calcomFont === 'calsans'
         ? '"CalSans"'
         : '"Inter", system-ui, -apple-system, sans-serif'
@@ -1054,7 +1054,7 @@ export default function App() {
       }
     }
     const family = calcomFont === 'calsans'
-      ? (fontFace ? fontFace.family : '"Inter", system-ui, sans-serif')
+      ? (fontFace ? `"${fontFace.family}"` : '"Inter", system-ui, sans-serif')
       : calcomFont === 'calsans'
         ? '"CalSans"'
         : '"Inter", system-ui, -apple-system, sans-serif'
@@ -1135,7 +1135,7 @@ export default function App() {
     const merged = { ...axisValues, ...s.axisOverrides }
     const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     return {
-      fontFamily: fontFace ? fontFace.family : 'serif',
+      fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
       fontStyle,
       fontSize: `${s.size}px`,
       letterSpacing: `${s.tracking}em`,
@@ -1162,7 +1162,7 @@ export default function App() {
     const merged = { opsz: 'auto', ...axisValues, ...overrides }
     const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     return {
-      fontFamily: fontFace ? fontFace.family : 'serif',
+      fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
       fontStyle,
       fontSize: `${effectivePxSize ?? step.pxSize}px`,
       lineHeight: step.lh,
@@ -2242,7 +2242,7 @@ export default function App() {
                 ? '"Inter", system-ui, sans-serif'
                 : calcomFont === 'calsans'
                   ? '"CalSans"'
-                  : fontFace ? fontFace.family : 'serif'
+                  : fontFace ? `"${fontFace.family}"` : 'serif'
               const isActive = activeCalcomRole === key
               return (
                 <button
@@ -2304,7 +2304,7 @@ export default function App() {
                 ? '"Inter", system-ui, sans-serif'
                 : calcomFont === 'calsans'
                   ? '"CalSans"'
-                  : fontFace ? fontFace.family : 'serif'
+                  : fontFace ? `"${fontFace.family}"` : 'serif'
               const isActive = activeCossRole === key
               return (
                 <button
@@ -2467,7 +2467,7 @@ export default function App() {
                   <span
                     className="para-styles-preview"
                     style={{
-                      fontFamily: fontFace ? fontFace.family : 'serif',
+                      fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
                       fontStyle,
                       fontSize: `${Math.min(s.size, 22)}px`,
                       fontVariationSettings: fvs,
