@@ -749,7 +749,7 @@ export default function App() {
 
     const loadRouteFont = async () => {
       const baseName = special ? special.name : matched.filename.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
-      const name = `${baseName} Preview`
+      const name = `${baseName.replace(/\s+/g, '')}Preview` // space-free: Chrome quotes multi-word FontFace.family, which then double-quotes in CSS and gets dropped
 
       // Load roman face
       const face = new FontFace(name, `url(${matched.url})`)
@@ -800,7 +800,7 @@ export default function App() {
       const isTTC = new DataView(buffer).getUint32(0) === 0x74746366
 
       const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
-      const name = `${baseName} Preview`
+      const name = `${baseName.replace(/\s+/g, '')}Preview` // space-free: Chrome quotes multi-word FontFace.family, which then double-quotes in CSS and gets dropped
       fontFamilyRef.current = name
 
       if (isTTC) {
