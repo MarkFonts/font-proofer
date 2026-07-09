@@ -476,6 +476,22 @@
   background: var(--bg-hover);
 }
 
+/* ── Stylistic-set toggles (ss04 / ss05) ─────────────────────────────────── */
+.feature-toggles {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.feature-toggles .roman-italic-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.feature-toggles .roman-italic-btn:disabled:hover {
+  background: none;
+}
+
 /* ── Named instance select ───────────────────────────────────────────────── */
 .instance-select {
   width: 100%;

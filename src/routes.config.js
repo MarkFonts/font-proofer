@@ -10,4 +10,6 @@ export default [
   { clientSlug: 'calcom',   fontSlug: 'calsansflex'    },
   { clientSlug: 'weltkern', fontSlug: 'switzerland2038' },
   { clientSlug: 'vercel',   fontSlug: 'geist'     },
+  { clientSlug: 'claudetype', fontSlug: 'SBromie' },
+  { clientSlug: 'pentagram',  fontSlug: 'SBromie' },
 ]

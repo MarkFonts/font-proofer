@@ -115,6 +115,47 @@ function matchItalicFont(slug) {
   return italic ? { url: italic[1], filename: italic[0].split('/').pop() } : null
 }
 
+// ── Static family style picker ───────────────────────────────────────────────
+// A static family ships one file per weight×slant (e.g. SBRomie-BoldItalic.ttf).
+// getFamilyStyles groups the slug-matching files by weight so the UI can offer a
+// "Style" dropdown; each entry pairs a roman file with its italic companion.
+const WEIGHT_ORDER = ['thin', 'extralight', 'ultralight', 'light', 'book', 'regular', 'normal', 'medium', 'semibold', 'demibold', 'bold', 'extrabold', 'heavy', 'black']
+
+function parseWeightSlant(filename) {
+  const base = filename.replace(/\.[^.]+$/, '')
+  const italic = /italic|oblique/i.test(base)
+  let weight = (base.split(/[-_ ]/).pop() || base).replace(/italic|oblique/gi, '').trim()
+  if (!weight) weight = 'Regular'
+  return { weight, italic }
+}
+
+function getFamilyStyles(slug) {
+  const needle = normalize(slug)
+  const entries = Object.entries(fontModules).filter(([path]) => {
+    const n = normalize(path.split('/').pop().replace(/\.[^.]+$/, ''))
+    return n.includes(needle) || needle.includes(n)
+  })
+  const byWeight = new Map()
+  for (const [path, url] of entries) {
+    const filename = path.split('/').pop()
+    const { weight, italic } = parseWeightSlant(filename)
+    const key = weight.toLowerCase()
+    // Only recognized weight names count — this keeps variable fonts (Geist,
+    // Kloten: filenames like "Geist[wght]") from being misread as a static family.
+    if (!WEIGHT_ORDER.includes(key)) continue
+    if (!byWeight.has(key)) byWeight.set(key, { key, label: weight, roman: null, italic: null })
+    const slot = byWeight.get(key)
+    if (italic) slot.italic = { url, filename }
+    else slot.roman = { url, filename }
+  }
+  const rank = (k) => { const i = WEIGHT_ORDER.indexOf(k); return i === -1 ? 999 : i }
+  return Array.from(byWeight.values()).sort((a, b) => rank(a.key) - rank(b.key))
+}
+
+function defaultStyleKey(styles) {
+  return (styles.find(s => s.key === 'regular') ?? styles.find(s => s.key === 'normal' || s.key === 'book') ?? styles[Math.floor(styles.length / 2)])?.key ?? null
+}
+
 // ── Sample content ──────────────────────────────────────────────────────────
 const SAMPLE_BIG = 'Hand gloves'
 
@@ -203,11 +244,21 @@ const DEFAULT_COSS_ROLES = {
 }
 
 // ── Paragraph style model ────────────────────────────────────────────────────
+// Per-block overrides (weight/italic/ss04/ss05) default to null = inherit the
+// global control, mirroring how axisOverrides inherit axisValues.
 const DEFAULT_PARA_STYLES = {
-  h1: { size: 57, leading: 1.1, tracking: 0,     axisOverrides: { wght: 700, opsz: 'auto' } },
-  h2: { size: 32, leading: 1.2, tracking: 0,     axisOverrides: { wght: 400, opsz: 'auto' } },
-  h3: { size: 22, leading: 1.3, tracking: 0,     axisOverrides: { opsz: 'auto' } },
-  p:  { size: 18, leading: 1.6, tracking: 0,     axisOverrides: { opsz: 'auto' } },
+  h1: { size: 57, leading: 1.1, tracking: 0,     axisOverrides: { wght: 700, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
+  h2: { size: 32, leading: 1.2, tracking: 0,     axisOverrides: { wght: 400, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
+  h3: { size: 22, leading: 1.3, tracking: 0,     axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
+  p:  { size: 18, leading: 1.6, tracking: 0,     axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
+}
+
+// Shared feature string. ss04 fires only in italic, ss05 only in roman.
+function featureStr(italic, s04, s05) {
+  const feats = ['"calt" 0', '"ss20" 0']
+  if (s04 && italic) feats.push('"ss04" 1')
+  if (s05 && !italic) feats.push('"ss05" 1')
+  return feats.join(', ')
 }
 
 // ── Tailwind type scale ───────────────────────────────────────────────────────
@@ -370,6 +421,59 @@ const GLYPH_SETS = (() => {
   }
   return { 'All': Object.values(groups).flat(), ...groups }
 })()
+
+// ── Style-specific glyph sets ────────────────────────────────────────────────
+// Some glyphs exist in only one style. SBRomie keeps its 8 Private Use glyphs and
+// the ss04 alternates in the italic, and the ss05 alternates in the roman — so the
+// glyph-set tabs differ between roman and italic.
+// NOTE: the ss04/ss05 character lists below are SBRomie's coverage; a fuller
+// implementation would read the source glyphs from the font's GSUB.
+const SS04_GLYPHS = [...'vwxz']  // italic-only stylistic set
+const SS05_GLYPHS = [...'OQo']   // roman-only stylistic set
+const PUA_CPS = [0xE901, 0xE902, 0xE903, 0xE904, 0xE905, 0xE906, 0xE907, 0xE908]
+const PUA_GLYPHS = PUA_CPS.map(cp => String.fromCodePoint(cp)) // italic-only
+const CURATED_GLYPH_SETS = new Set(['ss04', 'ss05', 'Private Use'])
+
+// Which glyph-set tabs to show for the active style, given the font's capabilities.
+function getGlyphSets(isItalic, features, hasPua) {
+  const sets = { ...GLYPH_SETS }
+  const styleHasPua = isItalic ? hasPua?.italic : hasPua?.roman
+  if (styleHasPua) {
+    // PUA glyphs are real codepoints, so fold them into "All" too.
+    sets['All'] = [...GLYPH_SETS['All'], ...PUA_GLYPHS]
+    sets['Private Use'] = PUA_GLYPHS
+  }
+  // ss04/ss05 are feature alternates of glyphs already in "All", so they stay in
+  // their own forced-feature section rather than being folded in.
+  if (isItalic) {
+    if (features?.italic?.includes('ss04')) sets['ss04'] = SS04_GLYPHS
+  } else {
+    if (features?.roman?.includes('ss05')) sets['ss05'] = SS05_GLYPHS
+  }
+  return sets
+}
+
+// Minimal GSUB scan: returns the set of feature tags present (e.g. 'ss04').
+function gsubFeatureTags(ab) {
+  try {
+    const d = new DataView(ab)
+    const numTables = d.getUint16(4)
+    let g = 0
+    for (let i = 0; i < numTables; i++) {
+      const t = String.fromCharCode(d.getUint8(12+i*16), d.getUint8(13+i*16), d.getUint8(14+i*16), d.getUint8(15+i*16))
+      if (t === 'GSUB') { g = d.getUint32(12+i*16+8); break }
+    }
+    if (!g) return []
+    const flOff = g + d.getUint16(g + 6)
+    const count = d.getUint16(flOff)
+    const tags = []
+    for (let i = 0; i < count; i++) {
+      const rec = flOff + 2 + i*6
+      tags.push(String.fromCharCode(d.getUint8(rec), d.getUint8(rec+1), d.getUint8(rec+2), d.getUint8(rec+3)))
+    }
+    return tags
+  } catch { return [] }
+}
 
 // ── TTC helpers ──────────────────────────────────────────────────────────────
 function parseTTCOffsets(buffer) {
@@ -578,6 +682,11 @@ export default function App() {
   const [fontFace, setFontFace] = useState(null)
   const [italicFontFace, setItalicFontFace] = useState(null)
   const [isItalic, setIsItalic] = useState(false)
+  // Stylistic-set toggles. ss04 substitutes italic-only glyphs; ss05 roman-only.
+  const [ss04, setSs04] = useState(false)
+  const [ss05, setSs05] = useState(false)
+  // Static-family weight picker (null → default weight for the family)
+  const [activeStyleKey, setActiveStyleKey] = useState(null)
   const [variationAxes, setVariationAxes] = useState([]) // [{tag, name, min, max, defaultVal}]
   const [axisValues, setAxisValues] = useState({})
   const [namedInstances, setNamedInstances] = useState([]) // [{name, coordinates: {tag: value}}]
@@ -663,6 +772,9 @@ export default function App() {
 
   // Glyph set selection
   const [activeGlyphSet, setActiveGlyphSet] = useState('Uppercase')
+  // Per-style GSUB stylistic-set tags + whether the italic has the PUA glyphs
+  const [glyphFeatures, setGlyphFeatures] = useState({ roman: [], italic: [] })
+  const [hasPua, setHasPua] = useState({ roman: false, italic: false })
 
   // Parsed PS family name for scale label default
   const [fontFamilyLabel, setFontFamilyLabel] = useState('')
@@ -730,25 +842,67 @@ export default function App() {
     setFontSize(Math.min(400, Math.max(20, Math.floor(100 * availWidth / w))))
   }, [])
 
+  // Static-family weight list for the current route (empty for single/variable fonts)
+  const familyStyles = useMemo(
+    () => (fontSlug && !matchSpecial(fontSlug)) ? getFamilyStyles(fontSlug) : [],
+    [fontSlug]
+  )
+  const isFamily = familyStyles.length >= 2
+  const currentStyleKey = isFamily ? (activeStyleKey ?? defaultStyleKey(familyStyles)) : null
+
+  // Per-block weight support: load every family weight under its own font-family
+  // (roman + italic), so different paragraph blocks can show different weights.
+  const [weightFamilies, setWeightFamilies] = useState({}) // { weightKey: cssFamilyName }
+  useEffect(() => {
+    if (!isFamily) { setWeightFamilies({}); return }
+    let cancelled = false
+    const nameBase = fontSlug.replace(/\s+/g, '')
+    ;(async () => {
+      const fams = {}
+      for (const st of familyStyles) {
+        const famName = `${nameBase}_${st.key}Preview`
+        try {
+          if (st.roman) { const f = new FontFace(famName, `url(${st.roman.url})`); await f.load(); document.fonts.add(f) }
+          if (st.italic) { const f = new FontFace(famName, `url(${st.italic.url})`, { style: 'italic' }); await f.load(); document.fonts.add(f) }
+          fams[st.key] = famName
+        } catch { /* skip a weight that fails to load */ }
+      }
+      if (!cancelled) setWeightFamilies(fams)
+    })()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fontSlug, isFamily])
+
   // ── Auto-load font from URL route ──────────────────────────────────────────
   useEffect(() => {
     if (!fontSlug) return
 
     const special = matchSpecial(fontSlug)
-    let matched
-    let resolvedSlug
+    let matched, italicMatch, resolvedSlug
     if (special?.file) {
       const entry = Object.entries(fontModules).find(([path]) => path.endsWith('/' + special.file))
       matched = entry ? { url: entry[1], filename: special.file } : null
+      italicMatch = null
+      resolvedSlug = fontSlug
+    } else if (isFamily) {
+      // Static family: pick the roman + italic files for the selected weight.
+      const st = familyStyles.find(s => s.key === currentStyleKey) ?? familyStyles[0]
+      matched = st.roman ?? st.italic
+      italicMatch = st.italic
       resolvedSlug = fontSlug
     } else {
       resolvedSlug = special ? 'calsans' : fontSlug
       matched = matchFont(resolvedSlug)
+      italicMatch = matchItalicFont(resolvedSlug)
     }
     if (!matched) return
 
     const loadRouteFont = async () => {
-      const baseName = special ? special.name : matched.filename.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
+      // Families keep a constant family name across weights, so switching style
+      // just re-points the same CSS font-family.
+      const baseName = special ? special.name
+        : isFamily ? fontSlug
+        : matched.filename.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
       const name = `${baseName.replace(/\s+/g, '')}Preview` // space-free: Chrome quotes multi-word FontFace.family, which then double-quotes in CSS and gets dropped
 
       // Load roman face
@@ -759,22 +913,35 @@ export default function App() {
       setFontName(matched.filename.replace(/\.[^/.]+$/, ''))
       autoFitSize(name)
 
-      // Parse PS family name and version for scale label / footer
+      // Parse PS family name, version, and GSUB stylistic-set tags (roman)
       fetch(matched.url).then(r => r.arrayBuffer()).then(buf => {
         setFontFamilyLabel(readFamilyNameFromBuffer(buf) ?? special?.name ?? baseName)
         setFontVersion(readVersionFromBuffer(buf))
+        setGlyphFeatures(prev => ({ ...prev, roman: gsubFeatureTags(buf) }))
       }).catch(() => { setFontFamilyLabel(special?.name ?? baseName); setFontVersion(null) })
 
+      // Does this file's cmap contain all the Private Use glyphs?
+      const hasPuaGlyphs = (fname) => {
+        const c = fontAxesData[fname]?.chars
+        return !!c && PUA_CPS.every(cp => c.some(([a, b]) => cp >= a && cp <= b))
+      }
+
       // Load italic companion (registers under same family with style:'italic')
-      const italicMatch = matchItalicFont(resolvedSlug)
       if (italicMatch) {
         const italicFace = new FontFace(name, `url(${italicMatch.url})`, { style: 'italic' })
         const loadedItalic = await italicFace.load()
         document.fonts.add(loadedItalic)
         setItalicFontFace(loadedItalic)
+        // Detect the italic's stylistic sets for the glyph tabs
+        fetch(italicMatch.url).then(r => r.arrayBuffer())
+          .then(buf => setGlyphFeatures(prev => ({ ...prev, italic: gsubFeatureTags(buf) })))
+          .catch(() => {})
+        setHasPua({ roman: hasPuaGlyphs(matched.filename), italic: hasPuaGlyphs(italicMatch.filename) })
       } else {
         setItalicFontFace(null)
         setIsItalic(false)
+        setGlyphFeatures(prev => ({ ...prev, italic: [] }))
+        setHasPua({ roman: hasPuaGlyphs(matched.filename), italic: false })
       }
 
       // Axes + instances from virtual module (covers TTF and woff2)
@@ -788,7 +955,7 @@ export default function App() {
       setAxisValues(defaults)
     }
     loadRouteFont().catch(console.error)
-  }, [fontSlug])
+  }, [fontSlug, currentStyleKey])
 
 
   // ── Font loading ───────────────────────────────────────────────────────────
@@ -963,6 +1130,19 @@ export default function App() {
 
   const fontStyle = isItalic && italicFontFace ? 'italic' : 'normal'
 
+  // Shared feature string for the proofing text. ss04 only fires in italic, ss05
+  // only in roman — matching each stylistic set's glyph coverage.
+  const proofFeatureSettings = featureStr(isItalic, ss04, ss05)
+
+  // Style-aware glyph sets for the Glyphs view (roman vs italic differ)
+  const glyphSets = getGlyphSets(isItalic, glyphFeatures, hasPua)
+  const activeGlyphKey = glyphSets[activeGlyphSet] ? activeGlyphSet : 'All'
+  // Reset the tab when the active set disappears (e.g. after a roman/italic switch)
+  useEffect(() => {
+    if (!glyphSets[activeGlyphSet]) setActiveGlyphSet('All')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isItalic, glyphFeatures, hasPua])
+
   const previewStyle = {
     fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
     fontStyle,
@@ -972,7 +1152,7 @@ export default function App() {
     fontVariationSettings,
     fontOpticalSizing: axisValues['opsz'] === 'auto' ? 'auto' : 'none',
     fontSynthesis: 'none',
-    fontFeatureSettings: '"calt" 0, "ss20" 0',
+    fontFeatureSettings: proofFeatureSettings,
     textAlign,
     color: 'var(--text)',
     wordBreak: 'break-word',
@@ -985,6 +1165,20 @@ export default function App() {
     : mode === 'scale'
     ? activeParaStyle   // null unless user picks one from the dropdown
     : null
+
+  // Weight / Roman-Italic / ss04 / ss05 scope to the selected block (P by default
+  // in paragraph mode); with no block selected they edit the global control.
+  const styleScope = effectiveParaStyle
+  const scopedWeight = styleScope ? (paraStyles[styleScope].weight ?? currentStyleKey) : currentStyleKey
+  const scopedItalic = styleScope ? (paraStyles[styleScope].italic ?? isItalic) : isItalic
+  const scopedSs04 = styleScope ? (paraStyles[styleScope].ss04 ?? ss04) : ss04
+  const scopedSs05 = styleScope ? (paraStyles[styleScope].ss05 ?? ss05) : ss05
+  const setScopedField = (field, value) =>
+    setParaStyles(prev => ({ ...prev, [styleScope]: { ...prev[styleScope], [field]: value } }))
+  const setScopedWeight = (v) => styleScope ? setScopedField('weight', v) : setActiveStyleKey(v)
+  const setScopedItalic = (v) => styleScope ? setScopedField('italic', v) : setIsItalic(v)
+  const toggleScopedSs04 = () => styleScope ? setScopedField('ss04', !scopedSs04) : setSs04(v => !v)
+  const toggleScopedSs05 = () => styleScope ? setScopedField('ss05', !scopedSs05) : setSs05(v => !v)
 
   // ── Active role for calcom mode ───────────────────────────────────────────
   const effectiveCalcomRole = mode === 'calcom' ? activeCalcomRole : null
@@ -1134,16 +1328,22 @@ export default function App() {
     const s = paraStyles[type] ?? paraStyles.p
     const merged = { ...axisValues, ...s.axisOverrides }
     const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    // Per-block weight/italic/ss resolve to the block's override, or the global control.
+    const weight = s.weight ?? currentStyleKey
+    const italic = s.italic ?? isItalic
+    const s04 = s.ss04 ?? ss04
+    const s05 = s.ss05 ?? ss05
+    const family = (weight && weightFamilies[weight]) ? `"${weightFamilies[weight]}"` : (fontFace ? `"${fontFace.family}"` : 'serif')
     return {
-      fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
-      fontStyle,
+      fontFamily: family,
+      fontStyle: (italic && (isFamily || italicFontFace)) ? 'italic' : 'normal',
       fontSize: `${s.size}px`,
       letterSpacing: `${s.tracking}em`,
       lineHeight: s.leading,
       fontVariationSettings: fvs,
       fontOpticalSizing: merged['opsz'] === 'auto' ? 'auto' : 'none',
       fontSynthesis: 'none',
-      fontFeatureSettings: '"calt" 0, "ss20" 0',
+      fontFeatureSettings: featureStr(italic, s04, s05),
       textAlign,
       color: 'var(--text)',
       wordBreak: 'break-word',
@@ -1170,7 +1370,7 @@ export default function App() {
       fontVariationSettings: fvs,
       fontOpticalSizing: merged.opsz === 'auto' ? 'auto' : 'none',
       fontSynthesis: 'none',
-      fontFeatureSettings: '"calt" 0, "ss20" 0',
+      fontFeatureSettings: proofFeatureSettings,
       color: 'var(--text)',
       transition: 'font-variation-settings 0.15s ease',
     }
@@ -1333,10 +1533,10 @@ export default function App() {
       {/* Mobile sub-bar: context-sensitive chips */}
       {fontName && (mode === 'glyphs' || mode === 'paragraph' || mode === 'scale') && (
         <div className="mobile-sub-bar">
-          {mode === 'glyphs' && Object.keys(GLYPH_SETS).map(k => (
+          {mode === 'glyphs' && Object.keys(glyphSets).map(k => (
             <button
               key={k}
-              className={`mobile-sub-btn ${activeGlyphSet === k ? 'active' : ''}`}
+              className={`mobile-sub-btn ${activeGlyphKey === k ? 'active' : ''}`}
               onClick={() => setActiveGlyphSet(k)}
             >
               {k}
@@ -1640,7 +1840,7 @@ export default function App() {
         )}
 
         {/* Typography controls */}
-        {mode !== 'calcom' && mode !== 'scale' && (
+        {mode !== 'calcom' && (
         <div className="sidebar-section">
           <div className="typography-header">
             <div className="section-label">
@@ -1651,6 +1851,7 @@ export default function App() {
                 </span>
               )}
             </div>
+            {mode !== 'scale' && (
             <div className="align-group">
               {(() => {
                 const isDirty = effectiveParaStyle
@@ -1690,28 +1891,57 @@ export default function App() {
                 </button>
               ))}
             </div>
+            )}
           </div>
+          {isFamily && (
+            <select
+              className="instance-select"
+              value={scopedWeight ?? ''}
+              onChange={e => setScopedWeight(e.target.value)}
+              title="Style"
+            >
+              {familyStyles.map(s => (
+                <option key={s.key} value={s.key}>{s.label}</option>
+              ))}
+            </select>
+          )}
           {(italicFontFace || variationAxes.some(a => a.tag === 'ital')) && (() => {
             const italAxis = variationAxes.find(a => a.tag === 'ital')
             return (
               <div className="roman-italic-toggle">
                 <button
-                  className={`roman-italic-btn${!isItalic ? ' active' : ''}`}
+                  className={`roman-italic-btn${!scopedItalic ? ' active' : ''}`}
                   onClick={() => {
-                    setIsItalic(false)
+                    setScopedItalic(false)
                     if (italAxis) setAxisValues(prev => ({ ...prev, ital: italAxis.min ?? 0 }))
                   }}
                 >Roman</button>
                 <button
-                  className={`roman-italic-btn${isItalic ? ' active' : ''}`}
+                  className={`roman-italic-btn${scopedItalic ? ' active' : ''}`}
                   onClick={() => {
-                    setIsItalic(true)
+                    setScopedItalic(true)
                     if (italAxis) setAxisValues(prev => ({ ...prev, ital: italAxis.max ?? 1 }))
                   }}
                 >Italic</button>
               </div>
             )
           })()}
+          {fontFace && (
+            <div className="feature-toggles">
+              <button
+                className={`roman-italic-btn${scopedSs04 ? ' active' : ''}`}
+                disabled={!scopedItalic}
+                title={scopedItalic ? 'Stylistic Set 4 (italic)' : 'ss04 applies to italic only'}
+                onClick={toggleScopedSs04}
+              >ss04</button>
+              <button
+                className={`roman-italic-btn${scopedSs05 ? ' active' : ''}`}
+                disabled={scopedItalic}
+                title={!scopedItalic ? 'Stylistic Set 5 (roman)' : 'ss05 applies to roman only'}
+                onClick={toggleScopedSs05}
+              >ss05</button>
+            </div>
+          )}
           {ttcFonts.length > 1 && (
             <select
               className="instance-select"
@@ -1763,6 +1993,8 @@ export default function App() {
               </select>
             )
           })()}
+          {/* Size/Tracking/Leading are per-step in Type Scale, so hide them there */}
+          {mode !== 'scale' && (<>
           {effectiveParaStyle ? (
             <SliderRow
               label="Size"
@@ -1828,6 +2060,7 @@ export default function App() {
               display={lineHeight.toFixed(2)}
             />
           )}
+          </>)}
         </div>
         )}
 
@@ -1986,10 +2219,10 @@ export default function App() {
             <div className="sidebar-section">
               <div className="section-label">Glyph Set</div>
               <div className="glyph-set-group">
-                {Object.keys(GLYPH_SETS).map(k => (
+                {Object.keys(glyphSets).map(k => (
                   <button
                     key={k}
-                    className={`glyph-set-btn ${activeGlyphSet === k ? 'active' : ''}`}
+                    className={`glyph-set-btn ${activeGlyphKey === k ? 'active' : ''}`}
                     onClick={() => setActiveGlyphSet(k)}
                   >
                     {k}
@@ -2194,13 +2427,22 @@ export default function App() {
             )}
             <div className="glyphs-grid" style={{
               fontFamily: previewStyle.fontFamily,
+              fontStyle,
               fontVariationSettings,
               fontOpticalSizing: 'none',
+              // Dedicated ss04/ss05 sections force their feature so the alternates show.
+              fontFeatureSettings: activeGlyphKey === 'ss04'
+                ? '"calt" 0, "ss20" 0, "ss04" 1'
+                : activeGlyphKey === 'ss05'
+                ? '"calt" 0, "ss20" 0, "ss05" 1'
+                : proofFeatureSettings,
               fontSize: `${Math.min(fontSize, 120)}px`,
               lineHeight: 1,
               transition: 'font-variation-settings 0.15s ease',
             }}>
-              {GLYPH_SETS[activeGlyphSet].filter(glyph => {
+              {glyphSets[activeGlyphKey].filter(glyph => {
+                // Curated sets (ss04/ss05/PUA) are pre-scoped to the font, skip cmap filter
+                if (CURATED_GLYPH_SETS.has(activeGlyphKey)) return true
                 if (!supportedRanges) return true
                 const isCombining = glyph.charCodeAt(0) === 0x25CC
                 const cp = glyph.codePointAt(isCombining ? 1 : 0)
