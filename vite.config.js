@@ -4,6 +4,10 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync, readdirSync } fro
 import { createRequire } from 'module'
 import routes from './src/routes.config.js'
 
+// OG/Twitter image URLs must be absolute (https://…) — scrapers drop root-relative ones.
+const SITE_ORIGIN = 'https://wordmark.nyc'
+const SITE_BASE = '/font-proofer'
+
 const SPECIAL_SLUG_NAMES = {
   calsans: 'CalSans',
   calsansflex: 'CalSans Flex',
@@ -39,7 +43,9 @@ function findFontFile(fontSlug) {
     const n = normalize(f.replace(/\.[^.]+$/, ''))
     return n.includes(needle) || needle.includes(n)
   })
-  return matches.find(f => !/italic|oblique/i.test(f)) ?? matches[0] ?? null
+  const upright = matches.filter(f => !/italic|oblique/i.test(f))
+  // Prefer the Regular weight so a static family's OG image isn't rendered in Black.
+  return upright.find(f => /regular/i.test(f)) ?? upright[0] ?? matches[0] ?? null
 }
 
 function parseFontAxesFromBuffer(ab) {
@@ -283,13 +289,22 @@ export default defineConfig({
           const dir = `dist/${clientSlug}/${fontSlug}`
           mkdirSync(dir, { recursive: true })
           const fontFile = findFontFile(fontSlug)
-          const fontDisplayName = SPECIAL_SLUG_NAMES[fontSlug]
+          const rawName = SPECIAL_SLUG_NAMES[fontSlug]
             ?? (fontFile ? fileToDisplayName(fontFile) : fontSlug.charAt(0).toUpperCase() + fontSlug.slice(1))
+          // Drop a trailing weight/style word so a static family reads "SB Romie",
+          // not "SB Romie Black" (findFontFile picks a single weight file).
+          const fontDisplayName = rawName.replace(/\s+(Thin|Extra ?Light|Ultra ?Light|Light|Book|Regular|Medium|Semi ?Bold|Demi ?Bold|Bold|Extra ?Bold|Heavy|Black)(\s+Italic)?$/i, '').trim() || rawName
           const title = `${fontDisplayName} — Font Proofer`
+          const imageUrl = `${SITE_ORIGIN}${SITE_BASE}/og/${fontSlug}.png`
+          const pageUrl = `${SITE_ORIGIN}${SITE_BASE}/${clientSlug}/${fontSlug}/`
           const html = base
             .replace('<title>Font Proofer</title>', `<title>${title}</title>`)
             .replace(/(<meta property="og:title"[^>]*>)/, `<meta property="og:title" content="${title}" />`)
-            .replace(/<meta property="og:image" [^>]+>/, `<meta property="og:image" content="/font-proofer/og/${fontSlug}.png" />`)
+            .replace(/<meta property="og:image" [^>]+>/,
+              `<meta property="og:image" content="${imageUrl}" />\n`
+              + `    <meta property="og:url" content="${pageUrl}" />\n`
+              + `    <meta name="twitter:card" content="summary_large_image" />\n`
+              + `    <meta name="twitter:image" content="${imageUrl}" />`)
           writeFileSync(`${dir}/index.html`, html)
         }
 
