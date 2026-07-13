@@ -2,7 +2,7 @@
 // Used at build time to generate per-route index.html files with og:image meta tags.
 // og:image will be served from /font-proofer/og/[fontSlug].png
 export default [
-  { clientSlug: 'claude',   fontSlug: 'ernest'    },
+  { clientSlug: 'claudetype', fontSlug: 'ernest' },
   { clientSlug: 'weltkern', fontSlug: 'kloten'       },
   { clientSlug: 'weltkern', fontSlug: 'lausannemono' },
   { clientSlug: 'weltkern', fontSlug: 'paquis'       },
@@ -12,4 +12,6 @@ export default [
   { clientSlug: 'vercel',   fontSlug: 'geist'     },
   { clientSlug: 'claudetype', fontSlug: 'SBromie' },
   { clientSlug: 'pentagram',  fontSlug: 'SBromie' },
+  { clientSlug: 'claudetype', fontSlug: 'sbromieVF' },
+  { clientSlug: 'pentagram',  fontSlug: 'sbromieVF' },
 ]

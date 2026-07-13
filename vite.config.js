@@ -12,12 +12,14 @@ const SPECIAL_SLUG_NAMES = {
   calsans: 'CalSans',
   calsansflex: 'CalSans Flex',
   switzerland2038: 'Switzerland 2038',
+  sbromieVF: 'SB Romie',
 }
 
 const SPECIAL_SLUG_FILES = {
   calsans: 'CalSansVF.ttf',
   calsansflex: 'CalSansFlexVF.ttf',
   switzerland2038: 'Switzerland2038-500.ttf',
+  sbromieVF: 'SBRomieVF.ttf',
 }
 
 function normalize(s) {

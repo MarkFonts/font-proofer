@@ -85,6 +85,7 @@ const SPECIAL_FONTS = {
   calsans: { name: 'CalSans', file: 'CalSansVF.ttf' },
   calsansflex: { name: 'CalSans Flex', file: 'CalSansFlexVF.ttf' },
   switzerland2038: { name: 'Switzerland 2038', file: 'Switzerland2038-500.ttf' },
+  sbromievf: { name: 'SB Romie', file: 'SBRomieVF.ttf' },
 }
 
 function matchSpecial(slug) {
@@ -1926,20 +1927,24 @@ export default function App() {
               </div>
             )
           })()}
-          {fontFace && (
+          {fontFace && (/sb\s*romie/i.test(fontFamilyLabel) || /romie/i.test(fontName || '')) && (glyphFeatures.italic?.includes('ss04') || glyphFeatures.roman?.includes('ss05')) && (
             <div className="feature-toggles">
-              <button
-                className={`roman-italic-btn${scopedSs04 ? ' active' : ''}`}
-                disabled={!scopedItalic}
-                title={scopedItalic ? 'Stylistic Set 4 (italic)' : 'ss04 applies to italic only'}
-                onClick={toggleScopedSs04}
-              >ss04</button>
-              <button
-                className={`roman-italic-btn${scopedSs05 ? ' active' : ''}`}
-                disabled={scopedItalic}
-                title={!scopedItalic ? 'Stylistic Set 5 (roman)' : 'ss05 applies to roman only'}
-                onClick={toggleScopedSs05}
-              >ss05</button>
+              {glyphFeatures.italic?.includes('ss04') && (
+                <button
+                  className={`roman-italic-btn${scopedSs04 ? ' active' : ''}`}
+                  disabled={!scopedItalic}
+                  title={scopedItalic ? 'Stylistic Set 4 (italic)' : 'ss04 applies to italic only'}
+                  onClick={toggleScopedSs04}
+                >ss04</button>
+              )}
+              {glyphFeatures.roman?.includes('ss05') && (
+                <button
+                  className={`roman-italic-btn${scopedSs05 ? ' active' : ''}`}
+                  disabled={scopedItalic}
+                  title={!scopedItalic ? 'Stylistic Set 5 (roman)' : 'ss05 applies to roman only'}
+                  onClick={toggleScopedSs05}
+                >ss05</button>
+              )}
             </div>
           )}
           {ttcFonts.length > 1 && (
