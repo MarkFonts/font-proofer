@@ -12,8 +12,11 @@ const SPECIAL_SLUG_NAMES = {
   calsans: 'CalSans',
   calsansflex: 'CalSans Flex',
   switzerland2038: 'Switzerland 2038',
-  sbromieVF: 'SB Romie',
+  sbromieVF: 'SB Romie Variable',
 }
+
+// Trailing weight/style words to drop from a display name (e.g. "SB Romie Regular" -> "SB Romie")
+const WEIGHT_RE = /\s+(Thin|Extra ?Light|Ultra ?Light|Light|Book|Regular|Medium|Semi ?Bold|Demi ?Bold|Bold|Extra ?Bold|Heavy|Black)(\s+Italic)?$/i
 
 const SPECIAL_SLUG_FILES = {
   calsans: 'CalSansVF.ttf',
@@ -188,7 +191,8 @@ async function generateOgImages() {
     }
 
     const fontBuffer = await loadFontForSatori(`src/fonts/${file}`)
-    const displayName = fileToDisplayName(file)
+    const displayName = SPECIAL_SLUG_NAMES[fontSlug]
+      ?? (fileToDisplayName(file).replace(WEIGHT_RE, '').trim() || fileToDisplayName(file))
 
     const fonts = [{ name: 'Preview', data: fontBuffer, weight: 400, style: 'normal' }]
     if (uiFont) fonts.push({ name: 'CalSansUI', data: uiFont, weight: 400, style: 'normal' })
