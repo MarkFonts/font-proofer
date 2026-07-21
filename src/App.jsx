@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import './App.css'
 import fontAxesData from 'virtual:font-axes'
@@ -196,7 +196,7 @@ const TEXT_PRESETS = {
     { type: 'p',  text: '“What do you say, Tom?”' },
     { type: 'p',  text: 'They both listened.' },
     { type: 'p',  text: '“I say a horse at a canter coming up, Joe.”' },
-    { type: 'p',  text: '“I say a horse at a gallop, Tom,” returned the guard, leaving his hold of the door, and mounting nimbly to his place. “Gentlemen! In the king’s name, all of you!”' },
+    { type: 'p',  text: '“*I* say a horse at a gallop, Tom,” returned the guard, leaving his hold of the door, and mounting nimbly to his place. “Gentlemen! In the king’s name, all of you!”' },
     { type: 'p',  text: 'With this hurried adjuration, he cocked his blunderbuss, and stood on the offensive.' },
     { type: 'p',  text: 'The passenger booked by this history, was on the coach-step, getting in; the two other passengers were close behind him, and about to follow. He remained on the step, half in the coach and half out of; they remained in the road below him. They all looked from the coachman to the guard, and from the guard to the coachman, and listened. The coachman looked back and the guard looked back, and even the emphatic leader pricked up his ears and looked back, without contradicting.' },
     { type: 'p',  text: 'The stillness consequent on the cessation of the rumbling and labouring of the coach, added to the stillness of the night, made it very quiet indeed. The panting of the horses communicated a tremulous motion to the coach, as if it were in a state of agitation. The hearts of the passengers beat loud enough perhaps to be heard; but at any rate, the quiet pause was audibly expressive of people out of breath, and holding the breath, and having the pulses quickened by expectation.' },
@@ -204,7 +204,7 @@ const TEXT_PRESETS = {
     { type: 'p',  text: '“So-ho!” the guard sang out, as loud as he could roar. “Yo there! Stand! I shall fire!”' },
     { type: 'p',  text: 'The pace was suddenly checked, and, with much splashing and floundering, a man’s voice called from the mist, “Is that the Dover mail?”' },
     { type: 'p',  text: '“Never you mind what it is!” the guard retorted. “What are you?”' },
-    { type: 'p',  text: '“Is that the Dover mail?”' },
+    { type: 'p',  text: '“*Is* that the Dover mail?”' },
     { type: 'p',  text: '“Why do you want to know?”' },
     { type: 'p',  text: '“I want a passenger, if it is.”' },
     { type: 'p',  text: '“What passenger?”' },
@@ -225,7 +225,7 @@ const TEXT_PRESETS = {
     { type: 'p',  text: 'The watchful guard, with his right hand at the stock of his raised blunderbuss, his left at the barrel, and his eye on the horseman, answered curtly, “Sir.”' },
     { type: 'p',  text: '“There is nothing to apprehend. I belong to Tellson’s Bank. You must know Tellson’s Bank in London. I am going to Paris on business. A crown to drink. I may read this?”' },
     { type: 'p',  text: '“If so be as you’re quick, sir.”' },
-    { type: 'p',  text: 'He opened it in the light of the coach-lamp on that side, and read—first to himself and then aloud: “‘Wait at Dover for Mam’selle.’ It’s not long, you see, guard. Jerry, say that my answer was, Recalled to life.”' },
+    { type: 'p',  text: 'He opened it in the light of the coach-lamp on that side, and read—first to himself and then aloud: “‘Wait at Dover for Mam’selle.’ It’s not long, you see, guard. Jerry, say that my answer was, *Recalled to life*.”' },
     { type: 'p',  text: 'Jerry started in his saddle. “That’s a Blazing strange answer, too,” said he, at his hoarsest.' },
     { type: 'p',  text: '“Take that message back, and they will know that I received this, as well as if I wrote. Make the best of your way. Good night.”' },
     { type: 'p',  text: 'With those words the passenger opened the coach-door and got in; not at all assisted by his fellow-passengers, who had expeditiously secreted their watches and purses in their boots, and were now making a general pretence of being asleep. With no more definite purpose than to escape the hazard of originating any other kind of action.' },
@@ -243,9 +243,9 @@ const TEXT_PRESETS = {
     { type: 'p',  text: 'A wonderful fact to reflect upon, that every human creature is constituted to be that profound secret and mystery to every other. A solemn consideration, when I enter a great city by night, that every one of those darkly clustered houses encloses its own secret; that every room in every one of them encloses its own secret; that every beating heart in the hundreds of thousands of breasts there, is, in some of its imaginings, a secret to the heart nearest it! Something of the awfulness, even of Death itself, is referable to this. No more can I turn the leaves of this dear book that I loved, and vainly hope in time to read it all. No more can I look into the depths of this unfathomable water, wherein, as momentary lights glanced into it, I have had glimpses of buried treasure and other things submerged. It was appointed that the book should shut with a spring, for ever and for ever, when I had read but a page. It was appointed that the water should be locked in an eternal frost, when the light was playing on its surface, and I stood in ignorance on the shore. My friend is dead, my neighbour is dead, my love, the darling of my soul, is dead; it is the inexorable consolidation and perpetuation of the secret that was always in that individuality, and which I shall carry in mine to my life’s end. In any of the burial-places of this city through which I pass, is there a sleeper more inscrutable than its busy inhabitants are, in their innermost personality, to me, or than I am to them?' },
     { type: 'p',  text: 'As to this, his natural and not to be alienated inheritance, the messenger on horseback had exactly the same possessions as the King, the first Minister of State, or the richest merchant in London. So with the three passengers shut up in the narrow compass of one lumbering old mail coach; they were mysteries to one another, as complete as if each had been in his own coach and six, or his own coach and sixty, with the breadth of a county between him and the next.' },
     { type: 'p',  text: 'The messenger rode back at an easy trot, stopping pretty often at ale-houses by the way to drink, but evincing a tendency to keep his own counsel, and to keep his hat cocked over his eyes. He had eyes that assorted very well with that decoration, being of a surface black, with no depth in the colour or form, and much too near together—as if they were afraid of being found out in something, singly, if they kept too far apart. They had a sinister expression, under an old cocked-hat like a three-cornered spittoon, and over a great muffler for the chin and throat, which descended nearly to the wearer’s knees. When he stopped for drink, he moved this muffler with his left hand, only while he poured his liquor in with his right; as soon as that was done, he muffled again.' },
-    { type: 'p',  text: '“No, Jerry, no!” said the messenger, harping on one theme as he rode. “It wouldn’t do for you, Jerry. Jerry, you honest tradesman, it wouldn’t suit your line of business! Recalled—! Bust me if I don’t think he’d been a drinking!”' },
+    { type: 'p',  text: '“No, Jerry, no!” said the messenger, harping on one theme as he rode. “It wouldn’t do for you, Jerry. Jerry, you honest tradesman, it wouldn’t suit *your* line of business! Recalled—! Bust me if I don’t think he’d been a drinking!”' },
     { type: 'p',  text: 'His message perplexed his mind to that degree that he was fain, several times, to take off his hat to scratch his head. Except on the crown, which was raggedly bald, he had stiff, black hair, standing jaggedly all over it, and growing down hill almost to his broad, blunt nose. It was so like Smith’s work, so much more like the top of a strongly spiked wall than a head of hair, that the best of players at leap-frog might have declined him, as the most dangerous man in the world to go over.' },
-    { type: 'p',  text: 'While he trotted back with the message he was to deliver to the night watchman in his box at the door of Tellson’s Bank, by Temple Bar, who was to deliver it to greater authorities within, the shadows of the night took such shapes to him as arose out of the message, and took such shapes to the mare as arose out of her private topics of uneasiness. They seemed to be numerous, for she shied at every shadow on the road.' },
+    { type: 'p',  text: 'While he trotted back with the message he was to deliver to the night watchman in his box at the door of Tellson’s Bank, by Temple Bar, who was to deliver it to greater authorities within, the shadows of the night took such shapes to him as arose out of the message, and took such shapes to the mare as arose out of *her* private topics of uneasiness. They seemed to be numerous, for she shied at every shadow on the road.' },
     { type: 'p',  text: 'What time, the mail-coach lumbered, jolted, rattled, and bumped upon its tedious way, with its three fellow-inscrutables inside. To whom, likewise, the shadows of the night revealed themselves, in the forms their dozing eyes and wandering thoughts suggested.' },
     { type: 'p',  text: 'Tellson’s Bank had a run upon it in the mail. As the bank passenger—with an arm drawn through the leathern strap, which did what lay in it to keep him from pounding against the next passenger, and driving him into his corner, whenever the coach got a special jolt—nodded in his place, with half-shut eyes, the little coach-windows, and the coach-lamp dimly gleaming through them, and the bulky bundle of opposite passenger, became the bank, and did a great stroke of business. The rattle of the harness was the chink of money, and more drafts were honoured in five minutes than even Tellson’s, with all its foreign and home connection, ever paid in thrice the time. Then the strong-rooms underground, at Tellson’s, with such of their valuable stores and secrets as were known to the passenger (and it was not a little that he knew about them), opened before him, and he went in among them with the great keys and the feebly-burning candle, and found them safe, and strong, and sound, and still, just as he had last seen them.' },
     { type: 'p',  text: 'But, though the bank was almost always with him, and though the coach (in a confused way, like the presence of pain under an opiate) was always with him, there was another current of impression that never ceased to run, all through the night. He was on his way to dig some one out of a grave.' },
@@ -305,14 +305,14 @@ const TEXT_PRESETS = {
     { type: 'p',  text: 'In a very few minutes the waiter came in to announce that Miss Manette had arrived from London, and would be happy to see the gentleman from Tellson’s.' },
     { type: 'p',  text: '“So soon?”' },
     { type: 'p',  text: 'Miss Manette had taken some refreshment on the road, and required none then, and was extremely anxious to see the gentleman from Tellson’s immediately, if it suited his pleasure and convenience.' },
-    { type: 'p',  text: 'The gentleman from Tellson’s had nothing left for it but to empty his glass with an air of stolid desperation, settle his odd little flaxen wig at the ears, and follow the waiter to Miss Manette’s apartment. It was a large, dark room, furnished in a funereal manner with black horsehair, and loaded with heavy dark tables. These had been oiled and oiled, until the two tall candles on the table in the middle of the room were gloomily reflected on every leaf; as if they were buried, in deep graves of black mahogany, and no light to speak of could be expected from them until they were dug out.' },
+    { type: 'p',  text: 'The gentleman from Tellson’s had nothing left for it but to empty his glass with an air of stolid desperation, settle his odd little flaxen wig at the ears, and follow the waiter to Miss Manette’s apartment. It was a large, dark room, furnished in a funereal manner with black horsehair, and loaded with heavy dark tables. These had been oiled and oiled, until the two tall candles on the table in the middle of the room were gloomily reflected on every leaf; as if *they* were buried, in deep graves of black mahogany, and no light to speak of could be expected from them until they were dug out.' },
     { type: 'p',  text: 'The obscurity was so difficult to penetrate that Mr. Lorry, picking his way over the well-worn Turkey carpet, supposed Miss Manette to be, for the moment, in some adjacent room, until, having got past the two tall candles, he saw standing to receive him by the table between them and the fire, a young lady of not more than seventeen, in a riding-cloak, and still holding her straw travelling-hat by its ribbon in her hand. As his eyes rested on a short, slight, pretty figure, a quantity of golden hair, a pair of blue eyes that met his own with an inquiring look, and a forehead with a singular capacity (remembering how young and smooth it was), of rifting and knitting itself into an expression that was not quite one of perplexity, or wonder, or alarm, or merely of a bright fixed attention, though it included all the four expressions—as his eyes rested on these things, a sudden vivid likeness passed before him, of a child whom he had held in his arms on the passage across that very Channel, one cold time, when the hail drifted heavily and the sea ran high. The likeness passed away, like a breath along the surface of the gaunt pier-glass behind her, on the frame of which, a hospital procession of negro cupids, several headless and all cripples, were offering black baskets of Dead Sea fruit to black divinities of the feminine gender—and he made his formal bow to Miss Manette.' },
     { type: 'p',  text: '“Pray take a seat, sir.” In a very clear and pleasant young voice; a little foreign in its accent, but a very little indeed.' },
     { type: 'p',  text: '“I kiss your hand, miss,” said Mr. Lorry, with the manners of an earlier date, as he made his formal bow again, and took his seat.' },
     { type: 'p',  text: '“I received a letter from the Bank, sir, yesterday, informing me that some intelligence—or discovery—”' },
     { type: 'p',  text: '“The word is not material, miss; either word will do.”' },
     { type: 'p',  text: '“—respecting the small property of my poor father, whom I never saw—so long dead—”' },
-    { type: 'p',  text: 'Mr. Lorry moved in his chair, and cast a troubled look towards the hospital procession of negro cupids. As if they had any help for anybody in their absurd baskets!' },
+    { type: 'p',  text: 'Mr. Lorry moved in his chair, and cast a troubled look towards the hospital procession of negro cupids. As if *they* had any help for anybody in their absurd baskets!' },
     { type: 'p',  text: '“—rendered it necessary that I should go to Paris, there to communicate with a gentleman of the Bank, so good as to be despatched to Paris for the purpose.”' },
     { type: 'p',  text: '“Myself.”' },
     { type: 'p',  text: '“As I was prepared to hear, sir.”' },
@@ -337,7 +337,7 @@ const TEXT_PRESETS = {
     { type: 'p',  text: '“I speak, miss, of twenty years ago. He married—an English lady—and I was one of the trustees. His affairs, like the affairs of many other French gentlemen and French families, were entirely in Tellson’s hands. In a similar way I am, or I have been, trustee of one kind or other for scores of our customers. These are mere business relations, miss; there is no friendship in them, no particular interest, nothing like sentiment. I have passed from one to another, in the course of my business life, just as I pass from one of our customers to another in the course of my business day; in short, I have no feelings; I am a mere machine. To go on—”' },
     { type: 'p',  text: '“But this is my father’s story, sir; and I begin to think”—the curiously roughened forehead was very intent upon him—“that when I was left an orphan through my mother’s surviving my father only two years, it was you who brought me to England. I am almost sure it was you.”' },
     { type: 'p',  text: 'Mr. Lorry took the hesitating little hand that confidingly advanced to take his, and he put it with some ceremony to his lips. He then conducted the young lady straightway to her chair again, and, holding the chair-back with his left hand, and using his right by turns to rub his chin, pull his wig at the ears, or point what he said, stood looking down into her face while she sat looking up into his.' },
-    { type: 'p',  text: '“Miss Manette, it was I. And you will see how truly I spoke of myself just now, in saying I had no feelings, and that all the relations I hold with my fellow-creatures are mere business relations, when you reflect that I have never seen you since. No; you have been the ward of Tellson’s House since, and I have been busy with the other business of Tellson’s House since. Feelings! I have no time for them, no chance of them. I pass my whole life, miss, in turning an immense pecuniary Mangle.”' },
+    { type: 'p',  text: '“Miss Manette, it *was* I. And you will see how truly I spoke of myself just now, in saying I had no feelings, and that all the relations I hold with my fellow-creatures are mere business relations, when you reflect that I have never seen you since. No; you have been the ward of Tellson’s House since, and I have been busy with the other business of Tellson’s House since. Feelings! I have no time for them, no chance of them. I pass my whole life, miss, in turning an immense pecuniary Mangle.”' },
     { type: 'p',  text: 'After this odd description of his daily routine of employment, Mr. Lorry flattened his flaxen wig upon his head with both hands (which was most unnecessary, for nothing could be flatter than its shining surface was before), and resumed his former attitude.' },
     { type: 'p',  text: '“So far, miss (as you have remarked), this is the story of your regretted father. Now comes the difference. If your father had not died when he did—Don’t be frightened! How you start!”' },
     { type: 'p',  text: 'She did, indeed, start. And she caught his wrist with both her hands.' },
@@ -347,7 +347,7 @@ const TEXT_PRESETS = {
     { type: 'p',  text: '“I entreat you to tell me more, sir.”' },
     { type: 'p',  text: '“I will. I am going to. You can bear it?”' },
     { type: 'p',  text: '“I can bear anything but the uncertainty you leave me in at this moment.”' },
-    { type: 'p',  text: '“You speak collectedly, and you—are collected. That’s good!” (Though his manner was less satisfied than his words.) “A matter of business. Regard it as a matter of business—business that must be done. Now if this doctor’s wife, though a lady of great courage and spirit, had suffered so intensely from this cause before her little child was born—”' },
+    { type: 'p',  text: '“You speak collectedly, and you—*are* collected. That’s good!” (Though his manner was less satisfied than his words.) “A matter of business. Regard it as a matter of business—business that must be done. Now if this doctor’s wife, though a lady of great courage and spirit, had suffered so intensely from this cause before her little child was born—”' },
     { type: 'p',  text: '“The little child was a daughter, sir.”' },
     { type: 'p',  text: '“A daughter. A-a-matter of business—don’t be distressed. Miss, if the poor lady had suffered so intensely before her little child was born, that she came to the determination of sparing the poor child the inheritance of any part of the agony she had known the pains of, by rearing her in the belief that her father was dead—No, don’t kneel! In Heaven’s name why should you kneel to me!”' },
     { type: 'p',  text: '“For the truth. O dear, good, compassionate sir, for the truth!”' },
@@ -368,7 +368,7 @@ const TEXT_PRESETS = {
     { type: 'p',  text: '(“I really think this must be a man!” was Mr. Lorry’s breathless reflection, simultaneously with his coming against the wall.)' },
     { type: 'p',  text: '“Why, look at you all!” bawled this figure, addressing the inn servants. “Why don’t you go and fetch things, instead of standing there staring at me? I am not so much to look at, am I? Why don’t you go and fetch things? I’ll let you know, if you don’t bring smelling-salts, cold water, and vinegar, quick, I will.”' },
     { type: 'p',  text: 'There was an immediate dispersal for these restoratives, and she softly laid the patient on a sofa, and tended her with great skill and gentleness: calling her “my precious!” and “my bird!” and spreading her golden hair aside over her shoulders with great pride and care.' },
-    { type: 'p',  text: '“And you in brown!” she said, indignantly turning to Mr. Lorry; “couldn’t you tell her what you had to tell her, without frightening her to death? Look at her, with her pretty pale face and her cold hands. Do you call that being a Banker?”' },
+    { type: 'p',  text: '“And you in brown!” she said, indignantly turning to Mr. Lorry; “couldn’t you tell her what you had to tell her, without frightening her to death? Look at her, with her pretty pale face and her cold hands. Do you call *that* being a Banker?”' },
     { type: 'p',  text: 'Mr. Lorry was so exceedingly disconcerted by a question so hard to answer, that he could only look on, at a distance, with much feebler sympathy and humility, while the strong woman, having banished the inn servants under the mysterious penalty of “letting them know” something not mentioned if they stayed there, staring, recovered her charge by a regular series of gradations, and coaxed her to lay her drooping head upon her shoulder.' },
     { type: 'p',  text: '“I hope she will do well now,” said Mr. Lorry.' },
     { type: 'p',  text: '“No thanks to you in brown, if she does. My darling pretty!”' },
@@ -379,7 +379,7 @@ const TEXT_PRESETS = {
     { type: 'p',  text: 'A large cask of wine had been dropped and broken, in the street. The accident had happened in getting it out of a cart; the cask had tumbled out with a run, the hoops had burst, and it lay on the stones just outside the door of the wine-shop, shattered like a walnut-shell.' },
     { type: 'p',  text: 'All the people within reach had suspended their business, or their idleness, to run to the spot and drink the wine. The rough, irregular stones of the street, pointing every way, and designed, one might have thought, expressly to lame all living creatures that approached them, had dammed it into little pools; these were surrounded, each by its own jostling group or crowd, according to its size. Some men kneeled down, made scoops of their two hands joined, and sipped, or tried to help women, who bent over their shoulders, to sip, before the wine had all run out between their fingers. Others, men and women, dipped in the puddles with little mugs of mutilated earthenware, or even with handkerchiefs from women’s heads, which were squeezed dry into infants’ mouths; others made small mud-embankments, to stem the wine as it ran; others, directed by lookers-on up at high windows, darted here and there, to cut off little streams of wine that started away in new directions; others devoted themselves to the sodden and lee-dyed pieces of the cask, licking, and even champing the moister wine-rotted fragments with eager relish. There was no drainage to carry off the wine, and not only did it all get taken up, but so much mud got taken up along with it, that there might have been a scavenger in the street, if anybody acquainted with it could have believed in such a miraculous presence.' },
     { type: 'p',  text: 'A shrill sound of laughter and of amused voices—voices of men, women, and children—resounded in the street while this wine game lasted. There was little roughness in the sport, and much playfulness. There was a special companionship in it, an observable inclination on the part of every one to join some other one, which led, especially among the luckier or lighter-hearted, to frolicsome embraces, drinking of healths, shaking of hands, and even joining of hands and dancing, a dozen together. When the wine was gone, and the places where it had been most abundant were raked into a gridiron-pattern by fingers, these demonstrations ceased, as suddenly as they had broken out. The man who had left his saw sticking in the firewood he was cutting, set it in motion again; the women who had left on a door-step the little pot of hot ashes, at which she had been trying to soften the pain in her own starved fingers and toes, or in those of her child, returned to it; men with bare arms, matted locks, and cadaverous faces, who had emerged into the winter light from cellars, moved away, to descend again; and a gloom gathered on the scene that appeared more natural to it than sunshine.' },
-    { type: 'p',  text: 'The wine was red wine, and had stained the ground of the narrow street in the suburb of Saint Antoine, in Paris, where it was spilled. It had stained many hands, too, and many faces, and many naked feet, and many wooden shoes. The hands of the man who sawed the wood, left red marks on the billets; and the forehead of the woman who nursed her baby, was stained with the stain of the old rag she wound about her head again. Those who had been greedy with the staves of the cask, had acquired a tigerish smear about the mouth; and one tall joker so besmirched, his head more out of a long squalid bag of a nightcap than in it, scrawled upon a wall with his finger dipped in muddy wine-lees—blood.' },
+    { type: 'p',  text: 'The wine was red wine, and had stained the ground of the narrow street in the suburb of Saint Antoine, in Paris, where it was spilled. It had stained many hands, too, and many faces, and many naked feet, and many wooden shoes. The hands of the man who sawed the wood, left red marks on the billets; and the forehead of the woman who nursed her baby, was stained with the stain of the old rag she wound about her head again. Those who had been greedy with the staves of the cask, had acquired a tigerish smear about the mouth; and one tall joker so besmirched, his head more out of a long squalid bag of a nightcap than in it, scrawled upon a wall with his finger dipped in muddy wine-lees—*blood*.' },
     { type: 'p',  text: 'The time was to come, when that wine too would be spilled on the street-stones, and when the stain of it would be red upon many there.' },
     { type: 'p',  text: 'And now that the cloud settled on Saint Antoine, which a momentary gleam had driven from his sacred countenance, the darkness of it was heavy—cold, dirt, sickness, ignorance, and want, were the lords in waiting on the saintly presence—nobles of great power all of them; but, most especially the last. Samples of a people that had undergone a terrible grinding and regrinding in the mill, and certainly not in the fabulous mill which ground old people young, shivered at every corner, passed in and out at every doorway, looked from every window, fluttered in every vestige of a garment that the wind shook. The mill which had worked them down, was the mill that grinds young people old; the children had ancient faces and grave voices; and upon them, and upon the grown faces, and ploughed into every furrow of age and coming up afresh, was the sigh, Hunger. It was prevalent everywhere. Hunger was pushed out of the tall houses, in the wretched clothing that hung upon poles and lines; Hunger was patched into them with straw and rag and wood and paper; Hunger was repeated in every fragment of the small modicum of firewood that the man sawed off; Hunger stared down from the smokeless chimneys, and started up from the filthy street that had no offal, among its refuse, of anything to eat. Hunger was the inscription on the baker’s shelves, written in every small loaf of his scanty stock of bad bread; at the sausage-shop, in every dead-dog preparation that was offered for sale. Hunger rattled its dry bones among the roasting chestnuts in the turned cylinder; Hunger was shred into atomics in every farthing porringer of husky chips of potato, fried with some reluctant drops of oil.' },
     { type: 'p',  text: 'Its abiding place was in all things fitted to it. A narrow winding street, full of offence and stench, with other narrow winding streets diverging, all peopled by rags and nightcaps, and all smelling of rags and nightcaps, and all visible things with a brooding look upon them that looked ill. In the hunted air of the people there was yet some wild-beast thought of the possibility of turning at bay. Depressed and slinking though they were, eyes of fire were not wanting among them; nor compressed lips, white with what they suppressed; nor foreheads knitted into the likeness of the gallows-rope they mused about enduring, or inflicting. The trade signs (and they were almost as many as the shops) were, all, grim illustrations of Want. The butcher and the porkman painted up, only the leanest scrags of meat; the baker, the coarsest of meagre loaves. The people rudely pictured as drinking in the wine-shops, croaked over their scanty measures of thin wine and beer, and were gloweringly confidential together. Nothing was represented in a flourishing condition, save tools and weapons; but, the cutler’s knives and axes were sharp and bright, the smith’s hammers were heavy, and the gunmaker’s stock was murderous. The crippling stones of the pavement, with their many little reservoirs of mud and water, had no footways, but broke off abruptly at the doors. The kennel, to make amends, ran down the middle of the street—when it ran at all: which was only after heavy rains, and then it ran, by many eccentric fits, into the houses. Across the streets, at wide intervals, one clumsy lamp was slung by a rope and pulley; at night, when the lamplighter had let these down, and lighted, and hoisted them again, a feeble grove of dim wicks swung in a sickly manner overhead, as if they were at sea. Indeed they were at sea, and the ship and crew were in peril of tempest.' },
@@ -394,7 +394,7 @@ const TEXT_PRESETS = {
     { type: 'p',  text: 'This wine-shop keeper was a bull-necked, martial-looking man of thirty, and he should have been of a hot temperament, for, although it was a bitter day, he wore no coat, but carried one slung over his shoulder. His shirt-sleeves were rolled up, too, and his brown arms were bare to the elbows. Neither did he wear anything more on his head than his own crisply-curling short dark hair. He was a dark man altogether, with good eyes and a good bold breadth between them. Good-humoured looking on the whole, but implacable-looking, too; evidently a man of a strong resolution and a set purpose; a man not desirable to be met, rushing down a narrow pass with a gulf on either side, for nothing would turn the man.' },
     { type: 'p',  text: 'Madame Defarge, his wife, sat in the shop behind the counter as he came in. Madame Defarge was a stout woman of about his own age, with a watchful eye that seldom seemed to look at anything, a large hand heavily ringed, a steady face, strong features, and great composure of manner. There was a character about Madame Defarge, from which one might have predicated that she did not often make mistakes against herself in any of the reckonings over which she presided. Madame Defarge being sensitive to cold, was wrapped in fur, and had a quantity of bright shawl twined about her head, though not to the concealment of her large earrings. Her knitting was before her, but she had laid it down to pick her teeth with a toothpick. Thus engaged, with her right elbow supported by her left hand, Madame Defarge said nothing when her lord came in, but coughed just one grain of cough. This, in combination with the lifting of her darkly defined eyebrows over her toothpick by the breadth of a line, suggested to her husband that he would do well to look round the shop among the customers, for any new customer who had dropped in while he stepped over the way.' },
     { type: 'p',  text: 'The wine-shop keeper accordingly rolled his eyes about, until they rested upon an elderly gentleman and a young lady, who were seated in a corner. Other company were there: two playing cards, two playing dominoes, three standing by the counter lengthening out a short supply of wine. As he passed behind the counter, he took notice that the elderly gentleman said in a look to the young lady, “This is our man.”' },
-    { type: 'p',  text: '“What the devil do you do in that galley there?” said Monsieur Defarge to himself; “I don’t know you.”' },
+    { type: 'p',  text: '“What the devil do *you* do in that galley there?” said Monsieur Defarge to himself; “I don’t know you.”' },
     { type: 'p',  text: 'But, he feigned not to notice the two strangers, and fell into discourse with the triumvirate of customers who were drinking at the counter.' },
     { type: 'p',  text: '“How goes it, Jacques?” said one of these three to Monsieur Defarge. “Is all the spilt wine swallowed?”' },
     { type: 'p',  text: '“Every drop, Jacques,” answered Monsieur Defarge.' },
@@ -432,7 +432,7 @@ const TEXT_PRESETS = {
     { type: 'p',  text: '“Why?”' },
     { type: 'p',  text: '“Why! Because he has lived so long, locked up, that he would be frightened—rave—tear himself to pieces—die—come to I know not what harm—if his door was left open.”' },
     { type: 'p',  text: '“Is it possible!” exclaimed Mr. Lorry.' },
-    { type: 'p',  text: '“Is it possible!” repeated Defarge, bitterly. “Yes. And a beautiful world we live in, when it is possible, and when many other such things are possible, and not only possible, but done—done, see you!—under that sky there, every day. Long live the Devil. Let us go on.”' },
+    { type: 'p',  text: '“Is it possible!” repeated Defarge, bitterly. “Yes. And a beautiful world we live in, when it *is* possible, and when many other such things are possible, and not only possible, but done—done, see you!—under that sky there, every day. Long live the Devil. Let us go on.”' },
     { type: 'p',  text: 'This dialogue had been held in so very low a whisper, that not a word of it had reached the young lady’s ears. But, by this time she trembled under such strong emotion, and her face expressed such deep anxiety, and, above all, such dread and terror, that Mr. Lorry felt it incumbent on him to speak a word or two of reassurance.' },
     { type: 'p',  text: '“Courage, dear miss! Courage! Business! The worst will be over in a moment; it is but passing the room-door, and the worst is over. Then, all the good you bring to him, all the relief, all the happiness you bring to him, begin. Let our good friend here, assist you on that side. That’s well, friend Defarge. Come, now. Business, business!”' },
     { type: 'p',  text: 'They went up slowly and softly. The staircase was short, and they were soon at the top. There, as it had an abrupt turn in it, they came all at once in sight of three men, whose heads were bent down close together at the side of a door, and who were intently looking into the room to which the door belonged, through some chinks or holes in the wall. On hearing footsteps close at hand, these three turned, and rose, and showed themselves to be the three of one name who had been drinking in the wine-shop.' },
@@ -442,7 +442,7 @@ const TEXT_PRESETS = {
     { type: 'p',  text: '“Do you make a show of Monsieur Manette?”' },
     { type: 'p',  text: '“I show him, in the way you have seen, to a chosen few.”' },
     { type: 'p',  text: '“Is that well?”' },
-    { type: 'p',  text: '“I think it is well.”' },
+    { type: 'p',  text: '“*I* think it is well.”' },
     { type: 'p',  text: '“Who are the few? How do you choose them?”' },
     { type: 'p',  text: '“I choose them as real men, of my name—Jacques is my name—to whom the sight is likely to do good. Enough; you are English; that is another thing. Stay there, if you please, a little moment.”' },
     { type: 'p',  text: 'With an admonitory gesture to keep them back, he stooped, and looked in through the crevice in the wall. Soon raising his head again, he struck twice or thrice upon the door—evidently with no other object than to make a noise there. With the same intention, he drew the key across it, three or four times, before he put it clumsily into the lock, and turned it as heavily as he could.' },
@@ -568,6 +568,59 @@ function placeCursorAtStart(el) {
   range.collapse(true)
   sel.removeAllRanges()
   sel.addRange(range)
+}
+
+// Place the caret at a character offset within el's first text node.
+function placeCursorAtOffset(el, offset) {
+  const tn = el.firstChild
+  const len = tn?.textContent?.length ?? 0
+  const range = document.createRange()
+  const sel = window.getSelection()
+  range.setStart(tn ?? el, Math.min(Math.max(offset, 0), len))
+  range.collapse(true)
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
+
+// Character offset within el at a viewport point, so clicking into a styled block
+// lands the caret where you clicked rather than at the start.
+function caretCharOffset(el, x, y) {
+  const doc = el.ownerDocument
+  let node = null, offset = 0
+  if (doc.caretPositionFromPoint) {
+    const p = doc.caretPositionFromPoint(x, y)
+    if (p) { node = p.offsetNode; offset = p.offset }
+  } else if (doc.caretRangeFromPoint) {
+    const rr = doc.caretRangeFromPoint(x, y)
+    if (rr) { node = rr.startContainer; offset = rr.startOffset }
+  }
+  if (!node || !el.contains(node)) return el.textContent?.length ?? 0
+  const r = document.createRange()
+  r.selectNodeContents(el)
+  r.setEnd(node, offset)
+  return r.toString().length
+}
+
+// Inline semi-markup → styled React nodes: **bold**, *italic*, __underline__.
+// Matched delimiters, non-greedy, no nesting. `italicStyle` / `boldStyle` are
+// per-font CSS style objects (resolved from blockStyle) so each deployment's
+// font renders its own italic/bold — variable axis or separate face alike.
+const INLINE_RE = /(\*\*|__|\*)(.+?)\1/g
+function renderInline(text, italicStyle, boldStyle) {
+  if (!/[*_]/.test(text)) return text
+  const out = []
+  let last = 0, k = 0, m
+  const re = new RegExp(INLINE_RE)
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index))
+    const delim = m[1], inner = m[2]
+    if (delim === '**') out.push(<strong key={k++} style={boldStyle}>{inner}</strong>)
+    else if (delim === '*') out.push(<em key={k++} style={italicStyle}>{inner}</em>)
+    else out.push(<u key={k++}>{inner}</u>)
+    last = m.index + m[0].length
+  }
+  if (last < text.length) out.push(text.slice(last))
+  return out
 }
 
 function caretAtStart(el) {
@@ -1062,6 +1115,10 @@ export default function App() {
   const previewAreaRef = useRef(null)
   const bigEditorRef = useRef(null)
   const blockRefs = useRef({})
+  // Which paragraph block is being edited. Focused → contentEditable owns the raw
+  // markup text; blurred → we render *italic* / **bold** as styled spans.
+  const [focusedBlockId, setFocusedBlockId] = useState(null)
+  const pendingBlockCaret = useRef(null)
   const stylesPanelBtnRef = useRef(null)
   const mobileStylesBtnRef = useRef(null)
   const stylesPanelPopoverRef = useRef(null)
@@ -1622,6 +1679,44 @@ export default function App() {
     }
   }
 
+  // Style for an inline *italic* / **bold** span. Resolves through the same
+  // face/axis logic as blockStyle, so each deployment's font renders its own
+  // italic (variable axis OR separate face) and bold (weight family OR wght).
+  // Only font-varying props are set; size/leading/tracking inherit from the block.
+  const inlineStyle = (type, kind) => {
+    const s = paraStyles[type] ?? paraStyles.p
+    const s04 = s.ss04 ?? ss04
+    const s05 = s.ss05 ?? ss05
+    const italic = kind === 'italic' ? true : (s.italic ?? isItalic)
+    let weight = s.weight ?? currentStyleKey
+    const merged = { ...axisValues, ...s.axisOverrides }
+    if (kind === 'italic') {
+      // Variable italic: drive the font's own axis (Cal Sans 'ital', or a 'slnt'
+      // slant). Fonts whose italic is a separate face fall through to fontStyle below.
+      const italAx = variationAxes.find(a => a.tag === 'ital')
+      const slntAx = variationAxes.find(a => a.tag === 'slnt')
+      if (italAx) merged.ital = italAx.max
+      else if (slntAx) merged.slnt = slntAx.min
+    }
+    if (kind === 'bold') {
+      const boldKey = Object.keys(weightFamilies).find(k => /bold|black|heavy|semibold|700|800|900/i.test(k))
+      if (boldKey) weight = boldKey
+      else {
+        const wghtAx = variationAxes.find(a => a.tag === 'wght')
+        if (wghtAx) merged.wght = Math.min(wghtAx.max, 700)
+      }
+    }
+    const family = (weight && weightFamilies[weight]) ? `"${weightFamilies[weight]}"` : (fontFace ? `"${fontFace.family}"` : 'serif')
+    const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    return {
+      fontFamily: family,
+      fontStyle: (italic && (isFamily || italicFontFace)) ? 'italic' : 'normal',
+      fontVariationSettings: fvs,
+      fontFeatureSettings: featureStr(italic, s04, s05),
+      fontSynthesis: 'none',
+    }
+  }
+
   // ── Scale mode helpers ────────────────────────────────────────────────────
   const scaleStepStyle = (step, effectivePxSize) => {
     const overrides = scaleAxisOverrides[step.key] ?? { opsz: 'auto' }
@@ -1715,6 +1810,16 @@ export default function App() {
       }
     }
   }, [])
+
+  // On focusing a block, the styled spans collapse to raw markup text; restore the
+  // caret to where the user clicked (captured on mousedown against the styled content).
+  useLayoutEffect(() => {
+    if (focusedBlockId && pendingBlockCaret.current?.id === focusedBlockId) {
+      const el = blockRefs.current[focusedBlockId]
+      if (el) placeCursorAtOffset(el, pendingBlockCaret.current.offset)
+    }
+    pendingBlockCaret.current = null
+  }, [focusedBlockId])
 
   // ── Close styles popover on outside click ──────────────────────────────────
   useEffect(() => {
@@ -2570,7 +2675,9 @@ export default function App() {
                 onMouseDown={handleEscapeBarMouseDown}
                 title="Drag to expand column"
               />
-              {blocks.map(block => (
+              {blocks.map(block => {
+                const focused = focusedBlockId === block.id
+                return (
                 <div
                   key={block.id}
                   ref={el => {
@@ -2586,10 +2693,22 @@ export default function App() {
                   spellCheck={false}
                   className={`para-block para-block--${block.type}${activeParaStyle === block.type ? ' para-block--selected' : ''}`}
                   style={blockStyle(block.type)}
+                  onMouseDown={e => { if (!focused) pendingBlockCaret.current = { id: block.id, offset: caretCharOffset(e.currentTarget, e.clientX, e.clientY) } }}
+                  onFocus={() => setFocusedBlockId(block.id)}
+                  onBlur={e => {
+                    // Commit the edited raw text and clear the imperative text node so
+                    // React can render styled spans cleanly (no duplicated text).
+                    const t = e.currentTarget.textContent ?? ''
+                    e.currentTarget.textContent = ''
+                    setBlocks(prev => prev.map(x => x.id === block.id ? { ...x, text: t } : x))
+                    setFocusedBlockId(cur => cur === block.id ? null : cur)
+                  }}
                   onInput={e => handleBlockInput(block.id, e)}
                   onKeyDown={e => handleBlockKeyDown(block.id, e)}
-                />
-              ))}
+                >
+                  {focused ? null : renderInline(block.text, inlineStyle(block.type, 'italic'), inlineStyle(block.type, 'bold'))}
+                </div>
+              )})}
           </div>
         )}
 
