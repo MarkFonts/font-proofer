@@ -31,4 +31,13 @@ jobs:
           git remote set-url origin https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git
           git add font-proofer/ 404.html
           git diff --staged --quiet || git commit -m "Deploy font-proofer"
-          git push
+          # Retry with rebase: the font-proofer and ReCal deploys both push into this
+          # repo and can collide. We only touch font-proofer/ + 404.html, so a rebase
+          # never conflicts. (Fixes the 2026-07-23 'fetch first' rejection.)
+          n=0
+          until git push; do
+            n=$((n+1)); [ $n -ge 5 ] && { echo "push failed after 5 attempts"; exit 1; }
+            echo "push rejected (attempt $n) — rebasing on origin/main…"
+            git pull --rebase origin main
+            sleep $((RANDOM % 5 + 3))
+          done
