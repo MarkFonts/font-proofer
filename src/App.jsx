@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import './App.css'
-import UiPreview from './UiPreview'
+// Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
+const UiPreview = lazy(() => import('./UiPreview'))
 import fontAxesData from 'virtual:font-axes'
 import logoGif from '/public/logo.gif'
 import logoGifDark from '/public/logo_darkmode.gif'
@@ -2660,11 +2661,13 @@ export default function App() {
 
         {fontName && mode === 'ui' && (
           <div className="preview-ui">
-            <UiPreview
-              fontStyle={previewStyle}
-              weight={Number(axisValues.wght) || 400}
-              boldWeight={Math.min(900, (Number(axisValues.wght) || 400) + 300)}
-            />
+            <Suspense fallback={<div className="preview-ui-loading">Loading UI kit…</div>}>
+              <UiPreview
+                fontStyle={previewStyle}
+                weight={Number(axisValues.wght) || 400}
+                boldWeight={Math.min(900, (Number(axisValues.wght) || 400) + 300)}
+              />
+            </Suspense>
           </div>
         )}
 
