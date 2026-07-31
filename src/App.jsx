@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import './App.css'
+import { StyleScopeList } from './StyleScopeDropdown'
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('./UiPreview'))
 import fontAxesData from 'virtual:font-axes'
@@ -3110,43 +3111,39 @@ export default function App() {
               '--caret-x': `${caretX}px`,
             }}
           >
-            {(['h1', 'h2', 'h3', 'p']).map(type => {
-              const s = paraStyles[type]
-              const isActive = activeParaStyle === type
-              const merged = { ...axisValues, ...s.axisOverrides }
-              const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-              const label = type === 'p' ? 'Paragraph' : `Heading ${type[1]}`
-              return (
-                <button
-                  key={type}
-                  className={`para-styles-row ${isActive ? 'active' : ''}`}
-                  onClick={() => setActiveParaStyle(prev => prev === type ? null : type)}
-                >
-                  <span
-                    className="para-styles-preview"
-                    style={{
-                      fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
-                      fontStyle,
-                      fontSize: `${Math.min(s.size, 22)}px`,
-                      fontVariationSettings: fvs,
-                      fontOpticalSizing: 'none',
-                      fontSynthesis: 'none',
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {label}
-                  </span>
-                  <span className="para-styles-specs">
-                    <span className="para-styles-spec">{s.size}px</span>
-                    {Object.entries(s.axisOverrides).map(([tag, val]) => (
-                      <span key={tag} className="para-styles-spec">
-                        {tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
-                      </span>
-                    ))}
-                  </span>
-                </button>
-              )
-            })}
+            {/* migrated to the shared StyleScopeList primitive (rows + chips); this
+                panel keeps its own portal trigger/positioning */}
+            <StyleScopeList
+              inline
+              mode="single"
+              onSelect={type => setActiveParaStyle(prev => prev === type ? null : type)}
+              rows={(['h1', 'h2', 'h3', 'p']).map(type => {
+                const s = paraStyles[type]
+                const merged = { ...axisValues, ...s.axisOverrides }
+                const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+                return {
+                  id: type,
+                  label: type === 'p' ? 'Paragraph' : `Heading ${type[1]}`,
+                  labelStyle: {
+                    fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
+                    fontStyle,
+                    fontSize: `${Math.min(s.size, 22)}px`,
+                    fontVariationSettings: fvs,
+                    fontOpticalSizing: 'none',
+                    fontSynthesis: 'none',
+                    lineHeight: 1.3,
+                  },
+                  chips: [
+                    { text: `${s.size}px`, kind: 'size' },
+                    ...Object.entries(s.axisOverrides).map(([tag, val]) => ({
+                      text: `${tag} ${val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}`,
+                      kind: 'axis',
+                    })),
+                  ],
+                  selected: activeParaStyle === type,
+                }
+              })}
+            />
           </div>
         )
       })()}
