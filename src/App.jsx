@@ -2663,7 +2663,16 @@ export default function App() {
           <div className="preview-ui">
             <Suspense fallback={<div className="preview-ui-loading">Loading UI kit…</div>}>
               <UiPreview
-                fontStyle={previewStyle}
+                /* only the font IDENTITY — NOT the proofing size/leading/tracking,
+                   which would otherwise be inherited by the UI kit and blow up every
+                   inline element's line box (the kit sets its own type sizes) */
+                fontStyle={{
+                  fontFamily: previewStyle.fontFamily,
+                  fontVariationSettings,
+                  fontFeatureSettings: proofFeatureSettings,
+                  fontStyle,
+                  fontOpticalSizing: previewStyle.fontOpticalSizing,
+                }}
                 weight={Number(axisValues.wght) || 400}
                 boldWeight={Math.min(900, (Number(axisValues.wght) || 400) + 300)}
               />
