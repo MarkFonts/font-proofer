@@ -22,7 +22,7 @@
 // the types. Styling is token-based (see StyleScopeDropdown.css) so each app's theme
 // colours flow in unchanged. Destined to move into the shared `wm-primitives` submodule.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react'
 import './StyleScopeDropdown.css'
 
 export type ScopeChipKind = 'size' | 'axis' | 'tracking' | 'markup' | 'local'
@@ -51,7 +51,7 @@ export interface StyleScopeDropdownProps {
   /** the trigger-button face: active style name, or a collapsed label like "3 tiers" */
   buttonLabel: ReactNode
   /** called with the row id; for 'multi' the host toggles membership */
-  onSelect: (id: string) => void
+  onSelect: (id: string, e: ReactMouseEvent) => void
   /** extra class on the wrapper for app-specific overrides */
   className?: string
 }
@@ -59,7 +59,7 @@ export interface StyleScopeDropdownProps {
 export interface StyleScopeListProps {
   rows: ScopeRow[]
   mode?: 'single' | 'multi'
-  onSelect: (id: string) => void
+  onSelect: (id: string, e: ReactMouseEvent) => void
   /** fires after a 'single'-mode pick so a host popover can close itself */
   onPicked?: () => void
   /** render bare rows (no box/position/shadow) for nesting inside a host popover */
@@ -84,8 +84,8 @@ export function StyleScopeList({ rows, mode = 'single', onSelect, onPicked, inli
           role="option"
           aria-selected={!!r.selected}
           className={`ssd-row${r.selected ? ' on' : ''}`}
-          onClick={() => {
-            onSelect(r.id)
+          onClick={(e) => {
+            onSelect(r.id, e)
             if (mode === 'single') onPicked?.()
           }}
         >

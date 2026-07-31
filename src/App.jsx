@@ -3021,68 +3021,61 @@ export default function App() {
                 title="Select multiple steps"
               ><MultiSelectIcon /></button>
             </div>
-            {visibleScaleSteps.map(step => {
-              const isActive = selectedScaleSteps.includes(step.key) || activeScaleStep === step.key
-              const overrides = scaleAxisOverrides[step.key] ?? {}
-              const localOverrides = Object.entries(overrides).filter(([tag]) => tag !== 'opsz' || overrides[tag] !== 'auto')
-              return (
-                <button
-                  key={step.key}
-                  className={`para-styles-row ${isActive ? 'active' : ''}`}
-                  onClick={(e) => {
-                    if (e.shiftKey && activeScaleStep && activeScaleStep !== step.key) {
-                      setScaleStepRangeEnd(step.key)
-                    } else if (scaleMultiSelectMode) {
-                      if (!activeScaleStep) {
-                        setActiveScaleStep(step.key)
-                      } else if (step.key === activeScaleStep) {
-                        const next = new Set(extraScaleSteps)
-                        if (next.size > 0) {
-                          const first = [...next][0]
-                          setActiveScaleStep(first)
-                          next.delete(first)
-                          setExtraScaleSteps(next)
-                        } else {
-                          setActiveScaleStep(null)
-                        }
-                        setScaleStepRangeEnd(null)
-                      } else {
-                        setExtraScaleSteps(prev => {
-                          const next = new Set(prev)
-                          next.has(step.key) ? next.delete(step.key) : next.add(step.key)
-                          return next
-                        })
-                      }
+            {/* migrated to shared StyleScopeList (multi-select); keeps this panel's own
+                trigger/positioning and the shift-range / multi-mode selection logic */}
+            <StyleScopeList
+              inline
+              mode="multi"
+              onSelect={(key, e) => {
+                if (e.shiftKey && activeScaleStep && activeScaleStep !== key) {
+                  setScaleStepRangeEnd(key)
+                } else if (scaleMultiSelectMode) {
+                  if (!activeScaleStep) {
+                    setActiveScaleStep(key)
+                  } else if (key === activeScaleStep) {
+                    const next = new Set(extraScaleSteps)
+                    if (next.size > 0) {
+                      const first = [...next][0]
+                      setActiveScaleStep(first)
+                      next.delete(first)
+                      setExtraScaleSteps(next)
                     } else {
-                      setActiveScaleStep(prev => prev === step.key ? null : step.key)
-                      setScaleStepRangeEnd(null)
-                      setExtraScaleSteps(new Set())
-                      setActiveParaStyle(null)
+                      setActiveScaleStep(null)
                     }
-                  }}
-                >
-                  <span className="scale-step-radio" />
-                  <span
-                    className="para-styles-preview"
-                    style={{
-                      ...scaleStepStyle(step),
-                      fontSize: `${Math.min(step.pxSize, 20)}px`,
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {step.key}
-                  </span>
-                  <span className="para-styles-specs">
-                    <span className="para-styles-spec">{step.pxSize}px</span>
-                    {localOverrides.map(([tag, val]) => (
-                      <span key={tag} className="para-styles-spec para-styles-spec--local">
-                        {tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
-                      </span>
-                    ))}
-                  </span>
-                </button>
-              )
-            })}
+                    setScaleStepRangeEnd(null)
+                  } else {
+                    setExtraScaleSteps(prev => {
+                      const next = new Set(prev)
+                      next.has(key) ? next.delete(key) : next.add(key)
+                      return next
+                    })
+                  }
+                } else {
+                  setActiveScaleStep(prev => prev === key ? null : key)
+                  setScaleStepRangeEnd(null)
+                  setExtraScaleSteps(new Set())
+                  setActiveParaStyle(null)
+                }
+              }}
+              rows={visibleScaleSteps.map(step => {
+                const isActive = selectedScaleSteps.includes(step.key) || activeScaleStep === step.key
+                const overrides = scaleAxisOverrides[step.key] ?? {}
+                const localOverrides = Object.entries(overrides).filter(([tag]) => tag !== 'opsz' || overrides[tag] !== 'auto')
+                return {
+                  id: step.key,
+                  label: step.key,
+                  labelStyle: { ...scaleStepStyle(step), fontSize: `${Math.min(step.pxSize, 20)}px`, lineHeight: 1.3 },
+                  chips: [
+                    { text: `${step.pxSize}px`, kind: 'size' },
+                    ...localOverrides.map(([tag, val]) => ({
+                      text: `${tag} ${val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}`,
+                      kind: 'local',
+                    })),
+                  ],
+                  selected: isActive,
+                }
+              })}
+            />
           </div>
         )
       })()}
