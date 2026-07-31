@@ -2353,3 +2353,17 @@
   [data-theme="auto"] .coss-bottom-btn             { color: #9ca3af; }
   [data-theme="auto"] .coss-bottom-btn--fab        { background: #111827; color: #fff; }
 }
+
+/* ── UI preview (ported CossScene board) ─────────────────────────────────────
+   Fills the preview area with a bounded height so the board's internal
+   .coss-strip (height:100%; overflow:auto) scrolls on its own. The 48px
+   horizontal padding matches .coss-strip's `margin: 0 -48px` full-bleed. */
+.preview-ui {
+  height: 100%;
+  min-height: 0;
+  padding: 0 48px;
+  overflow: hidden;
+}
+@container preview (max-width: 640px) {
+  .preview-ui { padding: 0 16px; }
+}

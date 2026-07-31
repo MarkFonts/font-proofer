@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import './App.css'
+import UiPreview from './UiPreview'
 import fontAxesData from 'virtual:font-axes'
 import logoGif from '/public/logo.gif'
 import logoGifDark from '/public/logo_darkmode.gif'
@@ -64,8 +65,8 @@ function toDisplayName(slug) {
 }
 
 // ── Hash ↔ mode mapping ───────────────────────────────────────────────────────
-const HASH_TO_MODE = { '#big': 'big', '#paragraph': 'paragraph', '#glyphs': 'glyphs', '#type-scale': 'scale', '#calcom': 'calcom', '#coss': 'coss' }
-const MODE_TO_HASH = { big: '#big', paragraph: '#paragraph', glyphs: '#glyphs', scale: '#type-scale', calcom: '#calcom', coss: '#coss' }
+const HASH_TO_MODE = { '#big': 'big', '#paragraph': 'paragraph', '#glyphs': 'glyphs', '#type-scale': 'scale', '#calcom': 'calcom', '#coss': 'coss', '#ui': 'ui' }
+const MODE_TO_HASH = { big: '#big', paragraph: '#paragraph', glyphs: '#glyphs', scale: '#type-scale', calcom: '#calcom', coss: '#coss', ui: '#ui' }
 
 function resolveInitialMode(isCalcom) {
   const fromHash = HASH_TO_MODE[window.location.hash]
@@ -1897,6 +1898,7 @@ export default function App() {
         {isCalcom && <button className={`mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><CalIcon /> booking events</button>}
         <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><BigIcon className={mode === 'big' ? 'aa-animated' : undefined} /> Big Word</button>
         <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><ParaIcon /> Paragraph</button>
+        <button className={`mobile-tab ${mode === 'ui' ? 'active' : ''}`} onClick={() => setMode('ui')}><CalIcon /> UI</button>
         <button className={`mobile-tab ${mode === 'scale' ? 'active' : ''}`} onClick={() => setMode('scale')}><ScaleIcon /> Type Scale</button>
         <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><GlyphIcon /> Glyphs</button>
       </nav>
@@ -2125,6 +2127,9 @@ export default function App() {
                 </button>
               )}
             </div>
+            <ModeBtn active={mode === 'ui'} onClick={() => setMode('ui')}>
+              <CalIcon /> UI
+            </ModeBtn>
             <div className="mode-btn-row">
               <ModeBtn active={mode === 'scale'} onClick={() => setMode('scale')}>
                 <ScaleIcon /> Type Scale
@@ -2651,6 +2656,16 @@ export default function App() {
 
         {mode === 'coss' && (
           <CossPreview key={calcomFont} roleStyle={cossRoleStyle} activeRole={activeCossRole} onRoleClick={setActiveCossRole} />
+        )}
+
+        {fontName && mode === 'ui' && (
+          <div className="preview-ui">
+            <UiPreview
+              fontStyle={previewStyle}
+              weight={Number(axisValues.wght) || 400}
+              boldWeight={Math.min(900, (Number(axisValues.wght) || 400) + 300)}
+            />
+          </div>
         )}
 
         {fontName && mode === 'big' && (
