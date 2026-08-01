@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import './App.css'
+import { StyleScopeList } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('./UiPreview'))
 import fontAxesData from 'virtual:font-axes'
@@ -483,6 +484,9 @@ const TEXT_PRESETS = {
 const SAMPLE_BLOCKS = TEXT_PRESETS['Sample']
 
 // ── Cal.com type role model ───────────────────────────────────────────────────
+// Spec chips must show a typographic minus sign (U+2212), never a hyphen-minus.
+const nbMinus = (s) => String(s).replace('-', '−')
+
 const CALCOM_ROLE_LABELS = {
   eventHost: 'Host', eventTitle: 'Title', eventDesc: 'Desc',
   eventMeta: 'Meta', calHeader: 'Cal',   calDay: 'Day', timeSlot: 'Time',
@@ -2892,51 +2896,50 @@ export default function App() {
               '--caret-x': `${rect.width / 2}px`,
             }}
           >
-            {Object.entries(CALCOM_ROLE_LABELS).map(([key, label]) => {
-              const r = calcomRoles[key]
-              const merged = { ...axisValues, ...r.axisOverrides }
-              const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-              const family = calcomFont === 'inter'
-                ? '"Inter", system-ui, sans-serif'
-                : calcomFont === 'calsans'
-                  ? '"CalSans"'
-                  : fontFace ? `"${fontFace.family}"` : 'serif'
-              const isActive = activeCalcomRole === key
-              return (
-                <button
-                  key={key}
-                  className={`para-styles-row ${isActive ? 'active' : ''}`}
-                  onClick={() => { setActiveCalcomRole(prev => prev === key ? null : key); setCalcomPanelOpen(false) }}
-                >
-                  <span
-                    className="para-styles-preview"
-                    style={{
-                      fontFamily: family,
-                      fontSize: `${Math.min(r.size, 22)}px`,
-                      fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
-                      fontOpticalSizing: 'none',
-                      fontSynthesis: 'none',
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {label}
-                  </span>
-                  <span className="para-styles-specs">
-                    <span className="para-styles-spec">{r.size}px</span>
-                    <span className="para-styles-spec">{r.tracking.toFixed(3)}</span>
-                    {calcomFont !== 'inter' && variationAxes.map(axis => {
+            {/* migrated to shared StyleScopeList (single-select); panel keeps its own
+                trigger/positioning. Rows show every axis (denser than the type pickers)
+                — kept as tight as the old .para-styles-row via .ssd-list--dense. */}
+            <StyleScopeList
+              inline
+              mode="single"
+              className="ssd-list--dense"
+              onSelect={key => { setActiveCalcomRole(prev => prev === key ? null : key); setCalcomPanelOpen(false) }}
+              rows={Object.entries(CALCOM_ROLE_LABELS).map(([key, label]) => {
+                const r = calcomRoles[key]
+                const merged = { ...axisValues, ...r.axisOverrides }
+                const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+                const family = calcomFont === 'inter'
+                  ? '"Inter", system-ui, sans-serif'
+                  : calcomFont === 'calsans'
+                    ? '"CalSans"'
+                    : fontFace ? `"${fontFace.family}"` : 'serif'
+                return {
+                  id: key,
+                  label,
+                  labelStyle: {
+                    fontFamily: family,
+                    fontSize: `${Math.min(r.size, 22)}px`,
+                    fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
+                    fontOpticalSizing: 'none',
+                    fontSynthesis: 'none',
+                    lineHeight: 1.3,
+                  },
+                  chips: [
+                    { text: `${r.size}px`, kind: 'size' },
+                    { text: nbMinus(r.tracking < 0 ? r.tracking.toFixed(2) : r.tracking.toFixed(3)), kind: 'size' }, // negative: real minus + drop a trailing zero so the char count stays equal
+                    ...(calcomFont !== 'inter' ? variationAxes.map(axis => {
                       const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
-                      return (
-                        <span key={axis.tag} className={`para-styles-spec${isLocal ? ' para-styles-spec--local' : ''}`}>
-                          {axis.tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
-                        </span>
-                      )
-                    })}
-                  </span>
-                </button>
-              )
-            })}
+                      return {
+                        text: `${axis.tag} ${val === 'auto' ? 'A ' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
+                        kind: isLocal ? 'local' : 'axis',
+                      }
+                    }) : []),
+                  ],
+                  selected: activeCalcomRole === key,
+                }
+              })}
+            />
           </div>
         )
       })()}
@@ -2954,51 +2957,49 @@ export default function App() {
               '--caret-x': `${rect.width / 2}px`,
             }}
           >
-            {Object.entries(COSS_ROLE_LABELS).map(([key, label]) => {
-              const r = cossRoles[key]
-              const merged = { ...axisValues, ...r.axisOverrides }
-              const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-              const family = calcomFont === 'inter'
-                ? '"Inter", system-ui, sans-serif'
-                : calcomFont === 'calsans'
-                  ? '"CalSans"'
-                  : fontFace ? `"${fontFace.family}"` : 'serif'
-              const isActive = activeCossRole === key
-              return (
-                <button
-                  key={key}
-                  className={`para-styles-row ${isActive ? 'active' : ''}`}
-                  onClick={() => { setActiveCossRole(prev => prev === key ? null : key); setCossPanelOpen(false) }}
-                >
-                  <span
-                    className="para-styles-preview"
-                    style={{
-                      fontFamily: family,
-                      fontSize: `${Math.min(r.size, 22)}px`,
-                      fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
-                      fontOpticalSizing: 'none',
-                      fontSynthesis: 'none',
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {label}
-                  </span>
-                  <span className="para-styles-specs">
-                    <span className="para-styles-spec">{r.size}px</span>
-                    <span className="para-styles-spec">{r.tracking.toFixed(3)}</span>
-                    {calcomFont !== 'inter' && variationAxes.map(axis => {
+            {/* migrated to shared StyleScopeList (single-select); mirrors the calcom
+                role picker — every axis shown, kept tight via .ssd-list--dense. */}
+            <StyleScopeList
+              inline
+              mode="single"
+              className="ssd-list--dense"
+              onSelect={key => { setActiveCossRole(prev => prev === key ? null : key); setCossPanelOpen(false) }}
+              rows={Object.entries(COSS_ROLE_LABELS).map(([key, label]) => {
+                const r = cossRoles[key]
+                const merged = { ...axisValues, ...r.axisOverrides }
+                const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+                const family = calcomFont === 'inter'
+                  ? '"Inter", system-ui, sans-serif'
+                  : calcomFont === 'calsans'
+                    ? '"CalSans"'
+                    : fontFace ? `"${fontFace.family}"` : 'serif'
+                return {
+                  id: key,
+                  label,
+                  labelStyle: {
+                    fontFamily: family,
+                    fontSize: `${Math.min(r.size, 22)}px`,
+                    fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
+                    fontOpticalSizing: 'none',
+                    fontSynthesis: 'none',
+                    lineHeight: 1.3,
+                  },
+                  chips: [
+                    { text: `${r.size}px`, kind: 'size' },
+                    { text: nbMinus(r.tracking < 0 ? r.tracking.toFixed(2) : r.tracking.toFixed(3)), kind: 'size' }, // negative: real minus + drop a trailing zero so the char count stays equal
+                    ...(calcomFont !== 'inter' ? variationAxes.map(axis => {
                       const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
-                      return (
-                        <span key={axis.tag} className={`para-styles-spec${isLocal ? ' para-styles-spec--local' : ''}`}>
-                          {axis.tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
-                        </span>
-                      )
-                    })}
-                  </span>
-                </button>
-              )
-            })}
+                      return {
+                        text: `${axis.tag} ${val === 'auto' ? 'A ' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
+                        kind: isLocal ? 'local' : 'axis',
+                      }
+                    }) : []),
+                  ],
+                  selected: activeCossRole === key,
+                }
+              })}
+            />
           </div>
         )
       })()}
@@ -3020,68 +3021,61 @@ export default function App() {
                 title="Select multiple steps"
               ><MultiSelectIcon /></button>
             </div>
-            {visibleScaleSteps.map(step => {
-              const isActive = selectedScaleSteps.includes(step.key) || activeScaleStep === step.key
-              const overrides = scaleAxisOverrides[step.key] ?? {}
-              const localOverrides = Object.entries(overrides).filter(([tag]) => tag !== 'opsz' || overrides[tag] !== 'auto')
-              return (
-                <button
-                  key={step.key}
-                  className={`para-styles-row ${isActive ? 'active' : ''}`}
-                  onClick={(e) => {
-                    if (e.shiftKey && activeScaleStep && activeScaleStep !== step.key) {
-                      setScaleStepRangeEnd(step.key)
-                    } else if (scaleMultiSelectMode) {
-                      if (!activeScaleStep) {
-                        setActiveScaleStep(step.key)
-                      } else if (step.key === activeScaleStep) {
-                        const next = new Set(extraScaleSteps)
-                        if (next.size > 0) {
-                          const first = [...next][0]
-                          setActiveScaleStep(first)
-                          next.delete(first)
-                          setExtraScaleSteps(next)
-                        } else {
-                          setActiveScaleStep(null)
-                        }
-                        setScaleStepRangeEnd(null)
-                      } else {
-                        setExtraScaleSteps(prev => {
-                          const next = new Set(prev)
-                          next.has(step.key) ? next.delete(step.key) : next.add(step.key)
-                          return next
-                        })
-                      }
+            {/* migrated to shared StyleScopeList (multi-select); keeps this panel's own
+                trigger/positioning and the shift-range / multi-mode selection logic */}
+            <StyleScopeList
+              inline
+              mode="multi"
+              onSelect={(key, e) => {
+                if (e.shiftKey && activeScaleStep && activeScaleStep !== key) {
+                  setScaleStepRangeEnd(key)
+                } else if (scaleMultiSelectMode) {
+                  if (!activeScaleStep) {
+                    setActiveScaleStep(key)
+                  } else if (key === activeScaleStep) {
+                    const next = new Set(extraScaleSteps)
+                    if (next.size > 0) {
+                      const first = [...next][0]
+                      setActiveScaleStep(first)
+                      next.delete(first)
+                      setExtraScaleSteps(next)
                     } else {
-                      setActiveScaleStep(prev => prev === step.key ? null : step.key)
-                      setScaleStepRangeEnd(null)
-                      setExtraScaleSteps(new Set())
-                      setActiveParaStyle(null)
+                      setActiveScaleStep(null)
                     }
-                  }}
-                >
-                  <span className="scale-step-radio" />
-                  <span
-                    className="para-styles-preview"
-                    style={{
-                      ...scaleStepStyle(step),
-                      fontSize: `${Math.min(step.pxSize, 20)}px`,
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {step.key}
-                  </span>
-                  <span className="para-styles-specs">
-                    <span className="para-styles-spec">{step.pxSize}px</span>
-                    {localOverrides.map(([tag, val]) => (
-                      <span key={tag} className="para-styles-spec para-styles-spec--local">
-                        {tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
-                      </span>
-                    ))}
-                  </span>
-                </button>
-              )
-            })}
+                    setScaleStepRangeEnd(null)
+                  } else {
+                    setExtraScaleSteps(prev => {
+                      const next = new Set(prev)
+                      next.has(key) ? next.delete(key) : next.add(key)
+                      return next
+                    })
+                  }
+                } else {
+                  setActiveScaleStep(prev => prev === key ? null : key)
+                  setScaleStepRangeEnd(null)
+                  setExtraScaleSteps(new Set())
+                  setActiveParaStyle(null)
+                }
+              }}
+              rows={visibleScaleSteps.map(step => {
+                const isActive = selectedScaleSteps.includes(step.key) || activeScaleStep === step.key
+                const overrides = scaleAxisOverrides[step.key] ?? {}
+                const localOverrides = Object.entries(overrides).filter(([tag]) => tag !== 'opsz' || overrides[tag] !== 'auto')
+                return {
+                  id: step.key,
+                  label: step.key,
+                  labelStyle: { ...scaleStepStyle(step), fontSize: `${Math.min(step.pxSize, 20)}px`, lineHeight: 1.3 },
+                  chips: [
+                    { text: `${step.pxSize}px`, kind: 'size' },
+                    ...localOverrides.map(([tag, val]) => ({
+                      text: `${tag} ${val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}`,
+                      kind: 'local',
+                    })),
+                  ],
+                  selected: isActive,
+                }
+              })}
+            />
           </div>
         )
       })()}
@@ -3110,43 +3104,39 @@ export default function App() {
               '--caret-x': `${caretX}px`,
             }}
           >
-            {(['h1', 'h2', 'h3', 'p']).map(type => {
-              const s = paraStyles[type]
-              const isActive = activeParaStyle === type
-              const merged = { ...axisValues, ...s.axisOverrides }
-              const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-              const label = type === 'p' ? 'Paragraph' : `Heading ${type[1]}`
-              return (
-                <button
-                  key={type}
-                  className={`para-styles-row ${isActive ? 'active' : ''}`}
-                  onClick={() => setActiveParaStyle(prev => prev === type ? null : type)}
-                >
-                  <span
-                    className="para-styles-preview"
-                    style={{
-                      fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
-                      fontStyle,
-                      fontSize: `${Math.min(s.size, 22)}px`,
-                      fontVariationSettings: fvs,
-                      fontOpticalSizing: 'none',
-                      fontSynthesis: 'none',
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {label}
-                  </span>
-                  <span className="para-styles-specs">
-                    <span className="para-styles-spec">{s.size}px</span>
-                    {Object.entries(s.axisOverrides).map(([tag, val]) => (
-                      <span key={tag} className="para-styles-spec">
-                        {tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
-                      </span>
-                    ))}
-                  </span>
-                </button>
-              )
-            })}
+            {/* migrated to the shared StyleScopeList primitive (rows + chips); this
+                panel keeps its own portal trigger/positioning */}
+            <StyleScopeList
+              inline
+              mode="single"
+              onSelect={type => setActiveParaStyle(prev => prev === type ? null : type)}
+              rows={(['h1', 'h2', 'h3', 'p']).map(type => {
+                const s = paraStyles[type]
+                const merged = { ...axisValues, ...s.axisOverrides }
+                const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+                return {
+                  id: type,
+                  label: type === 'p' ? 'Paragraph' : `Heading ${type[1]}`,
+                  labelStyle: {
+                    fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
+                    fontStyle,
+                    fontSize: `${Math.min(s.size, 22)}px`,
+                    fontVariationSettings: fvs,
+                    fontOpticalSizing: 'none',
+                    fontSynthesis: 'none',
+                    lineHeight: 1.3,
+                  },
+                  chips: [
+                    { text: `${s.size}px`, kind: 'size' },
+                    ...Object.entries(s.axisOverrides).map(([tag, val]) => ({
+                      text: `${tag} ${val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}`,
+                      kind: 'axis',
+                    })),
+                  ],
+                  selected: activeParaStyle === type,
+                }
+              })}
+            />
           </div>
         )
       })()}
