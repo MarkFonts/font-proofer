@@ -2893,51 +2893,50 @@ export default function App() {
               '--caret-x': `${rect.width / 2}px`,
             }}
           >
-            {Object.entries(CALCOM_ROLE_LABELS).map(([key, label]) => {
-              const r = calcomRoles[key]
-              const merged = { ...axisValues, ...r.axisOverrides }
-              const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-              const family = calcomFont === 'inter'
-                ? '"Inter", system-ui, sans-serif'
-                : calcomFont === 'calsans'
-                  ? '"CalSans"'
-                  : fontFace ? `"${fontFace.family}"` : 'serif'
-              const isActive = activeCalcomRole === key
-              return (
-                <button
-                  key={key}
-                  className={`para-styles-row ${isActive ? 'active' : ''}`}
-                  onClick={() => { setActiveCalcomRole(prev => prev === key ? null : key); setCalcomPanelOpen(false) }}
-                >
-                  <span
-                    className="para-styles-preview"
-                    style={{
-                      fontFamily: family,
-                      fontSize: `${Math.min(r.size, 22)}px`,
-                      fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
-                      fontOpticalSizing: 'none',
-                      fontSynthesis: 'none',
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {label}
-                  </span>
-                  <span className="para-styles-specs">
-                    <span className="para-styles-spec">{r.size}px</span>
-                    <span className="para-styles-spec">{r.tracking.toFixed(3)}</span>
-                    {calcomFont !== 'inter' && variationAxes.map(axis => {
+            {/* migrated to shared StyleScopeList (single-select); panel keeps its own
+                trigger/positioning. Rows show every axis (denser than the type pickers)
+                — kept as tight as the old .para-styles-row via .ssd-list--dense. */}
+            <StyleScopeList
+              inline
+              mode="single"
+              className="ssd-list--dense"
+              onSelect={key => { setActiveCalcomRole(prev => prev === key ? null : key); setCalcomPanelOpen(false) }}
+              rows={Object.entries(CALCOM_ROLE_LABELS).map(([key, label]) => {
+                const r = calcomRoles[key]
+                const merged = { ...axisValues, ...r.axisOverrides }
+                const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+                const family = calcomFont === 'inter'
+                  ? '"Inter", system-ui, sans-serif'
+                  : calcomFont === 'calsans'
+                    ? '"CalSans"'
+                    : fontFace ? `"${fontFace.family}"` : 'serif'
+                return {
+                  id: key,
+                  label,
+                  labelStyle: {
+                    fontFamily: family,
+                    fontSize: `${Math.min(r.size, 22)}px`,
+                    fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
+                    fontOpticalSizing: 'none',
+                    fontSynthesis: 'none',
+                    lineHeight: 1.3,
+                  },
+                  chips: [
+                    { text: `${r.size}px`, kind: 'size' },
+                    { text: r.tracking.toFixed(3), kind: 'size' },
+                    ...(calcomFont !== 'inter' ? variationAxes.map(axis => {
                       const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
-                      return (
-                        <span key={axis.tag} className={`para-styles-spec${isLocal ? ' para-styles-spec--local' : ''}`}>
-                          {axis.tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
-                        </span>
-                      )
-                    })}
-                  </span>
-                </button>
-              )
-            })}
+                      return {
+                        text: `${axis.tag} ${val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}`,
+                        kind: isLocal ? 'local' : 'axis',
+                      }
+                    }) : []),
+                  ],
+                  selected: activeCalcomRole === key,
+                }
+              })}
+            />
           </div>
         )
       })()}
@@ -2955,51 +2954,49 @@ export default function App() {
               '--caret-x': `${rect.width / 2}px`,
             }}
           >
-            {Object.entries(COSS_ROLE_LABELS).map(([key, label]) => {
-              const r = cossRoles[key]
-              const merged = { ...axisValues, ...r.axisOverrides }
-              const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-              const family = calcomFont === 'inter'
-                ? '"Inter", system-ui, sans-serif'
-                : calcomFont === 'calsans'
-                  ? '"CalSans"'
-                  : fontFace ? `"${fontFace.family}"` : 'serif'
-              const isActive = activeCossRole === key
-              return (
-                <button
-                  key={key}
-                  className={`para-styles-row ${isActive ? 'active' : ''}`}
-                  onClick={() => { setActiveCossRole(prev => prev === key ? null : key); setCossPanelOpen(false) }}
-                >
-                  <span
-                    className="para-styles-preview"
-                    style={{
-                      fontFamily: family,
-                      fontSize: `${Math.min(r.size, 22)}px`,
-                      fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
-                      fontOpticalSizing: 'none',
-                      fontSynthesis: 'none',
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {label}
-                  </span>
-                  <span className="para-styles-specs">
-                    <span className="para-styles-spec">{r.size}px</span>
-                    <span className="para-styles-spec">{r.tracking.toFixed(3)}</span>
-                    {calcomFont !== 'inter' && variationAxes.map(axis => {
+            {/* migrated to shared StyleScopeList (single-select); mirrors the calcom
+                role picker — every axis shown, kept tight via .ssd-list--dense. */}
+            <StyleScopeList
+              inline
+              mode="single"
+              className="ssd-list--dense"
+              onSelect={key => { setActiveCossRole(prev => prev === key ? null : key); setCossPanelOpen(false) }}
+              rows={Object.entries(COSS_ROLE_LABELS).map(([key, label]) => {
+                const r = cossRoles[key]
+                const merged = { ...axisValues, ...r.axisOverrides }
+                const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+                const family = calcomFont === 'inter'
+                  ? '"Inter", system-ui, sans-serif'
+                  : calcomFont === 'calsans'
+                    ? '"CalSans"'
+                    : fontFace ? `"${fontFace.family}"` : 'serif'
+                return {
+                  id: key,
+                  label,
+                  labelStyle: {
+                    fontFamily: family,
+                    fontSize: `${Math.min(r.size, 22)}px`,
+                    fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
+                    fontOpticalSizing: 'none',
+                    fontSynthesis: 'none',
+                    lineHeight: 1.3,
+                  },
+                  chips: [
+                    { text: `${r.size}px`, kind: 'size' },
+                    { text: r.tracking.toFixed(3), kind: 'size' },
+                    ...(calcomFont !== 'inter' ? variationAxes.map(axis => {
                       const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
-                      return (
-                        <span key={axis.tag} className={`para-styles-spec${isLocal ? ' para-styles-spec--local' : ''}`}>
-                          {axis.tag} {val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}
-                        </span>
-                      )
-                    })}
-                  </span>
-                </button>
-              )
-            })}
+                      return {
+                        text: `${axis.tag} ${val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}`,
+                        kind: isLocal ? 'local' : 'axis',
+                      }
+                    }) : []),
+                  ],
+                  selected: activeCossRole === key,
+                }
+              })}
+            />
           </div>
         )
       })()}

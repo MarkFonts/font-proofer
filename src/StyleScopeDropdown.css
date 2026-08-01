@@ -88,3 +88,9 @@
 .ssd-chip--markup { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 /* an axis chip the style overrides locally (font-proofer's --local flag) */
 .ssd-chip--local { color: var(--text-muted); }
+
+/* Dense variant — for rows that carry many chips (e.g. every variable axis, as in
+   the cal/coss role pickers). Tighter rows + one-line chips, so an 8-chip row stays
+   as compact as a hand-built spec row instead of wrapping to two lines. */
+.ssd-list--dense .ssd-row { padding: 7px 12px; }
+.ssd-list--dense .ssd-chips { flex-wrap: nowrap; flex-shrink: 0; }
