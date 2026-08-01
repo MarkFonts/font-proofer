@@ -93,4 +93,8 @@
    the cal/coss role pickers). Tighter rows + one-line chips, so an 8-chip row stays
    as compact as a hand-built spec row instead of wrapping to two lines. */
 .ssd-list--dense .ssd-row { padding: 7px 12px; }
+/* Chips size to content and stay on one line. Columns line up because every row
+   carries the same specs in the same order, tnum makes digits equal-width, and the
+   chip text is trimmed to equal char counts per column (opsz A; negative tracking
+   drops a trailing zero + real minus). No fixed width — nothing gets bloated. */
 .ssd-list--dense .ssd-chips { flex-wrap: nowrap; flex-shrink: 0; }

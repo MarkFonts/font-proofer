@@ -484,6 +484,9 @@ const TEXT_PRESETS = {
 const SAMPLE_BLOCKS = TEXT_PRESETS['Sample']
 
 // ── Cal.com type role model ───────────────────────────────────────────────────
+// Spec chips must show a typographic minus sign (U+2212), never a hyphen-minus.
+const nbMinus = (s) => String(s).replace('-', '−')
+
 const CALCOM_ROLE_LABELS = {
   eventHost: 'Host', eventTitle: 'Title', eventDesc: 'Desc',
   eventMeta: 'Meta', calHeader: 'Cal',   calDay: 'Day', timeSlot: 'Time',
@@ -2923,12 +2926,12 @@ export default function App() {
                   },
                   chips: [
                     { text: `${r.size}px`, kind: 'size' },
-                    { text: r.tracking.toFixed(3), kind: 'size' },
+                    { text: nbMinus(r.tracking < 0 ? r.tracking.toFixed(2) : r.tracking.toFixed(3)), kind: 'size' }, // negative: real minus + drop a trailing zero so the char count stays equal
                     ...(calcomFont !== 'inter' ? variationAxes.map(axis => {
                       const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
                       return {
-                        text: `${axis.tag} ${val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}`,
+                        text: `${axis.tag} ${val === 'auto' ? 'A' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
                         kind: isLocal ? 'local' : 'axis',
                       }
                     }) : []),
@@ -2983,12 +2986,12 @@ export default function App() {
                   },
                   chips: [
                     { text: `${r.size}px`, kind: 'size' },
-                    { text: r.tracking.toFixed(3), kind: 'size' },
+                    { text: nbMinus(r.tracking < 0 ? r.tracking.toFixed(2) : r.tracking.toFixed(3)), kind: 'size' }, // negative: real minus + drop a trailing zero so the char count stays equal
                     ...(calcomFont !== 'inter' ? variationAxes.map(axis => {
                       const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
                       return {
-                        text: `${axis.tag} ${val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}`,
+                        text: `${axis.tag} ${val === 'auto' ? 'A' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
                         kind: isLocal ? 'local' : 'axis',
                       }
                     }) : []),
