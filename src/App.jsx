@@ -2931,7 +2931,7 @@ export default function App() {
                       const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
                       return {
-                        text: `${axis.tag} ${val === 'auto' ? 'A' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
+                        text: `${axis.tag} ${val === 'auto' ? 'A ' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
                         kind: isLocal ? 'local' : 'axis',
                       }
                     }) : []),
@@ -2991,7 +2991,7 @@ export default function App() {
                       const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
                       return {
-                        text: `${axis.tag} ${val === 'auto' ? 'A' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
+                        text: `${axis.tag} ${val === 'auto' ? 'A ' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
                         kind: isLocal ? 'local' : 'axis',
                       }
                     }) : []),
