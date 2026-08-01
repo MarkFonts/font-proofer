@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import './App.css'
-import { StyleScopeList } from '../shared/index' // wm-primitives (git submodule)
+import { StyleScopeList, InlineEmphasisBubble } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('./UiPreview'))
 import fontAxesData from 'virtual:font-axes'
@@ -2647,6 +2647,13 @@ export default function App() {
       )}
 
       {/* Main preview area */}
+      {/* Inline-emphasis bubble — shared wm-primitives component; labels use the font's real italic/bold */}
+      <InlineEmphasisBubble
+        selector=".para-block, .scale-row-text, .scale-pair-text"
+        italicLabelStyle={inlineStyle('p', 'italic')}
+        boldLabelStyle={inlineStyle('p', 'bold')}
+      />
+
       <main className="preview-area" ref={previewAreaRef}>
         {!fontName && (
           <div className="empty-state">
