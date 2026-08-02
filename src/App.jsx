@@ -7,6 +7,7 @@ import {
   placeCaretAtEnd as placeCursorAtEnd,
   placeCaretAtOffset as placeCursorAtOffset,
   caretCharOffset,
+  splitInlineMarkup, isPlainRun,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('./UiPreview'))
@@ -567,25 +568,17 @@ const DEFAULT_SCALE_AXIS_OVERRIDES = Object.fromEntries(TAILWIND_SCALE.map(s => 
 // caret helpers (placeCursor* aliases, caretCharOffset) imported from wm-primitives.
 
 // Inline semi-markup → styled React nodes: **bold**, *italic*, __underline__.
-// Matched delimiters, non-greedy, no nesting. `italicStyle` / `boldStyle` are
-// per-font CSS style objects (resolved from blockStyle) so each deployment's
+// Parsing is shared (splitInlineMarkup from wm-primitives); `italicStyle` /
+// `boldStyle` are per-font CSS style objects (resolved from blockStyle) so each
 // font renders its own italic/bold — variable axis or separate face alike.
-const INLINE_RE = /(\*\*|__|\*)(.+?)\1/g
 function renderInline(text, italicStyle, boldStyle) {
-  if (!/[*_]/.test(text)) return text
-  const out = []
-  let last = 0, k = 0, m
-  const re = new RegExp(INLINE_RE)
-  while ((m = re.exec(text))) {
-    if (m.index > last) out.push(text.slice(last, m.index))
-    const delim = m[1], inner = m[2]
-    if (delim === '**') out.push(<strong key={k++} style={boldStyle}>{inner}</strong>)
-    else if (delim === '*') out.push(<em key={k++} style={italicStyle}>{inner}</em>)
-    else out.push(<u key={k++}>{inner}</u>)
-    last = m.index + m[0].length
-  }
-  if (last < text.length) out.push(text.slice(last))
-  return out
+  const toks = splitInlineMarkup(text)
+  if (isPlainRun(toks)) return text
+  return toks.map((t, k) =>
+    t.type === 'bold' ? <strong key={k} style={boldStyle}>{t.value}</strong>
+      : t.type === 'italic' ? <em key={k} style={italicStyle}>{t.value}</em>
+        : t.type === 'underline' ? <u key={k}>{t.value}</u>
+          : t.value)
 }
 
 // Returns merged, sorted [start, end] codepoint ranges the font's cmap supports,
