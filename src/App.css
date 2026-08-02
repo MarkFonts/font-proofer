@@ -2367,6 +2367,10 @@
 @container preview (max-width: 640px) {
   .preview-ui { padding: 0 16px; }
 }
+/* The shared UiKitBoard bleeds -48px to fill its container edge-to-edge. In ReCal
+   that's the viewport (full-bleed, fine); here it would butt the board against the
+   sidebar, so restore a left gutter (right side still bleeds). FP-only override. */
+.preview-ui > .ukit-strip { margin-left: 0; }
 
 .preview-ui-loading {
   display: flex;
