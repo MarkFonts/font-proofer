@@ -1,7 +1,13 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import './App.css'
-import { StyleScopeList, InlineEmphasisBubble } from '../shared/index' // wm-primitives (git submodule)
+import {
+  StyleScopeList, InlineEmphasisBubble,
+  placeCaretAtStart as placeCursorAtStart,
+  placeCaretAtEnd as placeCursorAtEnd,
+  placeCaretAtOffset as placeCursorAtOffset,
+  caretCharOffset,
+} from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('./UiPreview'))
 import fontAxesData from 'virtual:font-axes'
@@ -558,54 +564,7 @@ const SCALE_PAIR_TEXT = 'A wonderful serenity has taken possession of my entire 
 const DEFAULT_SCALE_AXIS_OVERRIDES = Object.fromEntries(TAILWIND_SCALE.map(s => [s.key, { opsz: 'auto' }]))
 
 // ── Cursor utilities ─────────────────────────────────────────────────────────
-function placeCursorAtEnd(el) {
-  const range = document.createRange()
-  const sel = window.getSelection()
-  range.selectNodeContents(el)
-  range.collapse(false)
-  sel.removeAllRanges()
-  sel.addRange(range)
-}
-
-function placeCursorAtStart(el) {
-  const range = document.createRange()
-  const sel = window.getSelection()
-  range.setStart(el, 0)
-  range.collapse(true)
-  sel.removeAllRanges()
-  sel.addRange(range)
-}
-
-// Place the caret at a character offset within el's first text node.
-function placeCursorAtOffset(el, offset) {
-  const tn = el.firstChild
-  const len = tn?.textContent?.length ?? 0
-  const range = document.createRange()
-  const sel = window.getSelection()
-  range.setStart(tn ?? el, Math.min(Math.max(offset, 0), len))
-  range.collapse(true)
-  sel.removeAllRanges()
-  sel.addRange(range)
-}
-
-// Character offset within el at a viewport point, so clicking into a styled block
-// lands the caret where you clicked rather than at the start.
-function caretCharOffset(el, x, y) {
-  const doc = el.ownerDocument
-  let node = null, offset = 0
-  if (doc.caretPositionFromPoint) {
-    const p = doc.caretPositionFromPoint(x, y)
-    if (p) { node = p.offsetNode; offset = p.offset }
-  } else if (doc.caretRangeFromPoint) {
-    const rr = doc.caretRangeFromPoint(x, y)
-    if (rr) { node = rr.startContainer; offset = rr.startOffset }
-  }
-  if (!node || !el.contains(node)) return el.textContent?.length ?? 0
-  const r = document.createRange()
-  r.selectNodeContents(el)
-  r.setEnd(node, offset)
-  return r.toString().length
-}
+// caret helpers (placeCursor* aliases, caretCharOffset) imported from wm-primitives.
 
 // Inline semi-markup → styled React nodes: **bold**, *italic*, __underline__.
 // Matched delimiters, non-greedy, no nesting. `italicStyle` / `boldStyle` are
@@ -627,17 +586,6 @@ function renderInline(text, italicStyle, boldStyle) {
   }
   if (last < text.length) out.push(text.slice(last))
   return out
-}
-
-function caretAtStart(el) {
-  const sel = window.getSelection()
-  if (!sel.rangeCount) return false
-  const range = sel.getRangeAt(0)
-  if (!range.collapsed) return false
-  const pre = range.cloneRange()
-  pre.selectNodeContents(el)
-  pre.setEnd(range.startContainer, range.startOffset)
-  return pre.toString().length === 0
 }
 
 // Returns merged, sorted [start, end] codepoint ranges the font's cmap supports,
