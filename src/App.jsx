@@ -8,6 +8,7 @@ import {
   placeCaretAtOffset as placeCursorAtOffset,
   caretCharOffset,
   splitInlineMarkup, isPlainRun,
+  AxisSlider as SliderRow,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
@@ -862,68 +863,7 @@ function extractFontFromTTC(buffer, fontOffset) {
 }
 
 // ── Slider row component ─────────────────────────────────────────────────────
-function SliderRow({ label, tag, value, min, max, step, onChange, display, lockedAbove, allowAuto, autoValue }) {
-  const lockedPct = lockedAbove != null
-    ? Math.max(0, Math.min(100, (lockedAbove - min) / (max - min) * 100))
-    : null
-  const isAuto = allowAuto && value === 'auto'
-  const hintShownRef = useRef(false)
-  const [hintPos, setHintPos] = useState(null)
-  const inputRef = useRef(null)
-  const handleFocus = () => {
-    if (allowAuto && !isAuto && !hintShownRef.current && inputRef.current) {
-      hintShownRef.current = true
-      const rect = inputRef.current.getBoundingClientRect()
-      setHintPos({ top: rect.bottom + 6, left: rect.left })
-      setTimeout(() => setHintPos(null), 3000)
-    }
-  }
-  return (
-    <div className="slider-row">
-      {hintPos && createPortal(
-        <div className="slider-auto-hint" style={{ top: hintPos.top, left: hintPos.left }}>
-          hint: type "a" for auto
-        </div>,
-        document.body
-      )}
-      <div className="slider-label">
-        <span className="slider-label-left">
-          <span className={`slider-label-text${tag ? ' slider-label-text--tagged' : ''}`}>{label}</span>
-          {tag && <span className="slider-tag">{tag}</span>}
-        </span>
-        <input
-          ref={inputRef}
-          className="slider-number"
-          type={allowAuto ? 'text' : 'number'}
-          inputMode={allowAuto ? 'numeric' : undefined}
-          step={allowAuto ? undefined : step}
-          value={allowAuto ? (display != null ? String(display).replace('-', '−') : value) : value}
-          onFocus={handleFocus}
-          onKeyDown={e => { if (allowAuto && e.key === 'a') { e.preventDefault(); onChange('auto') } }}
-          onChange={e => {
-            if (!allowAuto) { onChange(parseFloat(e.target.value)); return }
-            const raw = String(e.target.value).replace('−', '-').trim()
-            if (raw.toLowerCase() === 'auto') { onChange('auto'); return }
-            onChange(parseFloat(raw))
-          }}
-        />
-      </div>
-      <div
-        className="slider-track-wrap"
-        style={lockedPct != null ? { '--locked-pct': `${lockedPct}%` } : undefined}
-      >
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={isAuto ? Math.min(max, Math.max(min, autoValue ?? (min + max) / 2)) : value}
-          onChange={e => onChange(parseFloat(e.target.value))}
-        />
-      </div>
-    </div>
-  )
-}
+// SliderRow now imported from wm-primitives as AxisSlider (see import above).
 
 // ── Mode button ──────────────────────────────────────────────────────────────
 function ModeBtn({ active, onClick, children }) {
