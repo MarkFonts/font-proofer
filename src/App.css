@@ -735,11 +735,8 @@
   margin-top: 0;
 }
 
-.para-block--selected {
-  border-radius: 2px;
-  outline: 1px solid var(--border) !important;
-  outline-offset: 4px;
-}
+/* Paragraph menu-target highlight now uses the shared edit-rail (edit-rail--target);
+   see wm-primitives/src/editRail.css. The old offset outline was retired. */
 
 /* ── Glyphs mode ─────────────────────────────────────────────────────────── */
 .preview-glyphs {

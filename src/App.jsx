@@ -2579,7 +2579,7 @@ export default function App() {
               contentEditable
               suppressContentEditableWarning
               spellCheck={false}
-              className="editable-big"
+              className="editable-big edit-rail"
               style={previewStyle}
               onInput={e => setBigText(e.currentTarget.textContent)}
             />
@@ -2610,7 +2610,7 @@ export default function App() {
                   contentEditable
                   suppressContentEditableWarning
                   spellCheck={false}
-                  className={`para-block para-block--${block.type}${activeParaStyle === block.type ? ' para-block--selected' : ''}`}
+                  className={`para-block para-block--${block.type} edit-rail${activeParaStyle === block.type ? ' edit-rail--target' : ''}`}
                   style={blockStyle(block.type)}
                   onMouseDown={e => { if (!focused) pendingBlockCaret.current = { id: block.id, offset: caretCharOffset(e.currentTarget, e.clientX, e.clientY) } }}
                   onFocus={() => setFocusedBlockId(block.id)}
@@ -2689,7 +2689,7 @@ export default function App() {
                     contentEditable
                     suppressContentEditableWarning
                     spellCheck={false}
-                    className="scale-row-text"
+                    className="scale-row-text edit-rail"
                     style={scaleStepStyle(step)}
                     onInput={e => handleScaleLabelInput(step.key, e)}
                     onClick={e => e.stopPropagation()}
@@ -2712,7 +2712,7 @@ export default function App() {
                         contentEditable
                         suppressContentEditableWarning
                         spellCheck={false}
-                        className="scale-pair-text"
+                        className="scale-pair-text edit-rail"
                         data-pair-size={pairStep.key}
                         style={{ ...scaleStepStyle(pairStep, effective), maxWidth: hasPairs ? `calc(100% - ${scaleBaseMargin}px)` : undefined }}
                         onInput={e => handleScalePairInput(`${step.key}__${pairStep.key}`, e)}
