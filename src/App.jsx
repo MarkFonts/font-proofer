@@ -9,6 +9,7 @@ import {
   caretCharOffset,
   splitInlineMarkup, isPlainRun,
   AxisSlider as SliderRow,
+  makeGlyphSets, parseCmapRanges, isSupported,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
@@ -582,143 +583,23 @@ function renderInline(text, italicStyle, boldStyle) {
           : t.value)
 }
 
-// Returns merged, sorted [start, end] codepoint ranges the font's cmap supports,
-// or null if no usable Unicode cmap is found. Handles formats 0, 4, 6, 12. (TTF/OTF only.)
-function parseCmapRanges(ab) {
-  try {
-    const data = new DataView(ab)
-    const numTables = data.getUint16(4)
-    let cmapOffset = 0
-    for (let i = 0; i < numTables; i++) {
-      const t = String.fromCharCode(data.getUint8(12+i*16), data.getUint8(13+i*16), data.getUint8(14+i*16), data.getUint8(15+i*16))
-      if (t === 'cmap') { cmapOffset = data.getUint32(12+i*16+8); break }
-    }
-    if (!cmapOffset) return null
-    const numSub = data.getUint16(cmapOffset + 2)
-    const subOffsets = []
-    for (let i = 0; i < numSub; i++) subOffsets.push(cmapOffset + data.getUint32(cmapOffset + 4 + i*8 + 4))
-    const cps = new Set()
-    for (const off of subOffsets) {
-      const format = data.getUint16(off)
-      if (format === 0) {
-        for (let c = 0; c < 256; c++) if (data.getUint8(off + 6 + c) !== 0) cps.add(c)
-      } else if (format === 4) {
-        const segX2 = data.getUint16(off + 6)
-        const endBase = off + 14, startBase = endBase + segX2 + 2
-        const deltaBase = startBase + segX2, rangeBase = deltaBase + segX2
-        for (let s = 0; s < segX2/2; s++) {
-          const end = data.getUint16(endBase + s*2), start = data.getUint16(startBase + s*2)
-          const delta = data.getInt16(deltaBase + s*2), ro = data.getUint16(rangeBase + s*2)
-          if (start === 0xFFFF) continue
-          for (let c = start; c <= end && c !== 0xFFFF; c++) {
-            let g
-            if (ro === 0) g = (c + delta) & 0xFFFF
-            else { g = data.getUint16(rangeBase + s*2 + ro + (c - start)*2); if (g !== 0) g = (g + delta) & 0xFFFF }
-            if (g !== 0) cps.add(c)
-          }
-        }
-      } else if (format === 6) {
-        const first = data.getUint16(off + 6), count = data.getUint16(off + 8)
-        for (let i = 0; i < count; i++) if (data.getUint16(off + 10 + i*2) !== 0) cps.add(first + i)
-      } else if (format === 12) {
-        const nGroups = data.getUint32(off + 12)
-        for (let gi = 0; gi < nGroups; gi++) {
-          const g = off + 16 + gi*12
-          const startC = data.getUint32(g), endC = data.getUint32(g + 4), startGID = data.getUint32(g + 8)
-          for (let c = startC; c <= endC; c++) if (startGID + (c - startC) !== 0) cps.add(c)
-        }
-      }
-    }
-    if (cps.size === 0) return null
-    const sorted = Array.from(cps).sort((a, b) => a - b)
-    const ranges = []
-    let s = sorted[0], p = sorted[0]
-    for (let i = 1; i < sorted.length; i++) {
-      if (sorted[i] === p + 1) { p = sorted[i]; continue }
-      ranges.push([s, p]); s = p = sorted[i]
-    }
-    ranges.push([s, p])
-    return ranges
-  } catch { return null }
-}
+// parseCmapRanges now imported from wm-primitives (shared/src/glyphset.ts).
 
-const GLYPH_SETS = (() => {
-  const groups = {
-    'Uppercase': [
-      ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-      ...'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ',
-      'ẞ',
-      ...'ĀĂĄĆĈĊČĎĐĒĔĖĘĚĜĞĠĢĤĦĨĪĬĮİĲĴĶĹĻĽĿŁŃŅŇŊŌŎŐŒŔŖŘŚŜŞŠŢŤŦŨŪŬŮŰŲŴŶŸŹŻŽ',
-    ],
-    'Lowercase': [
-      ...'abcdefghijklmnopqrstuvwxyz',
-      'ß',
-      ...'àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ',
-      ...'āăąćĉċčďđēĕėęěĝğġģĥħĩīĭįıĳĵķĸĺļľŀłńņňŉŋōŏőœŕŗřśŝşšţťŧũūŭůűųŵŷźżž',
-    ],
-    'Numerals': [
-      ...'0123456789',
-      ...'⁰¹²³⁴⁵⁶⁷⁸⁹',
-      ...'₀₁₂₃₄₅₆₇₈₉',
-      ...'¼½¾⅓⅔⅛⅜⅝⅞',
-      ...'ªº',
-    ],
-    'Symbols': [
-      ...'.,:;!¡?¿',
-      '"', "'",
-      ...'-‒–—…',
-      ...'()[]{}',
-      ...'/\\|',
-      ...'@#%&*+=<>~`^_',
-      ...'‘’“”‚„«»‹›',
-      ...'©®™°•·¶§¦',
-      ...'±×÷≠≈≤≥∞',
-      ...'$€£¥¢₩₪₫₿₺₽₹₴₵₱₸₼₾⃁',
-    ],
-    'Miscellaneous': [
-      ...'´¨¯˜ˆˇ˘˙˚˛˝¸',
-      '◌̀', '◌́', '◌̂', '◌̃',
-      '◌̄', '◌̆', '◌̇', '◌̈',
-      '◌̉', '◌̊', '◌̋', '◌̌',
-      '◌̛', '◌̣', '◌̤', '◌̥',
-      '◌̦', '◌̧', '◌̨', '◌̩',
-      '◌̮', '◌̰', '◌̱', '◌̲',
-      '◌̶', '◌̸',
-    ],
-  }
-  return { 'All': Object.values(groups).flat(), ...groups }
-})()
-
-// ── Style-specific glyph sets ────────────────────────────────────────────────
-// Some glyphs exist in only one style. SBRomie keeps its 8 Private Use glyphs and
-// the ss04 alternates in the italic, and the ss05 alternates in the roman — so the
-// glyph-set tabs differ between roman and italic.
-// NOTE: the ss04/ss05 character lists below are SBRomie's coverage; a fuller
-// implementation would read the source glyphs from the font's GSUB.
-const SS04_GLYPHS = [...'vwxz']  // italic-only stylistic set
-const SS05_GLYPHS = [...'OQo']   // roman-only stylistic set
-const PUA_CPS = [0xE901, 0xE902, 0xE903, 0xE904, 0xE905, 0xE906, 0xE907, 0xE908]
-const PUA_GLYPHS = PUA_CPS.map(cp => String.fromCodePoint(cp)) // italic-only
-const CURATED_GLYPH_SETS = new Set(['ss04', 'ss05', 'Private Use'])
-
-// Which glyph-set tabs to show for the active style, given the font's capabilities.
-function getGlyphSets(isItalic, features, hasPua) {
-  const sets = { ...GLYPH_SETS }
-  const styleHasPua = isItalic ? hasPua?.italic : hasPua?.roman
-  if (styleHasPua) {
-    // PUA glyphs are real codepoints, so fold them into "All" too.
-    sets['All'] = [...GLYPH_SETS['All'], ...PUA_GLYPHS]
-    sets['Private Use'] = PUA_GLYPHS
-  }
-  // ss04/ss05 are feature alternates of glyphs already in "All", so they stay in
-  // their own forced-feature section rather than being folded in.
-  if (isItalic) {
-    if (features?.italic?.includes('ss04')) sets['ss04'] = SS04_GLYPHS
-  } else {
-    if (features?.roman?.includes('ss05')) sets['ss05'] = SS05_GLYPHS
-  }
-  return sets
-}
+// Base groups (Uppercase/Lowercase/Numerals/Symbols) come from the shared factory;
+// Miscellaneous (spacing modifiers + dotted-circle combining marks) is font-proofer's
+// own extra group, folded into "All" by makeGlyphSets.
+const GLYPH_SETS = makeGlyphSets({
+  'Miscellaneous': [
+    ...'´¨¯˜ˆˇ˘˙˚˛˝¸',
+    '◌̀', '◌́', '◌̂', '◌̃',
+    '◌̄', '◌̆', '◌̇', '◌̈',
+    '◌̉', '◌̊', '◌̋', '◌̌',
+    '◌̛', '◌̣', '◌̤', '◌̥',
+    '◌̦', '◌̧', '◌̨', '◌̩',
+    '◌̮', '◌̰', '◌̱', '◌̲',
+    '◌̶', '◌̸',
+  ],
+})
 
 // Minimal GSUB scan: returns the set of feature tags present (e.g. 'ss04').
 function gsubFeatureTags(ab) {
@@ -977,10 +858,9 @@ export default function App() {
   const [textAlign, setTextAlign] = useState('left')
 
   // Glyph set selection
-  const [activeGlyphSet, setActiveGlyphSet] = useState('Uppercase')
+  const [activeGlyphSet, setActiveGlyphSet] = useState('All')
   // Per-style GSUB stylistic-set tags + whether the italic has the PUA glyphs
   const [glyphFeatures, setGlyphFeatures] = useState({ roman: [], italic: [] })
-  const [hasPua, setHasPua] = useState({ roman: false, italic: false })
 
   // Parsed PS family name for scale label default
   const [fontFamilyLabel, setFontFamilyLabel] = useState('')
@@ -1130,12 +1010,6 @@ export default function App() {
         setGlyphFeatures(prev => ({ ...prev, roman: gsubFeatureTags(buf) }))
       }).catch(() => { setFontFamilyLabel(special?.name ?? baseName); setFontVersion(null) })
 
-      // Does this file's cmap contain all the Private Use glyphs?
-      const hasPuaGlyphs = (fname) => {
-        const c = fontAxesData[fname]?.chars
-        return !!c && PUA_CPS.every(cp => c.some(([a, b]) => cp >= a && cp <= b))
-      }
-
       // Load italic companion (registers under same family with style:'italic')
       if (italicMatch) {
         const italicFace = new FontFace(name, `url(${italicMatch.url})`, { style: 'italic' })
@@ -1146,12 +1020,10 @@ export default function App() {
         fetch(italicMatch.url).then(r => r.arrayBuffer())
           .then(buf => setGlyphFeatures(prev => ({ ...prev, italic: gsubFeatureTags(buf) })))
           .catch(() => {})
-        setHasPua({ roman: hasPuaGlyphs(matched.filename), italic: hasPuaGlyphs(italicMatch.filename) })
       } else {
         setItalicFontFace(null)
         setIsItalic(false)
         setGlyphFeatures(prev => ({ ...prev, italic: [] }))
-        setHasPua({ roman: hasPuaGlyphs(matched.filename), italic: false })
       }
 
       // Axes + instances from virtual module (covers TTF and woff2)
@@ -1344,14 +1216,9 @@ export default function App() {
   // only in roman — matching each stylistic set's glyph coverage.
   const proofFeatureSettings = featureStr(isItalic, ss04, ss05)
 
-  // Style-aware glyph sets for the Glyphs view (roman vs italic differ)
-  const glyphSets = getGlyphSets(isItalic, glyphFeatures, hasPua)
+  // Glyph sets for the Glyphs view — the static cmap-derived groups.
+  const glyphSets = GLYPH_SETS
   const activeGlyphKey = glyphSets[activeGlyphSet] ? activeGlyphSet : 'All'
-  // Reset the tab when the active set disappears (e.g. after a roman/italic switch)
-  useEffect(() => {
-    if (!glyphSets[activeGlyphSet]) setActiveGlyphSet('All')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isItalic, glyphFeatures, hasPua])
 
   const previewStyle = {
     fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
@@ -2738,24 +2605,14 @@ export default function App() {
               fontStyle,
               fontVariationSettings,
               fontOpticalSizing: 'none',
-              // Dedicated ss04/ss05 sections force their feature so the alternates show.
-              fontFeatureSettings: activeGlyphKey === 'ss04'
-                ? '"calt" 0, "ss20" 0, "ss04" 1'
-                : activeGlyphKey === 'ss05'
-                ? '"calt" 0, "ss20" 0, "ss05" 1'
-                : proofFeatureSettings,
+              fontFeatureSettings: proofFeatureSettings,
               fontSize: `${Math.min(fontSize, 120)}px`,
               lineHeight: 1,
               transition: 'font-variation-settings 0.15s ease',
             }}>
-              {glyphSets[activeGlyphKey].filter(glyph => {
-                // Curated sets (ss04/ss05/PUA) are pre-scoped to the font, skip cmap filter
-                if (CURATED_GLYPH_SETS.has(activeGlyphKey)) return true
-                if (!supportedRanges) return true
-                const isCombining = glyph.charCodeAt(0) === 0x25CC
-                const cp = glyph.codePointAt(isCombining ? 1 : 0)
-                return supportedRanges.some(([a, b]) => cp >= a && cp <= b)
-              }).map((glyph, i) => {
+              {glyphSets[activeGlyphKey].filter(glyph =>
+                isSupported(glyph, supportedRanges, glyph.charCodeAt(0) === 0x25CC)
+              ).map((glyph, i) => {
                 const isCombining = glyph.charCodeAt(0) === 0x25CC
                 const cp = glyph.codePointAt(isCombining ? 1 : 0)
                 return (
