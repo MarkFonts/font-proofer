@@ -996,7 +996,7 @@ export default function App() {
       const baseName = special ? special.name
         : isFamily ? fontSlug
         : matched.filename.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
-      const name = `${baseName.replace(/\s+/g, '')}Preview` // space-free: Chrome quotes multi-word FontFace.family, which then double-quotes in CSS and gets dropped
+      const name = `${baseName.replace(/[^a-zA-Z0-9]/g, '')}Preview` // alphanumeric only: any space/dot/dash makes FontFace.family serialize quoted, which then double-quotes in CSS and gets dropped (e.g. "GeistSerifV0.2-Regular")
 
       // Load roman face
       const face = new FontFace(name, `url(${matched.url})`)
@@ -1052,7 +1052,7 @@ export default function App() {
       const isTTC = new DataView(buffer).getUint32(0) === 0x74746366
 
       const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
-      const name = `${baseName.replace(/\s+/g, '')}Preview` // space-free: Chrome quotes multi-word FontFace.family, which then double-quotes in CSS and gets dropped
+      const name = `${baseName.replace(/[^a-zA-Z0-9]/g, '')}Preview` // alphanumeric only: any space/dot/dash makes FontFace.family serialize quoted, which then double-quotes in CSS and gets dropped (e.g. "GeistSerifV0.2-Regular")
       fontFamilyRef.current = name
 
       if (isTTC) {
