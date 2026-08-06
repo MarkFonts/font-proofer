@@ -104,14 +104,17 @@ function matchSpecial(slug) {
   return SPECIAL_FONTS[slug.toLowerCase().replace(/[-_\s]/g, '')] || null
 }
 
+const fontNameOf = path => normalize(path.split('/').pop().replace(/\.[^.]+$/, ''))
+
 function matchFont(slug) {
   const needle = normalize(slug)
   const entries = Object.entries(fontModules)
   if (!entries.length) return null
-  const matches = entries.filter(([path]) => {
-    const name = normalize(path.split('/').pop().replace(/\.[^.]+$/, ''))
-    return name.includes(needle) || needle.includes(name)
-  })
+  const matches = entries
+    .filter(([path]) => { const n = fontNameOf(path); return n.includes(needle) || needle.includes(n) })
+    // Closest match wins (fewest extra chars beyond the slug), so 'geist' resolves to
+    // Geist[wght] rather than GeistSerif…, and 'geistserif' resolves to the serif.
+    .sort(([a], [b]) => Math.abs(fontNameOf(a).length - needle.length) - Math.abs(fontNameOf(b).length - needle.length))
   const upright = matches.find(([path]) => !/italic|oblique/i.test(path))
   const match = upright ?? matches[0] ?? null
   return match ? { url: match[1], filename: match[0].split('/').pop() } : null
