@@ -10,6 +10,7 @@ import {
   splitInlineMarkup, isPlainRun,
   AxisSlider as SliderRow,
   makeGlyphSets, parseCmapRanges, isSupported,
+  nbMinus,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
@@ -496,8 +497,7 @@ const TEXT_PRESETS = {
 const SAMPLE_BLOCKS = TEXT_PRESETS['Sample']
 
 // ── Cal.com type role model ───────────────────────────────────────────────────
-// Spec chips must show a typographic minus sign (U+2212), never a hyphen-minus.
-const nbMinus = (s) => String(s).replace('-', '−')
+// nbMinus (typographic minus for spec chips) now imported from wm-primitives.
 
 const CALCOM_ROLE_LABELS = {
   eventHost: 'Host', eventTitle: 'Title', eventDesc: 'Desc',
