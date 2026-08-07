@@ -5,12 +5,10 @@ import {
   StyleScopeList, InlineEmphasisBubble,
   placeCaretAtStart as placeCursorAtStart,
   placeCaretAtEnd as placeCursorAtEnd,
-  placeCaretAtOffset as placeCursorAtOffset,
-  caretCharOffset,
   splitInlineMarkup, isPlainRun,
   AxisSlider as SliderRow,
   makeGlyphSets, parseCmapRanges, isSupported,
-  nbMinus,
+  nbMinus, EditableTextBlock,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
@@ -570,7 +568,7 @@ const SCALE_PAIR_TEXT = 'A wonderful serenity has taken possession of my entire 
 const DEFAULT_SCALE_AXIS_OVERRIDES = Object.fromEntries(TAILWIND_SCALE.map(s => [s.key, { opsz: 'auto' }]))
 
 // ── Cursor utilities ─────────────────────────────────────────────────────────
-// caret helpers (placeCursor* aliases, caretCharOffset) imported from wm-primitives.
+// caret helpers (placeCursor* aliases) imported from wm-primitives.
 
 // Inline semi-markup → styled React nodes: **bold**, *italic*, __underline__.
 // Parsing is shared (splitInlineMarkup from wm-primitives); `italicStyle` /
@@ -888,7 +886,6 @@ export default function App() {
   // Which paragraph block is being edited. Focused → contentEditable owns the raw
   // markup text; blurred → we render *italic* / **bold** as styled spans.
   const [focusedBlockId, setFocusedBlockId] = useState(null)
-  const pendingBlockCaret = useRef(null)
   const stylesPanelBtnRef = useRef(null)
   const mobileStylesBtnRef = useRef(null)
   const stylesPanelPopoverRef = useRef(null)
@@ -1568,15 +1565,7 @@ export default function App() {
     }
   }, [])
 
-  // On focusing a block, the styled spans collapse to raw markup text; restore the
-  // caret to where the user clicked (captured on mousedown against the styled content).
-  useLayoutEffect(() => {
-    if (focusedBlockId && pendingBlockCaret.current?.id === focusedBlockId) {
-      const el = blockRefs.current[focusedBlockId]
-      if (el) placeCursorAtOffset(el, pendingBlockCaret.current.offset)
-    }
-    pendingBlockCaret.current = null
-  }, [focusedBlockId])
+  // Caret capture/restore on focus now lives inside the shared EditableTextBlock.
 
   // ── Close styles popover on outside click ──────────────────────────────────
   useEffect(() => {
@@ -2464,40 +2453,21 @@ export default function App() {
                 onMouseDown={handleEscapeBarMouseDown}
                 title="Drag to expand column"
               />
-              {blocks.map(block => {
-                const focused = focusedBlockId === block.id
-                return (
-                <div
+              {blocks.map(block => (
+                <EditableTextBlock
                   key={block.id}
-                  ref={el => {
-                    if (el) {
-                      blockRefs.current[block.id] = el
-                      if (!el.textContent) el.textContent = block.text
-                    } else {
-                      delete blockRefs.current[block.id]
-                    }
-                  }}
-                  contentEditable
-                  suppressContentEditableWarning
-                  spellCheck={false}
+                  value={block.text}
+                  focused={focusedBlockId === block.id}
+                  onFocusChange={f => setFocusedBlockId(cur => f ? block.id : (cur === block.id ? null : cur))}
+                  onCommit={t => setBlocks(prev => prev.map(x => x.id === block.id ? { ...x, text: t } : x))}
                   className={`para-block para-block--${block.type} edit-rail${activeParaStyle === block.type ? ' edit-rail--target' : ''}`}
                   style={blockStyle(block.type)}
-                  onMouseDown={e => { if (!focused) pendingBlockCaret.current = { id: block.id, offset: caretCharOffset(e.currentTarget, e.clientX, e.clientY) } }}
-                  onFocus={() => setFocusedBlockId(block.id)}
-                  onBlur={e => {
-                    // Commit the edited raw text and clear the imperative text node so
-                    // React can render styled spans cleanly (no duplicated text).
-                    const t = e.currentTarget.textContent ?? ''
-                    e.currentTarget.textContent = ''
-                    setBlocks(prev => prev.map(x => x.id === block.id ? { ...x, text: t } : x))
-                    setFocusedBlockId(cur => cur === block.id ? null : cur)
-                  }}
+                  innerRef={el => { if (el) blockRefs.current[block.id] = el; else delete blockRefs.current[block.id] }}
                   onInput={e => handleBlockInput(block.id, e)}
                   onKeyDown={e => handleBlockKeyDown(block.id, e)}
-                >
-                  {focused ? null : renderInline(block.text, inlineStyle(block.type, 'italic'), inlineStyle(block.type, 'bold'))}
-                </div>
-              )})}
+                  render={v => renderInline(v, inlineStyle(block.type, 'italic'), inlineStyle(block.type, 'bold'))}
+                />
+              ))}
           </div>
         )}
 
