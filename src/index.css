@@ -224,14 +224,5 @@ textarea {
   width: 100%;
 }
 
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
-}
+/* Scrollbars now come from the shared house scrollbar (wm-primitives scrollbar.css, 6px);
+   thumb defaults to var(--border), which tracks the light/dark theme here. */
