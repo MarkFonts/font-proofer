@@ -16,8 +16,12 @@
   font-display: swap;
 }
 
+/* 'Face' — the interface typeface, named by ROLE not product (was CalSansUI).
+   font-proofer proofs arbitrary fonts, usually Cal Sans itself, so the chrome
+   family must stay distinct from the specimen family 'CalSans'; a role name also
+   survives a reface. Same CalSansVF.ttf today. */
 @font-face {
-  font-family: "CalSansUI";
+  font-family: "Face";
   src: url("./fonts/CalSansVF.ttf") format("truetype");
   font-weight: 400 700;
   font-style: normal;
@@ -47,10 +51,8 @@
 }
 
 :root {
-  /* House UI font token (shared primitives read it, e.g. GlyphPicker chrome).
-     'CalSansUI' is a legacy @font-face alias of the same CalSansVF.ttf — kept in the
-     chain only so this token can't diverge from the app's existing rules. */
-  --ui-font: 'CalSans', 'CalSansUI', sans-serif;
+  /* House UI font token — shared primitives read it (e.g. GlyphPicker chrome). */
+  --ui-font: 'Face', system-ui, sans-serif;
   --bg: #242424;
   --bg-elevated: #2e2e2e;
   --bg-hover: #383838;
@@ -67,7 +69,7 @@
   --radius: 6px;
   --sidebar-width: 260px;
   --header-height: 64px;
-  font-family: 'CalSansUI', system-ui, sans-serif;
+  font-family: 'Face', system-ui, sans-serif;
   color-scheme: dark;
 }
 

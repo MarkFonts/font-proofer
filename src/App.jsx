@@ -3437,7 +3437,7 @@ function CalIcon() {
   )
 }
 function BigIcon({ className }) {
-  return <svg className={className} width="20" height="14" viewBox="0 0 20 14" fill="none"><text x="10" y="12" textAnchor="middle" fontSize="13" fill="currentColor" fontFamily="'CalSansUI', system-ui, sans-serif" style={{fontSynthesis:'none'}}>Aa</text></svg>
+  return <svg className={className} width="20" height="14" viewBox="0 0 20 14" fill="none"><text x="10" y="12" textAnchor="middle" fontSize="13" fill="currentColor" fontFamily="'Face', system-ui, sans-serif" style={{fontSynthesis:'none'}}>Aa</text></svg>
 }
 function ParaIcon() {
   return (
