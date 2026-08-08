@@ -47,8 +47,10 @@
 }
 
 :root {
-  /* House UI font token (shared primitives read it, e.g. GlyphPicker chrome). */
-  --ui-font: 'CalSansUI', system-ui, sans-serif;
+  /* House UI font token (shared primitives read it, e.g. GlyphPicker chrome).
+     'CalSansUI' is a legacy @font-face alias of the same CalSansVF.ttf — kept in the
+     chain only so this token can't diverge from the app's existing rules. */
+  --ui-font: 'CalSans', 'CalSansUI', sans-serif;
   --bg: #242424;
   --bg-elevated: #2e2e2e;
   --bg-hover: #383838;
