@@ -8,7 +8,7 @@ import {
   splitInlineMarkup, isPlainRun,
   AxisSlider as SliderRow,
   makeGlyphSets, parseCmapRanges, isSupported,
-  nbMinus, EditableTextBlock, GlyphPicker, measureGlyphMetrics,
+  nbMinus, EditableTextBlock, GlyphPicker, measureGlyphMetrics, enumerateCmap,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
@@ -2589,9 +2589,12 @@ export default function App() {
                 label: activeGlyphKey,
                 // explicit cells: Miscellaneous entries are ◌-composites (multi-codepoint),
                 // so the chars-string shorthand would split them; filter app-side.
-                cells: glyphSets[activeGlyphKey]
-                  .filter(g => isSupported(g, supportedRanges, g.charCodeAt(0) === 0x25CC))
-                  .map(ch => ({ ch })),
+                // "All" = the font's OWN cmap, fully enumerated — curated sets are
+                // hand-picked subsets for quick browsing.
+                cells: (activeGlyphKey === 'All' && supportedRanges
+                  ? enumerateCmap(supportedRanges)
+                  : glyphSets[activeGlyphKey].filter(g => isSupported(g, supportedRanges, g.charCodeAt(0) === 0x25CC))
+                ).map(ch => ({ ch })),
               }]}
               fontFamily={previewStyle.fontFamily}
               fontVariationSettings={fontVariationSettings}
