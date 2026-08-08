@@ -47,6 +47,8 @@
 }
 
 :root {
+  /* House UI font token (shared primitives read it, e.g. GlyphPicker chrome). */
+  --ui-font: 'CalSansUI', system-ui, sans-serif;
   --bg: #242424;
   --bg-elevated: #2e2e2e;
   --bg-hover: #383838;
