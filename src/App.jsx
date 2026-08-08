@@ -8,7 +8,7 @@ import {
   splitInlineMarkup, isPlainRun,
   AxisSlider as SliderRow,
   makeGlyphSets, parseCmapRanges, isSupported,
-  nbMinus, EditableTextBlock,
+  nbMinus, EditableTextBlock, GlyphPicker, measureGlyphMetrics,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
@@ -1219,6 +1219,17 @@ export default function App() {
   // Glyph sets for the Glyphs view — the static cmap-derived groups.
   const glyphSets = GLYPH_SETS
   const activeGlyphKey = glyphSets[activeGlyphSet] ? activeGlyphSet : 'All'
+
+  // Live design metrics for the Glyphs picker specimen — measured off the rendered
+  // instance (any uploaded font, any axis position; re-measured as axes move).
+  const [glyphMetrics, setGlyphMetrics] = useState(null)
+  useEffect(() => {
+    if (mode !== 'glyphs' || !fontFace) return
+    const m = () => { const r = measureGlyphMetrics(previewStyle.fontFamily, fontVariationSettings); if (r) setGlyphMetrics(r) }
+    m()
+    document.fonts?.ready.then(m).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, fontFace, currentStyleKey, fontVariationSettings])
 
   const previewStyle = {
     fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
@@ -2573,29 +2584,24 @@ export default function App() {
                 Showing every glyph in the set. To trim this to the characters this font actually contains, import an uncompressed <strong>.ttf</strong> or <strong>.otf</strong>.
               </div>
             )}
-            <div className="glyphs-grid" style={{
-              fontFamily: previewStyle.fontFamily,
-              fontStyle,
-              fontVariationSettings,
-              fontOpticalSizing: 'none',
-              fontFeatureSettings: proofFeatureSettings,
-              fontSize: `${Math.min(fontSize, 120)}px`,
-              lineHeight: 1,
-              transition: 'font-variation-settings 0.15s ease',
-            }}>
-              {glyphSets[activeGlyphKey].filter(glyph =>
-                isSupported(glyph, supportedRanges, glyph.charCodeAt(0) === 0x25CC)
-              ).map((glyph, i) => {
-                const isCombining = glyph.charCodeAt(0) === 0x25CC
-                const cp = glyph.codePointAt(isCombining ? 1 : 0)
-                return (
-                  <div key={i} className="glyph-cell">
-                    <div className="glyph-char">{glyph}</div>
-                    <div className="glyph-code">U+{cp.toString(16).toUpperCase().padStart(4, '0')}</div>
-                  </div>
-                )
-              })}
-            </div>
+            <GlyphPicker
+              groups={[{
+                label: activeGlyphKey,
+                // explicit cells: Miscellaneous entries are ◌-composites (multi-codepoint),
+                // so the chars-string shorthand would split them; filter app-side.
+                cells: glyphSets[activeGlyphKey]
+                  .filter(g => isSupported(g, supportedRanges, g.charCodeAt(0) === 0x25CC))
+                  .map(ch => ({ ch })),
+              }]}
+              fontFamily={previewStyle.fontFamily}
+              fontVariationSettings={fontVariationSettings}
+              fontFeatureSettings={proofFeatureSettings}
+              fontOpticalSizing="none"
+              metrics={glyphMetrics ?? undefined}
+              names="nice"
+              layout="side"
+              style={{ fontStyle }}
+            />
           </div>
         )}
       </main>
