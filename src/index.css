@@ -68,12 +68,12 @@
   --edit-rail: rgba(255,255,255,0.28);
   --radius: 6px;
 
-  /* NOTE: deliberately no --surface-1/2/3 here. The shared primitives already carry
-     two-level fallbacks (var(--surface-2, var(--bg-elevated))), so defining these
-     names silently REPOINTS ~34 call sites rather than adding anything. The two
-     vocabularies also disagree about what --surface-1 means: UiKitBoard falls back to
-     --bg, GlyphPicker wants a raised cell. That mapping is a Phase 2 decision, not a
-     Phase 1 alias. See wm-primitives#3. */
+  /* The house three-step scale (wm-primitives#3). This app already had exactly this
+     shape, so these are aliases, not new values — --bg-elevated / --bg-hover stay as
+     the app's own names and its 38 uses of them are untouched. The primitives now ask
+     for --surface / --surface-hi and get the same colours they were falling back to. */
+  --surface:    var(--bg-elevated);
+  --surface-hi: var(--bg-hover);
   /* --text as "R, G, B" for the ink levels in type.css. COMMA-separated on purpose:
      ink is rgba(var(--text-rgb), a), and the rgb(... / a) slash form needs
      space-separated channels, so mixing them drops the colour silently. */
