@@ -67,6 +67,18 @@
   --track-empty: #2b2b2b;
   --edit-rail: rgba(255,255,255,0.28);
   --radius: 6px;
+
+  /* NOTE: deliberately no --surface-1/2/3 here. The shared primitives already carry
+     two-level fallbacks (var(--surface-2, var(--bg-elevated))), so defining these
+     names silently REPOINTS ~34 call sites rather than adding anything. The two
+     vocabularies also disagree about what --surface-1 means: UiKitBoard falls back to
+     --bg, GlyphPicker wants a raised cell. That mapping is a Phase 2 decision, not a
+     Phase 1 alias. See wm-primitives#3. */
+  /* --text as "R, G, B" for the ink levels in type.css. COMMA-separated on purpose:
+     ink is rgba(var(--text-rgb), a), and the rgb(... / a) slash form needs
+     space-separated channels, so mixing them drops the colour silently. */
+  --text-rgb: 255, 255, 255;
+
   --sidebar-width: 260px;
   --header-height: 64px;
   font-family: 'Face', system-ui, sans-serif;
@@ -88,6 +100,7 @@
   --muted: rgba(17,17,17,0.45);
   --track-empty: #d4e5f3;
   --edit-rail: rgba(17,17,17,0.30);
+  --text-rgb: 17, 17, 17;
 }
 
 @media (prefers-color-scheme: light) {
@@ -106,6 +119,7 @@
     --muted: rgba(17,17,17,0.45);
     --track-empty: #d4e5f3;
     --edit-rail: rgba(17,17,17,0.30);
+    --text-rgb: 17, 17, 17;
   }
 }
 
