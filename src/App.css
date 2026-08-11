@@ -1356,7 +1356,7 @@
   border-right: 1px solid #1e1e1e;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--pad-3, 8px);
 }
 
 .calcom-cover {
@@ -1397,7 +1397,7 @@
   padding: var(--pad-6, 24px) var(--pad-6, 24px) var(--pad-7, 32px);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--pad-3, 8px);
 }
 
 .calcom-event-host { color: rgba(245,250,255,0.55); outline: none; }
@@ -1825,7 +1825,7 @@
 }
 .coss-event-card--paid::before   { background: #22c55e; }
 .coss-event-card--hidden::before { background: #f59e0b; }
-.coss-card-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.coss-card-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--pad-1, 4px); }
 .coss-card-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .coss-card-title {
   color: #f0f0f0;
@@ -1926,7 +1926,7 @@
 .coss-ctx-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--pad-3, 8px);
   width: 100%;
   padding: var(--pad-3, 8px) var(--pad-3, 8px);
   border: none;
@@ -1949,7 +1949,7 @@
 .coss-bookings-tabs-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--pad-3, 8px);
   margin-bottom: 20px;
 }
 .coss-bookings-tabs {
@@ -1974,7 +1974,7 @@
 .coss-bookings-filter-btn {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--pad-1, 4px);
   padding: var(--pad-1, 4px) var(--pad-4, 12px);
   border: 1px solid rgba(255,255,255,0.15);
   background: transparent;
@@ -1992,7 +1992,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: var(--pad-3, 8px);
   padding: var(--pad-9, 64px) var(--pad-6, 24px);
   text-align: center;
 }
@@ -2004,7 +2004,7 @@
 .coss-booking-row {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
+  gap: var(--pad-5, 16px);
   padding: var(--pad-5, 16px) var(--pad-5, 16px);
   background: rgba(255,255,255,0.025);
   border-radius: 10px;
@@ -2026,7 +2026,7 @@
   display: grid;
   grid-template-columns: 160px 1fr;
   row-gap: 3px;
-  column-gap: 20px;
+  column-gap: var(--pad-5, 16px);
   align-items: baseline;
 }
 .coss-booking-date-label { color: rgba(255,255,255,0.8); cursor: pointer; }
