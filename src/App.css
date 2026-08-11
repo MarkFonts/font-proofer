@@ -74,7 +74,7 @@
   gap: 16px;
   border: 1.5px dashed var(--text-muted);
   border-radius: 16px;
-  padding: 60px 80px;
+  padding: var(--pad-9, 64px);
   color: var(--text-muted);
   font-size: var(--type-body-size, 1rem);
   letter-spacing: 0.04em;
@@ -534,7 +534,7 @@
 
 /* ── Big word mode ───────────────────────────────────────────────────────── */
 .preview-big {
-  padding: 60px 64px;
+  padding: var(--pad-9, 64px);
   min-height: 100%;
   display: flex;
   align-items: flex-start;
@@ -672,7 +672,7 @@
 
 /* ── Paragraph mode ──────────────────────────────────────────────────────── */
 .preview-paragraph {
-  padding: 60px 80px;
+  padding: var(--pad-9, 64px);
   max-width: 900px;
   min-height: 100%;
   position: relative;
@@ -1993,7 +1993,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 60px 24px;
+  padding: var(--pad-9, 64px) var(--pad-6, 24px);
   text-align: center;
 }
 .coss-empty-icon { width: 32px; height: 32px; color: rgba(255,255,255,0.2); margin-bottom: 4px; }
