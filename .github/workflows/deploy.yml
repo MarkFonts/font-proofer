@@ -25,9 +25,12 @@ jobs:
           submodules: recursive   # pull the wm-primitives shared submodule
       - name: Build against latest wm-primitives (main)
         run: git submodule update --remote shared
+      # Pushes with the GITHUB_TOKEN that actions/checkout leaves configured (the job
+      # declares contents: write). It used to name secrets.WORDMARK_DEPLOY_TOKEN3, which
+      # does not exist in THIS repo -- only TOKEN2 does -- so the URL carried an empty
+      # credential and the push succeeded purely because checkout's persisted extraheader
+      # overrode it. It worked, but for a reason the file did not state.
       - name: Record the primitives commit that was actually built
-        env:
-          TOKEN: ${{ secrets.WORDMARK_DEPLOY_TOKEN3 }}
         run: |
           # The build above uses --remote, i.e. latest wm-primitives main, NOT the pin in
           # this repo. Without this step the recorded pointer drifts behind what is live,
@@ -43,7 +46,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add shared
           git commit -m "Bump wm-primitives to ${SHA} (built by deploy) [skip ci]"
-          git push "https://x-access-token:${TOKEN}@github.com/MarkFonts/${GITHUB_REPOSITORY#*/}.git" HEAD:main
+          git push origin HEAD:main
 
       - uses: actions/setup-node@v5
         with:
