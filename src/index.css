@@ -71,12 +71,12 @@
   /* The house three-step scale (wm-primitives#3). This app already had exactly this
      shape, so these are aliases, not new values — --bg-elevated / --bg-hover stay as
      the app's own names and its 38 uses of them are untouched. The primitives now ask
-     for --surface / --surface-hi and get the same colours they were falling back to. */
+     for --surface / --surface-hi and get the same colors they were falling back to. */
   --surface:    var(--bg-elevated);
   --surface-hi: var(--bg-hover);
   /* --text as "R, G, B" for the ink levels in type.css. COMMA-separated on purpose:
      ink is rgba(var(--text-rgb), a), and the rgb(... / a) slash form needs
-     space-separated channels, so mixing them drops the colour silently. */
+     space-separated channels, so mixing them drops the color silently. */
   --text-rgb: 255, 255, 255;
 
   --sidebar-width: 260px;
