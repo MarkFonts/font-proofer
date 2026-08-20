@@ -591,7 +591,7 @@ function FittedParagraph({ text, opts, indentPx, fallback }) {
     const ro = new ResizeObserver(run)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [text, indentPx, opts.mode, opts.ragWidth, opts.maxWordSpacing, opts.maxTracking, opts.maxGlyphScaling])
+  }, [text, indentPx, opts.mode, opts.center, opts.ragWidth, opts.maxWordSpacing, opts.maxTracking, opts.maxGlyphScaling])
 
   return (
     <div ref={ref}>
@@ -818,7 +818,8 @@ export default function App() {
 
   // View mode
   const [fit, setFit] = useState(FIT_DEFAULTS)   // paragraph line fitting (flattersatz.js)
-  const [fitOpen, setFitOpen] = useState(true)   // its options, rolled up into the mode button
+  // Justify is an ALIGNMENT; Swiss Rag is a rag treatment that rides on any of the
+  // other three. Only one fitting mode can be live, so it is derived, never stored.
   const [mode, setMode] = useState(() => resolveInitialMode(isCalcom)) // 'big' | 'paragraph' | 'glyphs' | 'scale' | 'calcom' | 'coss'
 
   // Cal.com preview state
@@ -887,6 +888,9 @@ export default function App() {
 
   // Alignment
   const [textAlign, setTextAlign] = useState('left')
+  const [swissRag, setSwissRag] = useState(false)  // the rag layer, on top of any alignment
+  const fitMode = textAlign === 'justify' ? 'justified' : (swissRag ? 'flattersatz' : 'off')
+  const fitOpts = { ...fit, mode: fitMode, center: textAlign === 'center' }
 
   // Glyph set selection
   const [activeGlyphSet, setActiveGlyphSet] = useState('All')
@@ -2021,11 +2025,15 @@ export default function App() {
                     paraStyles[effectiveParaStyle].tracking !== DEFAULT_PARA_STYLES[effectiveParaStyle].tracking ||
                     paraStyles[effectiveParaStyle].leading !== DEFAULT_PARA_STYLES[effectiveParaStyle].leading
                   : fontSize !== 200 || letterSpacing !== 0 || lineHeight !== 1.1 || textAlign !== 'left'
+                // Fitting counts as typography: a rag or a spent budget is a change to
+                // the setting, so it lights the reset and clears with it.
+                const fitDirty = swissRag || textAlign === 'justify' ||
+                  Object.keys(FIT_DEFAULTS).some(k => fit[k] !== FIT_DEFAULTS[k])
                 return (
                   <button
-                    className={`align-btn ${isDirty ? 'active' : 'reset-clean'}`}
+                    className={`align-btn ${isDirty || fitDirty ? 'active' : 'reset-clean'}`}
                     title="Reset typography"
-                    style={isDirty ? {} : { pointerEvents: 'none' }}
+                    style={isDirty || fitDirty ? {} : { pointerEvents: 'none' }}
                     onClick={() => {
                       if (effectiveParaStyle) {
                         setParaStyles(prev => ({
@@ -2038,18 +2046,26 @@ export default function App() {
                         setLineHeight(1.1)
                         setTextAlign('left')
                       }
+                      setSwissRag(false)
+                      setFit(FIT_DEFAULTS)
                     }}
                   ><ResetIcon /></button>
                 )
               })()}
-              {['left', 'center', 'right'].map(a => (
+              {['left', 'center', 'right', 'justify'].map(a => (
                 <button
                   key={a}
                   className={`align-btn ${textAlign === a ? 'active' : ''}`}
-                  onClick={() => setTextAlign(a)}
-                  title={`Align ${a}`}
+                  onClick={() => {
+                    setTextAlign(a)
+                    // A browser's own justify flexes word space and nothing else, so
+                    // arriving here starts from that and lets you spend upward.
+                    if (a === 'justify') setFit(f => ({ ...f, ragWidth: 0, maxTracking: 100, maxWordSpacing: 100, maxGlyphScaling: 100 }))
+                  }}
+                  title={a === 'justify' ? 'Justify' : `Align ${a}`}
                 >
-                  {a === 'left' ? <AlignLeftIcon /> : a === 'center' ? <AlignCenterIcon /> : <AlignRightIcon />}
+                  {a === 'left' ? <AlignLeftIcon /> : a === 'center' ? <AlignCenterIcon />
+                    : a === 'right' ? <AlignRightIcon /> : <AlignJustifyIcon />}
                 </button>
               ))}
             </div>
@@ -2207,45 +2223,37 @@ export default function App() {
           )}
           {mode === 'paragraph' && (
             <>
-              <div className="fit-modes" role="group" aria-label="Line fitting">
-                {[['off', 'Rag'], ['justified', 'Justified'], ['flattersatz', 'Flattersatz']].map(([v, label]) => {
-                  const active = fit.mode === v
-                  // Clicking the ACTIVE mode again rolls its options up into the button,
-                  // which then carries a dot to say it is still holding them.
-                  const holding = active && v !== 'off' && !fitOpen
-                  return (
-                    <button
-                      key={v}
-                      className={`fit-mode${active ? ' active' : ''}${holding ? ' holding' : ''}`}
-                      aria-pressed={active}
-                      aria-expanded={v === 'off' ? undefined : (active ? fitOpen : false)}
-                      onClick={() => {
-                        if (active) setFitOpen(o => !o)
-                        else { setFit(f => ({ ...f, mode: v })); setFitOpen(true) }
-                      }}
-                    >{label}{holding && <span className="fit-dot" aria-hidden="true" />}</button>
-                  )
-                })}
-              </div>
+              {/* Alignment owns "justified" now, so this only governs the RAG — and it
+                  governs every rag, left, centred or right. Off means the browser's own
+                  line breaking, untouched. */}
+              <button
+                className={`fit-mode swiss-rag${swissRag ? ' active' : ''}`}
+                aria-pressed={swissRag}
+                aria-expanded={swissRag}
+                onClick={() => setSwissRag(v => !v)}
+              >
+                Swiss Rag
+                {swissRag && <span className="fit-dot" aria-hidden="true" />}
+              </button>
               {/* Heights are INLINE, not from a class: the stylesheet rule for the open
                   state loses to something in the cascade here, and an inline max-height
                   cannot lose. Rag width gets its own collapse so switching Justified <->
                   Flattersatz slides that one row in rather than jumping the panel. */}
               <div
                 className="fit-options"
-                style={{ maxHeight: fit.mode !== 'off' && fitOpen ? 340 : 0,
-                         opacity: fit.mode !== 'off' && fitOpen ? 1 : 0 }}
+                style={{ maxHeight: fitMode !== 'off' ? 340 : 0,
+                         opacity: fitMode !== 'off' ? 1 : 0 }}
               >
               {/* Rows follow the ORDER OF EFFECT — the measure first, then the three
                   adjustments in the order the budget spends them, then the indent. */}
-              <div className="fit-row-collapse" style={{ maxHeight: fit.mode === 'flattersatz' ? 64 : 0 }}>
+              <div className="fit-row-collapse" style={{ maxHeight: fitMode === 'flattersatz' ? 64 : 0 }}>
                 <SliderRow
                   label="Rag width" value={fit.ragWidth} min={0} max={220} step={1}
                   onChange={v => setFit(f => ({ ...f, ragWidth: v }))}
                   display={`${fit.ragWidth}px`}
                 />
               </div>
-              {fit.mode !== 'off' && (
+              {fitMode !== 'off' && (
                 <>
                   <SliderRow
                     label="Max tracking" value={fit.maxTracking} min={100} max={120} step={1}
@@ -2579,11 +2587,11 @@ export default function App() {
                     // inline italic/bold runs — so a marked-up block keeps normal flow.
                     // isPlainRun takes TOKENS, not a string: given a string it is false
                     // for anything but a single character, so the fitted path never ran.
-                    if (fit.mode === 'off' || !isPlainRun(splitInlineMarkup(v))) return inline
+                    if (fitMode === 'off' || !isPlainRun(splitInlineMarkup(v))) return inline
                     return (
                       <FittedParagraph
                         text={v}
-                        opts={fit}
+                        opts={fitOpts}
                         indentPx={i === 0 ? fit.firstIndent : fit.indent}
                         fallback={inline}
                       />
@@ -3590,29 +3598,44 @@ function SlidersIcon() {
   )
 }
 function AlignLeftIcon() {
+  // One long and one short length across every alignment icon, so the row reads as a set.
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="1" y="2" width="12" height="1.4" rx="0.7" fill="currentColor"/>
-      <rect x="1" y="5.5" width="8" height="1.4" rx="0.7" fill="currentColor"/>
-      <rect x="1" y="9" width="10" height="1.4" rx="0.7" fill="currentColor"/>
+      <rect x="2" y="1.6" width="10" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="2" y="5.0" width="6" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="2" y="8.4" width="10" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="2" y="11.8" width="6" height="1.2" rx="0.6" fill="currentColor"/>
     </svg>
   )
 }
 function AlignCenterIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="1" y="2" width="12" height="1.4" rx="0.7" fill="currentColor"/>
-      <rect x="3" y="5.5" width="8" height="1.4" rx="0.7" fill="currentColor"/>
-      <rect x="2" y="9" width="10" height="1.4" rx="0.7" fill="currentColor"/>
+      <rect x="2.0" y="1.6" width="10" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="4.0" y="5.0" width="6" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="2.0" y="8.4" width="10" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="4.0" y="11.8" width="6" height="1.2" rx="0.6" fill="currentColor"/>
     </svg>
   )
 }
 function AlignRightIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="1" y="2" width="12" height="1.4" rx="0.7" fill="currentColor"/>
-      <rect x="5" y="5.5" width="8" height="1.4" rx="0.7" fill="currentColor"/>
-      <rect x="3" y="9" width="10" height="1.4" rx="0.7" fill="currentColor"/>
+      <rect x="2" y="1.6" width="10" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="6" y="5.0" width="6" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="2" y="8.4" width="10" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="6" y="11.8" width="6" height="1.2" rx="0.6" fill="currentColor"/>
+    </svg>
+  )
+}
+function AlignJustifyIcon() {
+  // Three flush lines and a short last one: justification never forces the final line.
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="2" y="1.6" width="10" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="2" y="5.0" width="10" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="2" y="8.4" width="10" height="1.2" rx="0.6" fill="currentColor"/>
+      <rect x="2" y="11.8" width="6" height="1.2" rx="0.6" fill="currentColor"/>
     </svg>
   )
 }

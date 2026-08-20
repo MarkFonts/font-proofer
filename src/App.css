@@ -435,14 +435,15 @@
 /* ── Alignment buttons ───────────────────────────────────────────────────── */
 .align-group {
   display: flex;
-  gap: 4px;
+  gap: 3px;      /* 4 -> 3: five buttons in the width three used to have */
 }
 
 .align-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  /* 28, not 32: the row now carries five — reset plus four alignments. */
+  width: 28px;
   height: 28px;
   border-radius: var(--radius);
   background: var(--bg-elevated);
@@ -2256,6 +2257,7 @@
 /* Line-fitting mode picker (paragraph view). Exclusive: rag, justified, or the
    alternating measure. Sits with the typography controls, so it borrows their metrics. */
 .fit-modes { display: flex; gap: var(--spacing-01); margin-bottom: var(--spacing-03); }
+.swiss-rag { width: 100%; margin-bottom: var(--spacing-03); text-align: left; }
 .fit-mode {
   flex: 1; padding: var(--spacing-02) var(--spacing-03);
   font: inherit; font-size: var(--type-ui-size, 0.75rem);
