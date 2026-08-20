@@ -209,7 +209,7 @@ input[type="text"] {
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: var(--radius);
-  padding: var(--pad-2, 6px) var(--pad-3, 8px);
+  padding: var(--spacing-02, 6px) var(--spacing-03, 8px);
   font-family: inherit;
   font-size: var(--type-ui-size, 0.75rem);
   outline: none;

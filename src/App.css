@@ -74,7 +74,7 @@
   gap: 16px;
   border: 1.5px dashed var(--text-muted);
   border-radius: 16px;
-  padding: var(--pad-9, 64px);
+  padding: var(--spacing-09, 64px);
   color: var(--text-muted);
   font-size: var(--type-body-size, 1rem);
   letter-spacing: 0.04em;
@@ -145,7 +145,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--pad-5, 16px) var(--pad-5, 16px) var(--pad-5, 16px);
+  padding: var(--spacing-05, 16px) var(--spacing-05, 16px) var(--spacing-05, 16px);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -226,7 +226,7 @@
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: var(--pad-3, 8px) var(--pad-4, 12px);
+  padding: var(--spacing-03, 8px) var(--spacing-04, 12px);
   font-size: var(--type-ui-size, 0.75rem);
   color: var(--text);
   font-family:  'Face', system-ui, sans-serif;
@@ -290,7 +290,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: var(--pad-3, 8px) var(--pad-3, 8px);
+  padding: var(--spacing-03, 8px) var(--spacing-03, 8px);
   border-radius: var(--radius);
   font-size: var(--type-ui-size, 0.75rem);
   font-family:  'Face', system-ui, sans-serif;
@@ -392,7 +392,7 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 8px center;
-    padding-right: var(--pad-6, 24px);
+    padding-right: var(--spacing-06, 24px);
     appearance: none;
     -webkit-appearance: none;
   }
@@ -475,7 +475,7 @@
 }
 
 .glyph-set-btn {
-  padding: var(--pad-2, 6px) var(--pad-3, 8px);
+  padding: var(--spacing-02, 6px) var(--spacing-03, 8px);
   border-radius: var(--radius);
   font-size: var(--type-ui-size, 0.75rem);
   font-family:  'Face', system-ui, sans-serif;
@@ -534,7 +534,7 @@
 
 /* ── Big word mode ───────────────────────────────────────────────────────── */
 .preview-big {
-  padding: var(--pad-9, 64px);
+  padding: var(--spacing-09, 64px);
   min-height: 100%;
   display: flex;
   align-items: flex-start;
@@ -601,7 +601,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: var(--pad-2, 6px) var(--pad-4, 12px);
+  padding: var(--spacing-02, 6px) var(--spacing-04, 12px);
   cursor: pointer;
   border: none;
   border-bottom: 1px solid var(--border-subtle);
@@ -655,7 +655,7 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 3px;
-  padding: var(--pad-nudge, 2px) var(--pad-1, 4px);
+  padding: var(--nudge, 2px) var(--spacing-01, 4px);
   white-space: nowrap;
   font-feature-settings: "tnum";
 }
@@ -672,7 +672,7 @@
 
 /* ── Paragraph mode ──────────────────────────────────────────────────────── */
 .preview-paragraph {
-  padding: var(--pad-9, 64px);
+  padding: var(--spacing-09, 64px);
   max-width: 900px;
   min-height: 100%;
   position: relative;
@@ -740,12 +740,12 @@
 
 /* ── Glyphs mode ─────────────────────────────────────────────────────────── */
 .preview-glyphs {
-  padding: var(--pad-7, 32px) var(--pad-8, 48px);
+  padding: var(--spacing-07, 32px) var(--spacing-08, 48px);
 }
 
 .glyph-match-note {
   margin-bottom: 20px;
-  padding: var(--pad-3, 8px) var(--pad-4, 12px);
+  padding: var(--spacing-03, 8px) var(--spacing-04, 12px);
   border-radius: var(--radius);
   border: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
@@ -771,7 +771,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--pad-5, 16px) var(--pad-4, 12px) var(--pad-3, 8px);
+  padding: var(--spacing-05, 16px) var(--spacing-04, 12px) var(--spacing-03, 8px);
   border-radius: var(--radius);
   border: 1px solid var(--border-subtle);
   min-width: 80px;
@@ -808,7 +808,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: var(--pad-5, 16px) 0;
+  padding: var(--spacing-05, 16px) 0;
   border-bottom: 1px solid var(--border-subtle);
   cursor: pointer;
   border-radius: var(--radius);
@@ -942,7 +942,7 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: var(--pad-1, 4px) var(--pad-3, 8px);
+  padding: var(--spacing-01, 4px) var(--spacing-03, 8px);
   border-bottom: 1px solid var(--border-subtle);
   border-radius: 10px 10px 0 0;
   position: sticky;
@@ -1000,7 +1000,7 @@
 }
 
 .preview-preset-btn {
-  padding: var(--pad-1, 4px) var(--pad-4, 12px);
+  padding: var(--spacing-01, 4px) var(--spacing-04, 12px);
   border-radius: 20px;
   font-size: var(--type-ui-size, 0.75rem);
   font-family: 'Face', system-ui, sans-serif;
@@ -1064,7 +1064,7 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: var(--pad-4, 12px) var(--pad-4, 12px);
+    padding: var(--spacing-04, 12px) var(--spacing-04, 12px);
     font-size: var(--type-ui-size, 0.75rem);
     font-family: 'Face', system-ui, sans-serif;
     color: var(--text-muted);
@@ -1099,7 +1099,7 @@
 
   .mobile-sub-btn {
     flex-shrink: 0;
-    padding: var(--pad-1, 4px) var(--pad-4, 12px);
+    padding: var(--spacing-01, 4px) var(--spacing-04, 12px);
     border-radius: 20px;
     font-size: var(--type-ui-size, 0.75rem);
     font-family: 'Face', system-ui, sans-serif;
@@ -1254,15 +1254,15 @@
   }
 
   .preview-big {
-    padding: var(--pad-5, 16px) var(--pad-5, 16px);
+    padding: var(--spacing-05, 16px) var(--spacing-05, 16px);
   }
 
   .preview-paragraph {
-    padding: var(--pad-5, 16px) var(--pad-5, 16px) !important; /* override inline paddingRight from escape bar state */
+    padding: var(--spacing-05, 16px) var(--spacing-05, 16px) !important; /* override inline paddingRight from escape bar state */
   }
 
   .preview-scale {
-    padding: var(--pad-5, 16px) var(--pad-5, 16px) var(--pad-9, 64px);
+    padding: var(--spacing-05, 16px) var(--spacing-05, 16px) var(--spacing-09, 64px);
   }
 
   .escape-bar {
@@ -1310,7 +1310,7 @@
 }
 .calcom-role-chip {
   font-size: var(--type-ui-size, 0.75rem);
-  padding: var(--pad-tick, 3px) var(--pad-3, 8px);
+  padding: var(--tick, 3px) var(--spacing-03, 8px);
   border-radius: 20px;
   border: 1px solid var(--border);
   color: var(--text-muted);
@@ -1356,7 +1356,7 @@
   border-right: 1px solid #1e1e1e;
   display: flex;
   flex-direction: column;
-  gap: var(--pad-3, 8px);
+  gap: var(--spacing-03, 8px);
 }
 
 .calcom-cover {
@@ -1394,10 +1394,10 @@
 }
 
 .calcom-left-body {
-  padding: var(--pad-6, 24px) var(--pad-6, 24px) var(--pad-7, 32px);
+  padding: var(--spacing-06, 24px) var(--spacing-06, 24px) var(--spacing-07, 32px);
   display: flex;
   flex-direction: column;
-  gap: var(--pad-3, 8px);
+  gap: var(--spacing-03, 8px);
 }
 
 .calcom-event-host { color: rgba(245,250,255,0.55); outline: none; }
@@ -1498,7 +1498,7 @@
 
 .calcom-day {
   text-align: center;
-  padding: var(--pad-3, 8px) var(--pad-1, 4px);
+  padding: var(--spacing-03, 8px) var(--spacing-01, 4px);
   min-height: 44px;
   display: flex;
   align-items: center;
@@ -1596,13 +1596,13 @@
     border-bottom: 1px solid #1e1e1e;
   }
   .calcom-left-body {
-    padding: var(--pad-5, 16px) var(--pad-5, 16px) var(--pad-6, 24px);
+    padding: var(--spacing-05, 16px) var(--spacing-05, 16px) var(--spacing-06, 24px);
   }
   .calcom-right {
     flex-direction: column;
   }
   .calcom-calendar-wrap {
-    padding: var(--pad-6, 24px) var(--pad-5, 16px) var(--pad-5, 16px);
+    padding: var(--spacing-06, 24px) var(--spacing-05, 16px) var(--spacing-05, 16px);
   }
   /* Available days show as tappable tiles */
   .calcom-day:not(.empty):not(.past) {
@@ -1616,7 +1616,7 @@
     width: 100%;
     border-left: none;
     border-top: 1px solid #1e1e1e;
-    padding: var(--pad-5, 16px);
+    padding: var(--spacing-05, 16px);
     overflow: visible;
   }
   .calcom-time-list {
@@ -1665,7 +1665,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--pad-1, 4px) var(--pad-4, 12px) var(--pad-4, 12px);
+  padding: var(--spacing-01, 4px) var(--spacing-04, 12px) var(--spacing-04, 12px);
 }
 .coss-wordmark {
   height: 16px;
@@ -1693,7 +1693,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: var(--pad-2, 6px) var(--pad-3, 8px);
+  padding: var(--spacing-02, 6px) var(--spacing-03, 8px);
   border-radius: 7px;
   border: none;
   background: transparent;
@@ -1722,7 +1722,7 @@
 .coss-ai-badge {
   margin-left: auto;
   font-size: var(--type-micro-size, 0.5625rem);
-  padding: var(--pad-nudge, 2px) var(--pad-2, 6px) var(--pad-nudge, 2px) var(--pad-1, 4px);
+  padding: var(--nudge, 2px) var(--spacing-02, 6px) var(--nudge, 2px) var(--spacing-01, 4px);
   border-radius: 99px;
   background: rgba(139,92,246,0.25);
   color: #c4b5fd;
@@ -1760,7 +1760,7 @@
   display: flex;
   flex-direction: column;
   background: #161616;
-  padding: var(--pad-6, 24px) var(--pad-7, 32px);
+  padding: var(--spacing-06, 24px) var(--spacing-07, 32px);
   overflow-y: auto;
 }
 .coss-page-header {
@@ -1791,7 +1791,7 @@
 .coss-search-icon { width: 14px; height: 14px; color: rgba(255,255,255,0.4); }
 .coss-new-btn {
   height: 32px;
-  padding: 0 var(--pad-4, 12px);
+  padding: 0 var(--spacing-04, 12px);
   border-radius: 7px;
   border: none;
   background: #f0f0f0;
@@ -1806,7 +1806,7 @@
 .coss-event-card {
   display: flex;
   align-items: center;
-  padding: var(--pad-4, 12px) var(--pad-5, 16px);
+  padding: var(--spacing-04, 12px) var(--spacing-05, 16px);
   border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.07);
   background: #1e1e1e;
@@ -1825,7 +1825,7 @@
 }
 .coss-event-card--paid::before   { background: #22c55e; }
 .coss-event-card--hidden::before { background: #f59e0b; }
-.coss-card-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--pad-1, 4px); }
+.coss-card-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--spacing-01, 4px); }
 .coss-card-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .coss-card-title {
   color: #f0f0f0;
@@ -1920,15 +1920,15 @@
 .coss-ctx-section {
   font-size: var(--type-ui-size, 0.75rem);
   color: rgba(255,255,255,0.35);
-  padding: var(--pad-2, 6px) var(--pad-3, 8px) var(--pad-1, 4px);
+  padding: var(--spacing-02, 6px) var(--spacing-03, 8px) var(--spacing-01, 4px);
   letter-spacing: 0.02em;
 }
 .coss-ctx-item {
   display: flex;
   align-items: center;
-  gap: var(--pad-3, 8px);
+  gap: var(--spacing-03, 8px);
   width: 100%;
-  padding: var(--pad-3, 8px) var(--pad-3, 8px);
+  padding: var(--spacing-03, 8px) var(--spacing-03, 8px);
   border: none;
   background: transparent;
   color: rgba(255,255,255,0.85);
@@ -1949,7 +1949,7 @@
 .coss-bookings-tabs-row {
   display: flex;
   align-items: center;
-  gap: var(--pad-3, 8px);
+  gap: var(--spacing-03, 8px);
   margin-bottom: 20px;
 }
 .coss-bookings-tabs {
@@ -1961,7 +1961,7 @@
   padding: 3px;
 }
 .coss-bookings-tab {
-  padding: var(--pad-1, 4px) var(--pad-4, 12px);
+  padding: var(--spacing-01, 4px) var(--spacing-04, 12px);
   border: none;
   background: transparent;
   color: rgba(255,255,255,0.4);
@@ -1974,8 +1974,8 @@
 .coss-bookings-filter-btn {
   display: flex;
   align-items: center;
-  gap: var(--pad-1, 4px);
-  padding: var(--pad-1, 4px) var(--pad-4, 12px);
+  gap: var(--spacing-01, 4px);
+  padding: var(--spacing-01, 4px) var(--spacing-04, 12px);
   border: 1px solid rgba(255,255,255,0.15);
   background: transparent;
   color: rgba(255,255,255,0.5);
@@ -1992,8 +1992,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--pad-3, 8px);
-  padding: var(--pad-9, 64px) var(--pad-6, 24px);
+  gap: var(--spacing-03, 8px);
+  padding: var(--spacing-09, 64px) var(--spacing-06, 24px);
   text-align: center;
 }
 .coss-empty-icon { width: 32px; height: 32px; color: rgba(255,255,255,0.2); margin-bottom: 4px; }
@@ -2004,8 +2004,8 @@
 .coss-booking-row {
   display: flex;
   align-items: flex-start;
-  gap: var(--pad-5, 16px);
-  padding: var(--pad-5, 16px) var(--pad-5, 16px);
+  gap: var(--spacing-05, 16px);
+  padding: var(--spacing-05, 16px) var(--spacing-05, 16px);
   background: rgba(255,255,255,0.025);
   border-radius: 10px;
   position: relative;
@@ -2026,7 +2026,7 @@
   display: grid;
   grid-template-columns: 160px 1fr;
   row-gap: 3px;
-  column-gap: var(--pad-5, 16px);
+  column-gap: var(--spacing-05, 16px);
   align-items: baseline;
 }
 .coss-booking-date-label { color: rgba(255,255,255,0.8); cursor: pointer; }
@@ -2073,7 +2073,7 @@
   }
 
   .coss-main {
-    padding: var(--pad-5, 16px) var(--pad-5, 16px) var(--pad-4, 12px);
+    padding: var(--spacing-05, 16px) var(--spacing-05, 16px) var(--spacing-04, 12px);
   }
   .coss-page-header {
     margin-bottom: 16px;
@@ -2092,7 +2092,7 @@
     display: flex;
     align-items: center;
     justify-content: space-around;
-    padding: var(--pad-3, 8px) var(--pad-3, 8px);
+    padding: var(--spacing-03, 8px) var(--spacing-03, 8px);
     background: #111;
     border-top: 1px solid rgba(255,255,255,0.06);
     flex-shrink: 0;
