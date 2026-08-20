@@ -9,8 +9,8 @@ import {
   AxisSlider as SliderRow,
   makeGlyphSets, parseCmapRanges, isSupported,
   nbMinus, EditableTextBlock, GlyphPicker, measureGlyphMetrics, enumerateCmap,
-  layoutParagraph, lineStyle, FLATTERSATZ_DEFAULTS as FIT_DEFAULTS,
-  FittingControls, fittingMode, AlignmentButtons,
+  FLATTERSATZ_DEFAULTS as FIT_DEFAULTS,
+  FittingControls, fittingMode, AlignmentButtons, FittedParagraph,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
@@ -576,34 +576,6 @@ const DEFAULT_SCALE_AXIS_OVERRIDES = Object.fromEntries(TAILWIND_SCALE.map(s => 
 // Parsing is shared (splitInlineMarkup from wm-primitives); `italicStyle` /
 // `boldStyle` are per-font CSS style objects (resolved from blockStyle) so each
 // font renders its own italic/bold — variable axis or separate face alike.
-/* One paragraph, fitted line by line (flattersatz.js). Rendered only when a fitting
-   mode is on and the block is NOT focused — editing keeps the raw flow, which is the
-   contract EditableTextBlock already has. Measurement happens against this wrapper, so
-   it inherits the block's real font, axes and size. */
-function FittedParagraph({ text, opts, indentPx, fallback }) {
-  const ref = useRef(null)
-  const [lines, setLines] = useState(null)
-
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const run = () => setLines(layoutParagraph(text, el, opts, indentPx))
-    run()
-    const ro = new ResizeObserver(run)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [text, indentPx, opts.mode, opts.center, opts.ragWidth, opts.wordSpacing,
-      opts.tracking, opts.glyphScaling, opts.hyphenate])
-
-  return (
-    <div ref={ref}>
-      {lines
-        ? lines.map((l, i) => <div key={i}><span style={lineStyle(l)}>{l.text}</span></div>)
-        : fallback}
-    </div>
-  )
-}
-
 function renderInline(text, italicStyle, boldStyle) {
   const toks = splitInlineMarkup(text)
   if (isPlainRun(toks)) return text
