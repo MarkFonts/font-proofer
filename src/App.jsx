@@ -9,10 +9,10 @@ import {
   AxisSlider as SliderRow,
   makeGlyphSets, parseCmapRanges, isSupported,
   nbMinus, EditableTextBlock, GlyphPicker, measureGlyphMetrics, enumerateCmap,
+  layoutParagraph, lineStyle, FLATTERSATZ_DEFAULTS as FIT_DEFAULTS,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
-import { layoutParagraph, lineStyle, DEFAULTS as FIT_DEFAULTS } from './flattersatz'
 import fontAxesData from 'virtual:font-axes'
 import logoGif from '/public/logo.gif'
 import logoGifDark from '/public/logo_darkmode.gif'
@@ -591,7 +591,7 @@ function FittedParagraph({ text, opts, indentPx, fallback }) {
     const ro = new ResizeObserver(run)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [text, indentPx, opts.mode, opts.ragWidth, opts.maxTracking, opts.maxGlyphScaling])
+  }, [text, indentPx, opts.mode, opts.ragWidth, opts.maxWordSpacing, opts.maxTracking, opts.maxGlyphScaling])
 
   return (
     <div ref={ref}>
@@ -818,6 +818,7 @@ export default function App() {
 
   // View mode
   const [fit, setFit] = useState(FIT_DEFAULTS)   // paragraph line fitting (flattersatz.js)
+  const [fitOpen, setFitOpen] = useState(true)   // its options, rolled up into the mode button
   const [mode, setMode] = useState(() => resolveInitialMode(isCalcom)) // 'big' | 'paragraph' | 'glyphs' | 'scale' | 'calcom' | 'coss'
 
   // Cal.com preview state
@@ -2207,22 +2208,43 @@ export default function App() {
           {mode === 'paragraph' && (
             <>
               <div className="fit-modes" role="group" aria-label="Line fitting">
-                {[['off', 'Rag'], ['justified', 'Justified'], ['flattersatz', 'Flattersatz']].map(([v, label]) => (
-                  <button
-                    key={v}
-                    className={`fit-mode${fit.mode === v ? ' active' : ''}`}
-                    aria-pressed={fit.mode === v}
-                    onClick={() => setFit(f => ({ ...f, mode: v }))}
-                  >{label}</button>
-                ))}
+                {[['off', 'Rag'], ['justified', 'Justified'], ['flattersatz', 'Flattersatz']].map(([v, label]) => {
+                  const active = fit.mode === v
+                  // Clicking the ACTIVE mode again rolls its options up into the button,
+                  // which then carries a dot to say it is still holding them.
+                  const holding = active && v !== 'off' && !fitOpen
+                  return (
+                    <button
+                      key={v}
+                      className={`fit-mode${active ? ' active' : ''}${holding ? ' holding' : ''}`}
+                      aria-pressed={active}
+                      aria-expanded={v === 'off' ? undefined : (active ? fitOpen : false)}
+                      onClick={() => {
+                        if (active) setFitOpen(o => !o)
+                        else { setFit(f => ({ ...f, mode: v })); setFitOpen(true) }
+                      }}
+                    >{label}{holding && <span className="fit-dot" aria-hidden="true" />}</button>
+                  )
+                })}
               </div>
-              {fit.mode === 'flattersatz' && (
+              {/* Heights are INLINE, not from a class: the stylesheet rule for the open
+                  state loses to something in the cascade here, and an inline max-height
+                  cannot lose. Rag width gets its own collapse so switching Justified <->
+                  Flattersatz slides that one row in rather than jumping the panel. */}
+              <div
+                className="fit-options"
+                style={{ maxHeight: fit.mode !== 'off' && fitOpen ? 340 : 0,
+                         opacity: fit.mode !== 'off' && fitOpen ? 1 : 0 }}
+              >
+              {/* Rows follow the ORDER OF EFFECT — the measure first, then the three
+                  adjustments in the order the budget spends them, then the indent. */}
+              <div className="fit-row-collapse" style={{ maxHeight: fit.mode === 'flattersatz' ? 64 : 0 }}>
                 <SliderRow
                   label="Rag width" value={fit.ragWidth} min={0} max={220} step={1}
                   onChange={v => setFit(f => ({ ...f, ragWidth: v }))}
                   display={`${fit.ragWidth}px`}
                 />
-              )}
+              </div>
               {fit.mode !== 'off' && (
                 <>
                   <SliderRow
@@ -2231,7 +2253,12 @@ export default function App() {
                     display={`${fit.maxTracking}%`}
                   />
                   <SliderRow
-                    label="Max glyph scaling" value={fit.maxGlyphScaling} min={100} max={120} step={1}
+                    label="Max word spacing" value={fit.maxWordSpacing} min={100} max={200} step={1}
+                    onChange={v => setFit(f => ({ ...f, maxWordSpacing: v }))}
+                    display={`${fit.maxWordSpacing}%`}
+                  />
+                  <SliderRow
+                    label="Max glyph scaling" value={fit.maxGlyphScaling} min={100} max={110} step={1}
                     onChange={v => setFit(f => ({ ...f, maxGlyphScaling: v }))}
                     display={`${fit.maxGlyphScaling}%`}
                   />
@@ -2242,6 +2269,7 @@ export default function App() {
                   />
                 </>
               )}
+              </div>
             </>
           )}
           {effectiveParaStyle ? (
@@ -2549,7 +2577,9 @@ export default function App() {
                     const inline = renderInline(v, inlineStyle(block.type, 'italic'), inlineStyle(block.type, 'bold'))
                     // Fitting rewrites the text into per-line spans, which cannot carry
                     // inline italic/bold runs — so a marked-up block keeps normal flow.
-                    if (fit.mode === 'off' || !isPlainRun(v)) return inline
+                    // isPlainRun takes TOKENS, not a string: given a string it is false
+                    // for anything but a single character, so the fitted path never ran.
+                    if (fit.mode === 'off' || !isPlainRun(splitInlineMarkup(v))) return inline
                     return (
                       <FittedParagraph
                         text={v}
