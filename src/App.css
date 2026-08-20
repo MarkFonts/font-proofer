@@ -2254,68 +2254,7 @@
   font-size: var(--type-ui-size, 0.75rem);
 }
 
-/* Line-fitting mode picker (paragraph view). Exclusive: rag, justified, or the
-   alternating measure. Sits with the typography controls, so it borrows their metrics. */
-/* A full-width pill, so it sits on the same left edge as the select and the segmented
-   control rather than floating at its own size. Radius is half the height; the cap rule
-   (padding-x >= 0.6r) then asks for >= 9px, so 12 clears it. */
-/* The pair reads like the Roman/Italic control: one bordered container, a hairline
-   between the halves, filled where it is on. They are two independent switches rather
-   than a two-way choice, which is what the on/off word on each half says. */
-.fit-switches {
-  display: flex;
-  border: 1px solid var(--border);
-  border-radius: 13px;              /* half the 26px height: a pill, not a rounded box */
-  overflow: hidden;
-  margin: var(--spacing-04) 0;
-}
-.swiss-rag {
-  flex: 1;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-02);
-  padding: 0 var(--spacing-04);
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-family: 'Face', system-ui, sans-serif;
-  font-size: var(--type-ui-size, 0.75rem);
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: background .12s, color .12s;
-}
-.swiss-rag + .swiss-rag { border-left: 1px solid var(--border); }
-/* The FILL has to be shaped too. The container rounds and clips, but a filled child
-   still paints a rectangle into the cap, so the active half showed square corners
-   inside a round end. Each end child carries the cap radius itself. */
-.swiss-rag:first-child { border-radius: 12px 0 0 12px; }
-.swiss-rag:last-child { border-radius: 0 12px 12px 0; }
-.swiss-rag:only-child { border-radius: 12px; }
-.swiss-rag:hover:not(.active) { background: var(--bg-hover); }
-/* Pressed with a FILL, not the house inset stroke: a box-shadow follows border-radius
-   and not corner-shape, so on this pill the ring painted as a rounded rectangle inside
-   the squircle. A background is clipped to the real shape. (Noted in corners.css.) */
-.swiss-rag:active { background: var(--bg-hover); color: var(--text); }
-.swiss-rag.active { background: var(--bg-hover); color: var(--text); }
-.swiss-rag:focus-visible { outline: 1px solid var(--text-muted); outline-offset: -2px; }
-.swiss-state { color: var(--text-dim); font-size: 0.9em; letter-spacing: 0.04em; }
-.swiss-rag.active .swiss-state { color: var(--text-muted); }
 
-/* The options roll up INTO the mode button. The 0fr -> 1fr grid trick was tried first
-   and collapses here: this box sits in a flex column that gives it no definite height,
-   so the fr track resolves to zero even when open. max-height is parent-independent;
-   the cap only has to exceed the tallest set of rows (five, ~260px). */
-.fit-options {
-  max-height: 0; overflow: hidden; opacity: 0;
-  transition: max-height var(--dur-med, .22s) cubic-bezier(.2, 0, 0, 1),
-              opacity var(--dur-fast, .12s) linear;
-}
-.fit-row-collapse {
-  overflow: hidden;
-  transition: max-height var(--dur-med, .22s) cubic-bezier(.2, 0, 0, 1);
-}
 .fit-dot {
   position: absolute; top: 4px; right: 4px; width: 4px; height: 4px;
   border-radius: 50%; background: currentColor; opacity: .55;
