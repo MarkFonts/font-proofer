@@ -2252,3 +2252,15 @@
   color: var(--text-muted);
   font-size: var(--type-ui-size, 0.75rem);
 }
+
+/* Line-fitting mode picker (paragraph view). Exclusive: rag, justified, or the
+   alternating measure. Sits with the typography controls, so it borrows their metrics. */
+.fit-modes { display: flex; gap: var(--spacing-01); margin-bottom: var(--spacing-03); }
+.fit-mode {
+  flex: 1; padding: var(--spacing-02) var(--spacing-03);
+  font: inherit; font-size: var(--type-ui-size, 0.75rem);
+  color: var(--text-dim); background: var(--surface-2, #1c1c1c);
+  border: 1px solid var(--line, #2a2a2a); border-radius: 6px; cursor: pointer;
+}
+.fit-mode:hover { color: var(--text); }
+.fit-mode.active { color: var(--text); background: var(--surface-3, #262626); border-color: var(--line-strong, #3a3a3a); }

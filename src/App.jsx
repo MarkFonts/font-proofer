@@ -12,6 +12,7 @@ import {
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
+import { layoutParagraph, lineStyle, DEFAULTS as FIT_DEFAULTS } from './flattersatz'
 import fontAxesData from 'virtual:font-axes'
 import logoGif from '/public/logo.gif'
 import logoGifDark from '/public/logo_darkmode.gif'
@@ -574,6 +575,33 @@ const DEFAULT_SCALE_AXIS_OVERRIDES = Object.fromEntries(TAILWIND_SCALE.map(s => 
 // Parsing is shared (splitInlineMarkup from wm-primitives); `italicStyle` /
 // `boldStyle` are per-font CSS style objects (resolved from blockStyle) so each
 // font renders its own italic/bold — variable axis or separate face alike.
+/* One paragraph, fitted line by line (flattersatz.js). Rendered only when a fitting
+   mode is on and the block is NOT focused — editing keeps the raw flow, which is the
+   contract EditableTextBlock already has. Measurement happens against this wrapper, so
+   it inherits the block's real font, axes and size. */
+function FittedParagraph({ text, opts, indentPx, fallback }) {
+  const ref = useRef(null)
+  const [lines, setLines] = useState(null)
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const run = () => setLines(layoutParagraph(text, el, opts, indentPx))
+    run()
+    const ro = new ResizeObserver(run)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [text, indentPx, opts.mode, opts.ragWidth, opts.maxTracking, opts.maxGlyphScaling])
+
+  return (
+    <div ref={ref}>
+      {lines
+        ? lines.map((l, i) => <div key={i}><span style={lineStyle(l)}>{l.text}</span></div>)
+        : fallback}
+    </div>
+  )
+}
+
 function renderInline(text, italicStyle, boldStyle) {
   const toks = splitInlineMarkup(text)
   if (isPlainRun(toks)) return text
@@ -789,6 +817,7 @@ export default function App() {
   const fontFamilyRef = useRef('')
 
   // View mode
+  const [fit, setFit] = useState(FIT_DEFAULTS)   // paragraph line fitting (flattersatz.js)
   const [mode, setMode] = useState(() => resolveInitialMode(isCalcom)) // 'big' | 'paragraph' | 'glyphs' | 'scale' | 'calcom' | 'coss'
 
   // Cal.com preview state
@@ -2175,6 +2204,46 @@ export default function App() {
               display={letterSpacing.toFixed(3)}
             />
           )}
+          {mode === 'paragraph' && (
+            <>
+              <div className="fit-modes" role="group" aria-label="Line fitting">
+                {[['off', 'Rag'], ['justified', 'Justified'], ['flattersatz', 'Flattersatz']].map(([v, label]) => (
+                  <button
+                    key={v}
+                    className={`fit-mode${fit.mode === v ? ' active' : ''}`}
+                    aria-pressed={fit.mode === v}
+                    onClick={() => setFit(f => ({ ...f, mode: v }))}
+                  >{label}</button>
+                ))}
+              </div>
+              {fit.mode === 'flattersatz' && (
+                <SliderRow
+                  label="Rag width" value={fit.ragWidth} min={0} max={220} step={1}
+                  onChange={v => setFit(f => ({ ...f, ragWidth: v }))}
+                  display={`${fit.ragWidth}px`}
+                />
+              )}
+              {fit.mode !== 'off' && (
+                <>
+                  <SliderRow
+                    label="Max tracking" value={fit.maxTracking} min={100} max={120} step={1}
+                    onChange={v => setFit(f => ({ ...f, maxTracking: v }))}
+                    display={`${fit.maxTracking}%`}
+                  />
+                  <SliderRow
+                    label="Max glyph scaling" value={fit.maxGlyphScaling} min={100} max={120} step={1}
+                    onChange={v => setFit(f => ({ ...f, maxGlyphScaling: v }))}
+                    display={`${fit.maxGlyphScaling}%`}
+                  />
+                  <SliderRow
+                    label="Indent" value={fit.indent} min={0} max={120} step={1}
+                    onChange={v => setFit(f => ({ ...f, indent: v }))}
+                    display={`${fit.indent}px`}
+                  />
+                </>
+              )}
+            </>
+          )}
           {effectiveParaStyle ? (
             <SliderRow
               label="Leading"
@@ -2464,7 +2533,7 @@ export default function App() {
                 onMouseDown={handleEscapeBarMouseDown}
                 title="Drag to expand column"
               />
-              {blocks.map(block => (
+              {blocks.map((block, i) => (
                 <EditableTextBlock
                   key={block.id}
                   value={block.text}
@@ -2476,7 +2545,20 @@ export default function App() {
                   innerRef={el => { if (el) blockRefs.current[block.id] = el; else delete blockRefs.current[block.id] }}
                   onInput={e => handleBlockInput(block.id, e)}
                   onKeyDown={e => handleBlockKeyDown(block.id, e)}
-                  render={v => renderInline(v, inlineStyle(block.type, 'italic'), inlineStyle(block.type, 'bold'))}
+                  render={v => {
+                    const inline = renderInline(v, inlineStyle(block.type, 'italic'), inlineStyle(block.type, 'bold'))
+                    // Fitting rewrites the text into per-line spans, which cannot carry
+                    // inline italic/bold runs — so a marked-up block keeps normal flow.
+                    if (fit.mode === 'off' || !isPlainRun(v)) return inline
+                    return (
+                      <FittedParagraph
+                        text={v}
+                        opts={fit}
+                        indentPx={i === 0 ? fit.firstIndent : fit.indent}
+                        fallback={inline}
+                      />
+                    )
+                  }}
                 />
               ))}
           </div>
