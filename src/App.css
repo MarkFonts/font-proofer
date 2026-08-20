@@ -2256,16 +2256,43 @@
 
 /* Line-fitting mode picker (paragraph view). Exclusive: rag, justified, or the
    alternating measure. Sits with the typography controls, so it borrows their metrics. */
-.fit-modes { display: flex; gap: var(--spacing-01); margin-bottom: var(--spacing-03); }
-.swiss-rag { width: 100%; margin-bottom: var(--spacing-03); text-align: left; }
-.fit-mode {
-  flex: 1; padding: var(--spacing-02) var(--spacing-03);
-  font: inherit; font-size: var(--type-ui-size, 0.75rem);
-  color: var(--text-dim); background: var(--surface-2, #1c1c1c);
-  border: 1px solid var(--line, #2a2a2a); border-radius: 6px; cursor: pointer;
+/* A full-width pill, so it sits on the same left edge as the select and the segmented
+   control rather than floating at its own size. Radius is half the height; the cap rule
+   (padding-x >= 0.6r) then asks for >= 9px, so 12 clears it. */
+/* The pair reads like the Roman/Italic control: one bordered container, a hairline
+   between the halves, filled where it is on. They are two independent switches rather
+   than a two-way choice, which is what the on/off word on each half says. */
+.fit-switches {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 13px;              /* half the 26px height: a pill, not a rounded box */
+  overflow: hidden;
+  margin: var(--spacing-04) 0;
 }
-.fit-mode:hover { color: var(--text); }
-.fit-mode.active { color: var(--text); background: var(--surface-3, #262626); border-color: var(--line-strong, #3a3a3a); }
+.swiss-rag {
+  flex: 1;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-02);
+  padding: 0 var(--spacing-04);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: 'Face', system-ui, sans-serif;
+  font-size: var(--type-ui-size, 0.75rem);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.swiss-rag + .swiss-rag { border-left: 1px solid var(--border); }
+.swiss-rag:hover:not(.active) { background: var(--bg-hover); }
+.swiss-rag:active { box-shadow: inset 0 0 0 var(--stroke-press, 1.8px) currentColor; }
+.swiss-rag.active { background: var(--bg-hover); color: var(--text); }
+.swiss-rag:focus-visible { outline: 1px solid var(--text-muted); outline-offset: -2px; }
+.swiss-state { color: var(--text-dim); font-size: 0.9em; letter-spacing: 0.04em; }
+.swiss-rag.active .swiss-state { color: var(--text-muted); }
 
 /* The options roll up INTO the mode button. The 0fr -> 1fr grid trick was tried first
    and collapses here: this box sits in a flex column that gives it no definite height,
@@ -2280,7 +2307,6 @@
   overflow: hidden;
   transition: max-height var(--dur-med, .22s) cubic-bezier(.2, 0, 0, 1);
 }
-.fit-mode { position: relative; }
 .fit-dot {
   position: absolute; top: 4px; right: 4px; width: 4px; height: 4px;
   border-radius: 50%; background: currentColor; opacity: .55;

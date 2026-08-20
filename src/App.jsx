@@ -9,7 +9,7 @@ import {
   AxisSlider as SliderRow,
   makeGlyphSets, parseCmapRanges, isSupported,
   nbMinus, EditableTextBlock, GlyphPicker, measureGlyphMetrics, enumerateCmap,
-  layoutParagraph, lineStyle, FLATTERSATZ_DEFAULTS as FIT_DEFAULTS,
+  layoutParagraph, lineStyle, FLATTERSATZ_DEFAULTS as FIT_DEFAULTS, SWISS_PRESET,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
@@ -591,7 +591,8 @@ function FittedParagraph({ text, opts, indentPx, fallback }) {
     const ro = new ResizeObserver(run)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [text, indentPx, opts.mode, opts.center, opts.ragWidth, opts.maxWordSpacing, opts.maxTracking, opts.maxGlyphScaling])
+  }, [text, indentPx, opts.mode, opts.center, opts.ragWidth, opts.wordSpacing,
+      opts.tracking, opts.glyphScaling, opts.hyphenate])
 
   return (
     <div ref={ref}>
@@ -856,18 +857,16 @@ export default function App() {
   const rightMarginRef = useRef(80)
   useEffect(() => { rightMarginRef.current = rightMargin }, [rightMargin])
 
-  // Max right margin: column can't get narrower than 45 'w' glyphs at paragraph size
+  // The column may go as narrow as 120px. It used to stop at 45 'w' glyphs — about 75
+  // characters — which ruled out the measure this app is most interesting at: a
+  // newspaper column runs 35-45 characters, and that is where justification opens
+  // holes, where hyphenation would earn its keep, and where the composer has something
+  // to solve. At 75+ everything looks fine and the controls have nothing to say.
   const maxRightMarginRef = useRef(80)
   useEffect(() => {
-    if (!fontFace || !previewAreaRef.current) { maxRightMarginRef.current = 80; return }
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    ctx.font = `${paraStyles.p.size}px "${fontFace.family}"`
-    const wWidth = ctx.measureText('w').width
+    if (!previewAreaRef.current) { maxRightMarginRef.current = 80; return }
     const areaWidth = previewAreaRef.current.clientWidth
-    maxRightMarginRef.current = wWidth > 0
-      ? Math.max(80, Math.round(areaWidth - 45 * wWidth))
-      : 80
+    maxRightMarginRef.current = Math.max(80, Math.round(areaWidth - 120))
   }, [fontFace, paraStyles.p.size])
 
   // Scale base section escape bar
@@ -890,7 +889,9 @@ export default function App() {
   const [textAlign, setTextAlign] = useState('left')
   const [swissRag, setSwissRag] = useState(false)  // the rag layer, on top of any alignment
   const fitMode = textAlign === 'justify' ? 'justified' : (swissRag ? 'flattersatz' : 'off')
-  const fitOpts = { ...fit, mode: fitMode, center: textAlign === 'center' }
+  // Defaults FIRST: a renamed budget (or a session held open across a rename) would
+  // otherwise leave the key undefined and take the whole app down on .toFixed.
+  const fitOpts = { ...FIT_DEFAULTS, ...fit, mode: fitMode, center: textAlign === 'center' }
 
   // Glyph set selection
   const [activeGlyphSet, setActiveGlyphSet] = useState('All')
@@ -2058,9 +2059,11 @@ export default function App() {
                   className={`align-btn ${textAlign === a ? 'active' : ''}`}
                   onClick={() => {
                     setTextAlign(a)
-                    // A browser's own justify flexes word space and nothing else, so
-                    // arriving here starts from that and lets you spend upward.
-                    if (a === 'justify') setFit(f => ({ ...f, ragWidth: 0, maxTracking: 100, maxWordSpacing: 100, maxGlyphScaling: 100 }))
+                    // Justified starts at the browser's own behaviour — every budget at
+                    // zero — with all the controls present so you can spend upward.
+                    if (a === 'justify') setFit(f => ({
+                      ...f, tracking: 100, wordSpacing: 100, glyphScaling: 100,
+                    }))
                   }}
                   title={a === 'justify' ? 'Justify' : `Align ${a}`}
                 >
@@ -2223,57 +2226,83 @@ export default function App() {
           )}
           {mode === 'paragraph' && (
             <>
+              <div className="fit-switches">
               {/* Alignment owns "justified" now, so this only governs the RAG — and it
                   governs every rag, left, centred or right. Off means the browser's own
                   line breaking, untouched. */}
               <button
-                className={`fit-mode swiss-rag${swissRag ? ' active' : ''}`}
+                className={`swiss-rag${swissRag ? ' active' : ''}`}
                 aria-pressed={swissRag}
                 aria-expanded={swissRag}
-                onClick={() => setSwissRag(v => !v)}
+                onClick={() => setSwissRag(v => {
+                  // Arriving at the rag brings the rag's own preset — a measure band
+                  // and small allowances. Zeros are Justified's starting point, not a
+                  // rag's.
+                  if (!v) setFit(f => ({ ...f, ...SWISS_PRESET }))
+                  return !v
+                })}
               >
-                Swiss Rag
-                {swissRag && <span className="fit-dot" aria-hidden="true" />}
+                <span>Swiss Rag</span>
+                <span className="swiss-state">{swissRag ? 'on' : 'off'}</span>
               </button>
               {/* Heights are INLINE, not from a class: the stylesheet rule for the open
                   state loses to something in the cascade here, and an inline max-height
                   cannot lose. Rag width gets its own collapse so switching Justified <->
                   Flattersatz slides that one row in rather than jumping the panel. */}
+              {/* Hyphenation is justified-only: a rag that hyphenates is fighting
+                  itself, since the whole point of the rag is to let lines end where
+                  they end. Points come from the browser's own dictionary. */}
+              {fitMode === 'justified' && (
+                <button
+                  className={`swiss-rag${fitOpts.hyphenate ? ' active' : ''}`}
+                  aria-pressed={!!fitOpts.hyphenate}
+                  onClick={() => setFit(f => ({ ...f, hyphenate: !f.hyphenate }))}
+                >
+                  <span>Hyphenate</span>
+                  <span className="swiss-state">{fitOpts.hyphenate ? 'on' : 'off'}</span>
+                </button>
+              )}
+              </div>
               <div
                 className="fit-options"
-                style={{ maxHeight: fitMode !== 'off' ? 340 : 0,
+                style={{ maxHeight: fitMode !== 'off' ? 420 : 0,
                          opacity: fitMode !== 'off' ? 1 : 0 }}
               >
               {/* Rows follow the ORDER OF EFFECT — the measure first, then the three
                   adjustments in the order the budget spends them, then the indent. */}
               <div className="fit-row-collapse" style={{ maxHeight: fitMode === 'flattersatz' ? 64 : 0 }}>
                 <SliderRow
-                  label="Rag width" value={fit.ragWidth} min={0} max={220} step={1}
+                  label="Rag width" value={fitOpts.ragWidth} min={0} max={220} step={1}
                   onChange={v => setFit(f => ({ ...f, ragWidth: v }))}
-                  display={`${fit.ragWidth}px`}
+                  display={`${fitOpts.ragWidth}px`}
                 />
               </div>
               {fitMode !== 'off' && (
                 <>
+                  {/* Centred, like glyph scaling: left tightens, right opens. */}
+                  {/* 90-110 is +/-0.1em per gap, a stress test rather than a setting:
+                      everything typographically defensible happens inside the first 2%.
+                      Opened deliberately, because this is a proof, not a page. */}
                   <SliderRow
-                    label="Max tracking" value={fit.maxTracking} min={100} max={120} step={1}
-                    onChange={v => setFit(f => ({ ...f, maxTracking: v }))}
-                    display={`${fit.maxTracking}%`}
+                    label="Letter spacing" value={fitOpts.tracking} min={90} max={110} step={0.1}
+                    onChange={v => setFit(f => ({ ...f, tracking: +v.toFixed(1) }))}
+                    display={`${fitOpts.tracking.toFixed(1)}%`}
                   />
                   <SliderRow
-                    label="Max word spacing" value={fit.maxWordSpacing} min={100} max={200} step={1}
-                    onChange={v => setFit(f => ({ ...f, maxWordSpacing: v }))}
-                    display={`${fit.maxWordSpacing}%`}
+                    label="Word spacing" value={fitOpts.wordSpacing} min={80} max={133} step={1}
+                    onChange={v => setFit(f => ({ ...f, wordSpacing: v }))}
+                    display={`${fitOpts.wordSpacing}%`}
+                  />
+                  {/* One control, centred on 100: left condenses, right stretches. */}
+                  <SliderRow
+                    label="Glyph scaling" value={fitOpts.glyphScaling} min={95} max={105} step={0.1}
+                    onChange={v => setFit(f => ({ ...f, glyphScaling: +v.toFixed(1) }))}
+                    display={`${fitOpts.glyphScaling.toFixed(1)}%`}
                   />
                   <SliderRow
-                    label="Max glyph scaling" value={fit.maxGlyphScaling} min={100} max={110} step={1}
-                    onChange={v => setFit(f => ({ ...f, maxGlyphScaling: v }))}
-                    display={`${fit.maxGlyphScaling}%`}
-                  />
-                  <SliderRow
-                    label="Indent" value={fit.indent} min={0} max={120} step={1}
+                    label="Indent" value={fitOpts.indent} min={0} max={120} step={1}
                     onChange={v => setFit(f => ({ ...f, indent: v }))}
-                    display={`${fit.indent}px`}
+                    display={`${fitOpts.indent}px`}
                   />
                 </>
               )}
@@ -2592,7 +2621,7 @@ export default function App() {
                       <FittedParagraph
                         text={v}
                         opts={fitOpts}
-                        indentPx={i === 0 ? fit.firstIndent : fit.indent}
+                        indentPx={i === 0 ? fit.firstIndent : fitOpts.indent}
                         fallback={inline}
                       />
                     )
