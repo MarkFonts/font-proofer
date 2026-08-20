@@ -2287,6 +2287,12 @@
   transition: background .12s, color .12s;
 }
 .swiss-rag + .swiss-rag { border-left: 1px solid var(--border); }
+/* The FILL has to be shaped too. The container rounds and clips, but a filled child
+   still paints a rectangle into the cap, so the active half showed square corners
+   inside a round end. Each end child carries the cap radius itself. */
+.swiss-rag:first-child { border-radius: 12px 0 0 12px; }
+.swiss-rag:last-child { border-radius: 0 12px 12px 0; }
+.swiss-rag:only-child { border-radius: 12px; }
 .swiss-rag:hover:not(.active) { background: var(--bg-hover); }
 .swiss-rag:active { box-shadow: inset 0 0 0 var(--stroke-press, 1.8px) currentColor; }
 .swiss-rag.active { background: var(--bg-hover); color: var(--text); }

@@ -2226,7 +2226,7 @@ export default function App() {
           )}
           {mode === 'paragraph' && (
             <>
-              <div className="fit-switches">
+              <div className="fit-switches pill">
               {/* Alignment owns "justified" now, so this only governs the RAG — and it
                   governs every rag, left, centred or right. Off means the browser's own
                   line breaking, untouched. */}
