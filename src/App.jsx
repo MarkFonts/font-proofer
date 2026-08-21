@@ -2002,7 +2002,7 @@ export default function App() {
                 // Fitting counts as typography: a rag or a spent budget is a change to
                 // the setting, so it lights the reset and clears with it.
                 const fitDirty = swissRag || textAlign === 'justify' ||
-                  Object.keys(FIT_DEFAULTS).some(k => fit[k] !== FIT_DEFAULTS[k])
+                  Object.keys(FIT_DEFAULTS).some(k => JSON.stringify(fit[k]) !== JSON.stringify(FIT_DEFAULTS[k]))
                 return (
                   <button
                     className={`align-btn ${isDirty || fitDirty ? 'active' : 'reset-clean'}`}
@@ -2188,6 +2188,7 @@ export default function App() {
                 mode={fitMode}
                 swissRag={swissRag}
                 onSwissRag={setSwissRag}
+                widthAxis={variationAxes.some(a => a.tag === 'wdth')}
               />
             </>
           )}
