@@ -1,37 +1,15 @@
 /* ── Theme toggle ────────────────────────────────────────────────────────── */
+/* The control itself is the house Toggle Group (shared/src/toggleGroup.css). What stays
+   here is placement: a fixed affordance that recedes until you reach for it. */
 #theme-toggle {
   position: fixed;
   top: 20px;
   right: 20px;
   z-index: 100;
-  display: flex;
-  background: var(--bg);
-  border: 1px solid var(--muted);
-  border-radius: 999px;
-  padding: 2px;
-  gap: 1px;
   opacity: 0.6;
   transition: opacity 0.15s;
 }
 #theme-toggle:hover { opacity: 1; }
-
-#theme-toggle button {
-  font-family: 'Face', -apple-system, sans-serif;
-  font-size: var(--type-micro-size, 0.5625rem);
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  background: none;
-  border: none;
-  border-radius: 999px;
-  padding: 2px 6px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-#theme-toggle button.active {
-  background: var(--ink);
-  color: var(--bg);
-}
 
 /* ── Layout ──────────────────────────────────────────────────────────────── */
 .layout {

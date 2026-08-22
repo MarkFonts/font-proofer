@@ -11,7 +11,7 @@ import {
   nbMinus, EditableTextBlock, GlyphPicker, measureGlyphMetrics, enumerateCmap,
   FLATTERSATZ_DEFAULTS as FIT_DEFAULTS,
   FittingControls, fittingMode, AlignmentButtons, FittedParagraph,
-  loadSpecimen, specimenChunks,
+  loadSpecimen, specimenChunks, SpecimenNav,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
@@ -177,43 +177,17 @@ function defaultStyleKey(styles) {
 // ── Sample content ──────────────────────────────────────────────────────────
 const SAMPLE_BIG = 'Hand gloves'
 
-function makeBlocks(arr) {
-  return arr.map((b, i) => ({ ...b, id: String(i + 1) }))
-}
-
+// Every preset is a specimen now: one authored file per work in wm-primitives, fetched
+// in chunks, identical in both apps. Nothing here holds prose — the shortest sample and
+// the whole novel arrive by exactly the same route, which is the point. The label is UI
+// copy and stays; the text is not.
 const TEXT_PRESETS = {
-  'Sample': makeBlocks([
-    { type: 'h1', text: 'Hand gloves' },
-    { type: 'p',  text: 'Typography is the art and technique of arranging type to make written language legible, readable, and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line-spacing, and letter-spacing, as well as adjusting the space between pairs of letters.' },
-    { type: 'p',  text: 'The term typography is also applied to the style, arrangement, and appearance of the letters, numbers, and symbols created by the process. Type design is a closely related craft, sometimes considered part of typography.' },
-  ]),
-  // The whole novel, not an excerpt: it lives in wm-primitives as one authored file and
-  // arrives in chunks, first ~1200 words and then a chapter-ish at a time. It used to sit
-  // here as 284 hand-pasted blocks, which is 73KB of prose in the middle of a component.
+  'Sample': { specimen: 'sample' },
   'A Tale of Two Cities': { specimen: 'tale-of-two-cities' },
-  'Staatliche Bauhaus': makeBlocks([
-    { type: 'h2', text: 'Walter Gropius, 1919' },
-    { type: 'h1', text: 'Staatliche Bauhaus' },
-    { type: 'p',  text: 'Das Staatliche Bauhaus in Weimar int durch Vereinigung der ehemaligen Großherzoglich Sächsischen Hochschule für bildende Kunst mit der ehemaligen Großherzoglich Sächsischen Kunstgewerbeschule unter Neuangliediederung einer Abteilung für Baukunst enstanden.' },
-    { type: 'p',  text: 'Das Bauhaus erstrebt die Sammlung alles künstlerischen Schaffens zur Einheit, die Wiedervereinigung aller werke künstlerischen Disziplinen — Bildhauerei, Malerei, Kunstgewerbe und Handwerk — zu einer neuen Baukunst als deren unablösliehe Bestandteile. Das letzte, wenn auch ferne Ziel des Bauhauses ist das Einheits Kunstwerk — der große Bau — in dem es keine Grenze gibt zwischen monumentaler und dekorativer Kunst.' },
-    { type: 'p',  text: 'Das Bauhaus will Architekten, Maler und Bildhauer aller Grade je nach ihren Fähigkeiten zu tüchtigen Handwerkern oder selbständig schaffenden Künstlern erziehen und eine Arbeitsgemeinschaft führender und werdender Werk Künstler gründen, die Bauwerke in ihrer Gesamtheit — Rohbau, Ausbau, Ausschmückung und Einrichtung — aus gleich gearteter Geist heraus einheitlich zu gestalten weiß.' },
-    { type: 'p',  text: 'Kunst entsteht oberhalb aller Methoden, sie ist an sich nicht lehrbar, wohl aber das Handwerk., Architekten, Maler, Bildhauer sind Handwerker im Ursinn des Wortes, deshalb wird als unerlaßliche Grundlage für alles bildnerische Schaffen die gründliche handwerkliche Ausbildung aller Studierenden in Werkstätten und auf Probier- und Werk-plätzen gefordert. Die eigenen Werkstätten sollen allmählich ausgebaut, mit fremden Werkstätten Lehrverträge abgeschlossen werden.' },
-    { type: 'p',  text: 'Die Schule ist die Dienerin der Werkstatt, sie wird eines Tages in ihr aufgehen. Deshalb nicht Lehrer und Schüler im Bauhaus, sondern Meister, Gesellen und Lehrlinge.' },
-  ]),
-  'Kern King': makeBlocks([
-    { type: 'h1', text: 'Kern King' },
-    { type: 'h2', text: 'Part 1 — Lowercase' },
-    { type: 'p',  text: 'lynx tuft frogs, dolphins abduct by proxy the ever awkward klutz, dud, dummkopf, jinx snubnose filmgoer, orphan sgt. renfruw grudgek reyfus, md. sikh psych if halt tympany jewelry sri heh! twyer vs jojo pneu fylfot alcaaba son of nonplussed halfbreed bubbly playboy guggenheim daddy coccyx sgraffito effect, vacuum dirndle impossible attempt to disvalue, muzzle the afghan czech czar and exninja, bob bixby dvorak wood dhurrie savvy, dizzy eye aeon circumcision uvula scrungy picnic luxurious special type carbohydrate ovoid adzuki kumquat bomb? afterglows gold girl pygmy gnome lb. ankhs acme aggroupment akmed brouhha tv wt. ujjain ms. oz abacus mnemonics bhikku khaki bwana aorta embolism vivid owls often kvetch otherwise, wysiwyg densfort wright you\'ve absorbed rhythm, put obstacle kyaks krieg kern wurst subject enmity equity coquet quorum pique tzetse hepzibah sulfhydryl briefcase ajax ehler kafka fjord elfship halfdressed jugful eggcup hummingbirds swingdevil bagpipe legwork reproachful hunchback archknave baghdad wejh rijswijk rajbansi rajput ajdir okay weekday obfuscate subpoena liebknecht marcgravia ecbolic arcticward dickcissel pincpinc boldface maidkin adjective adcraft adman dwarfness applejack darkbrown kiln palzy always farmland flimflam unbossy nonlineal stepbrother lapdog stopgap sx countdown basketball beaujolais vb. flowchart aztec lazy bozo syrup tarzan annoying dyke yucky hawg gagzhukz cuzco squire when hiho mayhem nietzsche szasz gumdrop milk emplotment ambidextrously lacquer byway ecclesiastes stubchen hobgoblins crabmill aqua hawaii blvd. subquality byzantine empire debt obvious cervantes jekabzeel anecdote flicflac mechanicville bedbug couldn\'t i\'ve it\'s they\'ll they\'d dpt. headquarter burkhardt xerxes atkins govt. ebenezer lg. lhama amtrak amway fixity axmen quumbabda upjohn hrumpf' },
-    { type: 'h2', text: 'Part 2 — Uppercase' },
-    { type: 'p',  text: 'LYNX TUFT FROGS, DOLPHINS ABDUCT BY PROXY THE EVER AWKWARD KLUTZ, DUD, DUMMKOPF, JINX SNUBNOSE FILMGOER, ORPHAN SGT. RENFRUW GRUDGEK REYFUS, MD. SIKH PSYCH IF HALT TYMPANY JEWELRY SRI HEH! TWYER VS JOJO PNEU FYLFOT ALCAABA SON OF NONPLUSSED HALFBREED BUBBLY PLAYBOY GUGGENHEIM DADDY COCCYX SGRAFFITO EFFECT, VACUUM DIRNDLE IMPOSSIBLE ATTEMPT TO DISVALUE, MUZZLE THE AFGHAN CZECH CZAR AND EXNINJA, BOB BIXBY DVORAK WOOD DHURRIE SAVVY, DIZZY EYE AEON CIRCUMCISION UVULA SCRUNGY PICNIC LUXURIOUS SPECIAL TYPE CARBOHYDRATE OVOID ADZUKI KUMQUAT BOMB? AFTERGLOWS GOLD GIRL PYGMY GNOME LB. ANKHS ACME AGGROUPMENT AKMED BROUHHA TV WT. UJJAIN MS. OZ ABACUS MNEMONICS BHIKKU KHAKI BWANA AORTA EMBOLISM VIVID OWLS OFTEN KVETCH OTHERWISE, WYSIWYG DENSFORT WRIGHT YOU\'VE ABSORBED RHYTHM, PUT OBSTACLE KYAKS KRIEG KERN WURST SUBJECT ENMITY EQUITY COQUET QUORUM PIQUE TZETSE HEPZIBAH SULFHYDRYL BRIEFCASE AJAX EHLER KAFKA FJORD ELFSHIP HALFDRESSED JUGFUL EGGCUP HUMMINGBIRDS SWINGDEVIL BAGPIPE LEGWORK REPROACHFUL HUNCHBACK ARCHKNAVE BAGHDAD WEJH RIJSWIJK RAJBANSI RAJPUT AJDIR OKAY WEEKDAY OBFUSCATE SUBPOENA LIEBKNECHT MARCGRAVIA ECBOLIC ARCTICWARD DICKCISSEL PINCPINC BOLDFACE MAIDKIN ADJECTIVE ADCRAFT ADMAN DWARFNESS APPLEJACK DARKBROWN KILN PALZY ALWAYS FARMLAND FLIMFLAM UNBOSSY NONLINEAL STEPBROTHER LAPDOG STOPGAP SX COUNTDOWN BASKETBALL BEAUJOLAIS VB. FLOWCHART AZTEC LAZY BOZO SYRUP TARZAN ANNOYING DYKE YUCKY HAWG GAGZHUKZ CUZCO SQUIRE WHEN HIHO MAYHEM NIETZSCHE SZASZ GUMDROP MILK EMPLOTMENT AMBIDEXTROUSLY LACQUER BYWAY ECCLESIASTES STUBCHEN HOBGOBLINS CRABMILL AQUA HAWAII BLVD. SUBQUALITY BYZANTINE EMPIRE DEBT OBVIOUS CERVANTES JEKABZEEL ANECDOTE FLICFLAC MECHANICVILLE BEDBUG COULDN\'T I\'VE IT\'S THEY\'LL THEY\'D DPT. HEADQUARTER BURKHARDT XERXES ATKINS GOVT. EBENEZER LG. LHAMA AMTRAK AMWAY FIXITY AXMEN QUUMBABDA UPJOHN HRUMPF' },
-    { type: 'h2', text: 'Part 3 — Sentence Case' },
-    { type: 'p',  text: 'Aaron Abraham Adam Aeneas Agfa Ahoy Aileen Akbar Alanon Americanism Anglican Aorta April Fool\'s Day Aqua Lung (Tm.) Arabic Ash Wednesday Authorized Version Ave Maria Away Axel Ay Aztec Bhutan Bill Bjorn Bk Btu. Bvart Bzonga California Cb Cd Cervantes Chicago Clute City, Tx. Cmdr. Cnossus Coco Cracker State, Georgia Cs Ct. Cwacker Cyrano David Debra Dharma Diane Djakarta Dm Dnepr Doris Dudley Dwayne Dylan Dzerzhinsk Eames Ectomorph Eden Eerie Effingham, Il. Egypt Eiffel Tower Eject Ekland Elmore Entreaty Eolian Epstein Equine Erasmus Eskimo Ethiopia Europe Eva Ewan Exodus Jan van Eyck Ezra Fabian February Fhara Fifi Fjord Florida Fm France Fs Ft. Fury Fyn Gabriel Gc Gdynia Gehrig Ghana Gilligan Karl Gjellerup Gk. Glen Gm Gnosis Gp.E. Gregory Gs Gt. Br. Guinevere Gwathmey Gypsy Gzags Hebrew Hf Hg Hileah Horace Hrdlicka Hsia Hts. Hubert Hwang Hai Hyacinth Hz. Iaccoca Ibsen Iceland Idaho If Iggy Ihre Ijit Ike Iliad Immediate Innocent Ione Ipswitch Iquarus Ireland Island It Iud Ivert Iwerks Ixnay Iy Jasper Jenks Jherry Jill Jm Jn Jorge Jr. Julie Kerry Kharma Kiki Klear Koko Kruse Kusack Kylie Laboe Lb. Leslie Lhihane Llama Lorrie Lt. Lucy Lyle Madeira Mechanic Mg. Minnie Morrie Mr. Ms. Mt. Music My Nanny Nellie Nillie Novocane Null Nyack Oak Oblique Occarina Odd Oedipus Off Ogmane Ohio Oil Oj Oklahoma Olio Omni Only Oops Opera Oqu Order Ostra Ottmar Out Ovum Ow Ox Oyster Oz Parade Pd. Pepe Pfister Pg. Phil Pippi Pj Please Pneumonia Porridge Price Psalm Pt. Purple Pv Pw Pyre Qt. Quincy Radio Rd. Red Rhea Right Rj Roche Rr Rs Rt. Rural Rwanda Ryder Sacrifice Series Sgraffito Shirt Sister Skeet Slow Smore Snoop Soon Special Squire Sr St. Suzy Svelte Swiss Sy Szach Td Teach There Title Total Trust Tsena Tulip Twice Tyler Tzean Ua Udder Ue Uf Ugh Uh Ui Uk Ul Um Unkempt Uo Up Uq Ursula Use Utmost Uvula Uw Uxurious Uzßai Valerie Velour Vh Vicky Volvo Vs Water Were Where With World Wt. Wulk Wyler Xavier Xerox Xi Xylophone Yaboe Year Yipes Yo Ypsilant Ys Yu Zabar\'s Zero Zhane Zizi Zorro Zu Zy Don\'t I\'ll I\'m I\'se' },
-    { type: 'h2', text: 'Part 4 — Numbers' },
-    { type: 'p',  text: '0010203040500607080900 10112131415116171819100 20212232425226272829200 30313233435336373839300 40414243445446474849400 50515253545556575859500 6061626364656676869600 7071727374757677879700 8081828384858687889800 9091929394959697989900 (1)(2)(3)(4)(5)(6)(7)(8)(9)(0) $00 $10 $20 $30 $40 $50 $60 $70 $80 $90 £00 £10 £20 £30 £40 £50 £60 £70 £80 £90 00¢ 11¢ 22¢ 33¢ 44¢ 55¢ 66¢ 77¢ 88¢ 99¢ 00% 0‰ 0-0.0,0…0° 11% 1‰ 1-1.1,1…1° 12% 2‰ 2-2.2,2…2° 13% 3‰ 3-3.3,3…3° 14% 4‰ 4-4.4,4…4° 15% 5‰ 5-5.5,5…5° 16% 6‰ 6-6.6,6…6° 17% 7‰ 7-7.7,7…7° 18% 8‰ 8-8.8,8…8° 19% 9‰ 9-9.9,9…9°' },
-  ]),
+  'Staatliche Bauhaus': { specimen: 'staatliche-bauhaus' },
+  'Kern King': { specimen: 'kern-king' },
 }
 
-const SAMPLE_BLOCKS = TEXT_PRESETS['Sample']
 
 // ── Cal.com type role model ───────────────────────────────────────────────────
 // nbMinus (typographic minus for spec chips) now imported from wm-primitives.
@@ -526,7 +500,7 @@ export default function App() {
 
   // Text content
   const [bigText, setBigText] = useState(SAMPLE_BIG)
-  const [blocks, setBlocks] = useState(SAMPLE_BLOCKS)
+  const [blocks, setBlocks] = useState([])   // filled by the specimen load below
   // Which work is on screen and how much of it has been fetched. Null for the short
   // presets, which are just arrays. Edits to loaded blocks live in `blocks` and nowhere
   // else, so leaving the preset and coming back re-fetches clean text — a reader's
@@ -544,16 +518,14 @@ export default function App() {
     // Back to the top: after a few "read more"s you are thousands of words down, and a
     // new work that starts where the last one left off reads as the same page.
     previewAreaRef.current?.scrollTo({ top: 0 })
-    const preset = TEXT_PRESETS[k]
-    if (preset.specimen) {
-      setSpec({ slug: preset.specimen, loaded: 1 })
-      setBlocks([])
-      loadSpecimen(preset.specimen, 0).then(bs => setBlocks(withIds(bs)))
-    } else {
-      setSpec(null)
-      setBlocks(withIds(preset))
-    }
+    const slug = TEXT_PRESETS[k].specimen
+    setSpec({ slug, loaded: 1 })
+    setBlocks([])
+    loadSpecimen(slug, 0).then(bs => setBlocks(withIds(bs)))
   }
+
+  // The opening preset arrives the same way as every other one.
+  useEffect(() => { selectPreset(activeTextPreset) }, [])
 
   const readMore = () => {
     if (!spec || spec.loaded >= specimenChunks(spec.slug)) return
@@ -2261,20 +2233,12 @@ export default function App() {
                   cut reads as "more of this" rather than the end of the specimen. The
                   gradient is an overlay, not a mask: the text under it stays clickable
                   and editable, which a mask would have taken away. */}
-              {spec && spec.loaded < specimenChunks(spec.slug) && (
-                <div className="specimen-fade" aria-hidden="true" />
-              )}
-              {/* The tail is a place to go, not just a place to stop: read further into
-                  this work, or leave for the next one. Naming the destination is the
-                  point — "next" alone makes you click to find out. */}
-              <div className="specimen-nav">
-                {spec && spec.loaded < specimenChunks(spec.slug) && (
-                  <button className="specimen-more" onClick={readMore}>Read more</button>
-                )}
-                <button className="specimen-more specimen-next" onClick={() => selectPreset(nextPreset())}>
-                  Next specimen: {nextPreset()}
-                </button>
-              </div>
+              <SpecimenNav
+                more={!!spec && spec.loaded < specimenChunks(spec.slug)}
+                onMore={readMore}
+                nextLabel={nextPreset()}
+                onNext={() => selectPreset(nextPreset())}
+              />
           </div>
         )}
 
@@ -3213,7 +3177,7 @@ function ThemeToggle() {
     document.documentElement.dataset.theme = t
   }
   return (
-    <div id="theme-toggle" role="group" aria-label="Color scheme">
+    <div id="theme-toggle" className="ui-seg" role="group" aria-label="Color scheme">
       {['auto', 'light', 'dark'].map(t => (
         <button key={t} data-mode={t} className={theme === t ? 'active' : ''} onClick={() => apply(t)}>
           {t.charAt(0).toUpperCase() + t.slice(1)}
