@@ -589,7 +589,7 @@ export default function App() {
   const fitMode = fittingMode(textAlign, swissRag)
   // Defaults FIRST: a renamed budget (or a session held open across a rename) would
   // otherwise leave the key undefined and take the whole app down on .toFixed.
-  const fitOpts = { ...FIT_DEFAULTS, ...fit, mode: fitMode, center: textAlign === 'center' }
+  const fitOpts = { ...FIT_DEFAULTS, ...fit, mode: fitMode, align: textAlign, center: textAlign === 'center' }
 
   // Glyph set selection
   const [activeGlyphSet, setActiveGlyphSet] = useState('All')
