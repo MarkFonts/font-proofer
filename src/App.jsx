@@ -224,10 +224,14 @@ const DEFAULT_COSS_ROLES = {
 // Per-block overrides (weight/italic/ss04/ss05) default to null = inherit the
 // global control, mirroring how axisOverrides inherit axisValues.
 const DEFAULT_PARA_STYLES = {
-  h1: { size: 57, leading: 1.1, tracking: 0,     axisOverrides: { wght: 700, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
-  h2: { size: 32, leading: 1.2, tracking: 0,     axisOverrides: { wght: 400, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
-  h3: { size: 22, leading: 1.3, tracking: 0,     axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
-  p:  { size: 18, leading: 1.6, tracking: 0,     axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
+  // align / swissRag / hyphenate are the style's OWN, like size and leading and unlike
+  // the axes: they inherit nothing. A heading is ranged left and is not hyphenated, and
+  // justifying the body text is not a statement about the headings above it. The H&J
+  // bands they are fitted to stay global — those belong to the typeface, not the style.
+  h1: { size: 57, leading: 1.1, tracking: 0,     axisOverrides: { wght: 700, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null, align: 'left', swissRag: false, hyphenate: false },
+  h2: { size: 32, leading: 1.2, tracking: 0,     axisOverrides: { wght: 400, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null, align: 'left', swissRag: false, hyphenate: false },
+  h3: { size: 22, leading: 1.3, tracking: 0,     axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null, align: 'left', swissRag: false, hyphenate: false },
+  p:  { size: 18, leading: 1.6, tracking: 0,     axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null, align: 'left', swissRag: false, hyphenate: false },
 }
 
 // Shared feature string. ss04 fires only in italic, ss05 only in roman.
@@ -585,11 +589,17 @@ export default function App() {
 
   // Alignment
   const [textAlign, setTextAlign] = useState('left')
-  const [swissRag, setSwissRag] = useState(false)  // the rag layer, on top of any alignment
-  const fitMode = fittingMode(textAlign, swissRag)
+  // Fitting is per BLOCK, from its style: alignment, the rag and hyphenation are the
+  // style's own. Only the H&J bands come from `fit`, which is one set per typeface.
+  // There is no document-wide fitting mode any more — paragraph mode is the only mode
+  // that fits anything, and every block in it answers for itself.
   // Defaults FIRST: a renamed budget (or a session held open across a rename) would
   // otherwise leave the key undefined and take the whole app down on .toFixed.
-  const fitOpts = { ...FIT_DEFAULTS, ...fit, mode: fitMode, align: textAlign, center: textAlign === 'center' }
+  const fitOptsFor = (type) => {
+    const s = paraStyles[type] ?? paraStyles.p
+    return { ...FIT_DEFAULTS, ...fit, hyphenate: s.hyphenate,
+             mode: fittingMode(s.align, s.swissRag), align: s.align, center: s.align === 'center' }
+  }
 
   // Glyph set selection
   const [activeGlyphSet, setActiveGlyphSet] = useState('All')
@@ -1165,7 +1175,7 @@ export default function App() {
       fontOpticalSizing: merged['opsz'] === 'auto' ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: featureStr(italic, s04, s05),
-      textAlign,
+      textAlign: s.align,
       color: 'var(--text)',
       wordBreak: 'break-word',
       display: 'block',
@@ -1718,11 +1728,15 @@ export default function App() {
                 const isDirty = effectiveParaStyle
                   ? paraStyles[effectiveParaStyle].size !== DEFAULT_PARA_STYLES[effectiveParaStyle].size ||
                     paraStyles[effectiveParaStyle].tracking !== DEFAULT_PARA_STYLES[effectiveParaStyle].tracking ||
-                    paraStyles[effectiveParaStyle].leading !== DEFAULT_PARA_STYLES[effectiveParaStyle].leading
+                    paraStyles[effectiveParaStyle].leading !== DEFAULT_PARA_STYLES[effectiveParaStyle].leading ||
+                    paraStyles[effectiveParaStyle].align !== DEFAULT_PARA_STYLES[effectiveParaStyle].align ||
+                    paraStyles[effectiveParaStyle].swissRag || paraStyles[effectiveParaStyle].hyphenate
                   : fontSize !== 200 || letterSpacing !== 0 || lineHeight !== 1.1 || textAlign !== 'left'
                 // Fitting counts as typography: a rag or a spent budget is a change to
-                // the setting, so it lights the reset and clears with it.
-                const fitDirty = swissRag || textAlign === 'justify' ||
+                // the setting, so it lights the reset and clears with it. The rag and the
+                // alignment are the STYLE's now and are counted above; the bands here are
+                // the font's, and clearing them is a document-wide act either way.
+                const fitDirty =
                   Object.keys(FIT_DEFAULTS).some(k => JSON.stringify(fit[k]) !== JSON.stringify(FIT_DEFAULTS[k]))
                 return (
                   <button
@@ -1741,13 +1755,17 @@ export default function App() {
                         setLineHeight(1.1)
                         setTextAlign('left')
                       }
-                      setSwissRag(false)
                       setFit(FIT_DEFAULTS)
                     }}
                   ><ResetIcon /></button>
                 )
               })()}
-              <AlignmentButtons value={textAlign} onChange={setTextAlign} />
+              {/* In paragraph mode alignment belongs to the SELECTED style, the same as
+                  its size does; everywhere else there is one block of text and one
+                  alignment. */}
+              <AlignmentButtons
+                value={effectiveParaStyle ? paraStyles[effectiveParaStyle].align : textAlign}
+                onChange={a => effectiveParaStyle ? setScopedField('align', a) : setTextAlign(a)} />
             </div>
             )}
           </div>
@@ -1906,9 +1924,11 @@ export default function App() {
               <FittingControls
                 value={fit}
                 onChange={setFit}
-                mode={fitMode}
-                swissRag={swissRag}
-                onSwissRag={setSwissRag}
+                mode={fittingMode(paraStyles[effectiveParaStyle].align, paraStyles[effectiveParaStyle].swissRag)}
+                swissRag={paraStyles[effectiveParaStyle].swissRag}
+                onSwissRag={on => setScopedField('swissRag', on)}
+                hyphenate={paraStyles[effectiveParaStyle].hyphenate}
+                onHyphenate={on => setScopedField('hyphenate', on)}
                 widthAxis={variationAxes.some(a => a.tag === 'wdth')}
               />
             </>
@@ -2216,12 +2236,13 @@ export default function App() {
                     // fitted line was one span and a span cannot carry italic in its
                     // middle. Lines are runs now, so emphasis and fitting coexist and the
                     // only thing that opts out is fitting being off.
-                    if (fitMode === 'off') return inline
+                    const blockOpts = fitOptsFor(block.type)
+                    if (blockOpts.mode === 'off') return inline
                     return (
                       <FittedParagraph
                         text={v}
-                        opts={fitOpts}
-                        indentPx={i === 0 ? fit.firstIndent : fitOpts.indent}
+                        opts={blockOpts}
+                        indentPx={i === 0 ? fit.firstIndent : blockOpts.indent}
                         runStyle={kind => inlineStyle(block.type, kind)}
                         fallback={inline}
                       />
