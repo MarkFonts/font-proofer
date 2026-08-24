@@ -652,41 +652,11 @@
 /* ── Paragraph mode ──────────────────────────────────────────────────────── */
 .preview-paragraph {
   padding: var(--spacing-09, 64px);
-  max-width: 900px;
+  /* max-width is the measure, set inline in em; the auto margins hold the column in the
+     centre of whatever width the preview area currently has. */
+  margin-inline: auto;
   min-height: 100%;
   position: relative;
-}
-
-/* ── Escape bar (right-margin drag handle) ───────────────────────────────── */
-.escape-bar {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  cursor: col-resize;
-  background: transparent;
-  transition: background 0.15s;
-  border-radius: 2px;
-  z-index: 5;
-}
-
-.escape-bar::after {
-  content: '';
-  position: absolute;
-  top: 60px;
-  bottom: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 1px;
-  background: var(--text);
-  border-radius: 1px;
-  opacity: 0.05;
-  transition: opacity 0.15s;
-}
-
-.escape-bar:hover::after,
-.escape-bar:active::after {
-  opacity: 0.35;
 }
 
 .para-block {
@@ -706,12 +676,6 @@
 .para-block--h3 {
   margin-top: 1em;
   margin-bottom: 0.2em;
-}
-
-.escape-bar + .para-block--h1,
-.escape-bar + .para-block--h2,
-.escape-bar + .para-block--h3 {
-  margin-top: 0;
 }
 
 /* Paragraph menu-target highlight now uses the shared edit-rail (edit-rail--target);
@@ -777,7 +741,7 @@
 /* ── Type Scale mode ─────────────────────────────────────────────────────── */
 .preview-scale {
   padding: 32px 48px 64px;
-  max-width: 960px;
+  margin-inline: auto;   /* max-width is the measure, inline in em */
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -887,25 +851,6 @@
 
 .preview-scale {
   position: relative;
-}
-
-.scale-escape-bar {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 20px !important;
-  z-index: 10;
-  touch-action: none;
-}
-
-.scale-margin-fill {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--bg);
-  pointer-events: none;
-  z-index: 0;
 }
 
 
@@ -1237,15 +1182,11 @@
   }
 
   .preview-paragraph {
-    padding: var(--spacing-05, 16px) var(--spacing-05, 16px) !important; /* override inline paddingRight from escape bar state */
+    padding: var(--spacing-05, 16px) var(--spacing-05, 16px);
   }
 
   .preview-scale {
     padding: var(--spacing-05, 16px) var(--spacing-05, 16px) var(--spacing-09, 64px);
-  }
-
-  .escape-bar {
-    display: none;
   }
 
 }

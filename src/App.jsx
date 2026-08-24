@@ -554,33 +554,16 @@ export default function App() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true)
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
 
-  // Paragraph escape bar (right margin, px)
-  const [rightMargin, setRightMargin] = useState(80)
-  const rightMarginRef = useRef(80)
-  useEffect(() => { rightMarginRef.current = rightMargin }, [rightMargin])
+  // Measure, in em — the same control ReCal carries, so the two proofs agree on what a
+  // column IS. em rather than px is the whole point: characters-per-line then stays put
+  // as size changes, which is what a measure means. The old px right-margin needed a
+  // companion size cap to stay readable; a proportional column needs none.
+  const [measure, setMeasure] = useState(34)
 
-  // The column may go as narrow as 120px. It used to stop at 45 'w' glyphs — about 75
-  // characters — which ruled out the measure this app is most interesting at: a
-  // newspaper column runs 35-45 characters, and that is where justification opens
-  // holes, where hyphenation would earn its keep, and where the composer has something
-  // to solve. At 75+ everything looks fine and the controls have nothing to say.
-  const maxRightMarginRef = useRef(80)
-  useEffect(() => {
-    if (!previewAreaRef.current) { maxRightMarginRef.current = 80; return }
-    const areaWidth = previewAreaRef.current.clientWidth
-    maxRightMarginRef.current = Math.max(80, Math.round(areaWidth - 120))
-  }, [fontFace, paraStyles.p.size])
-
-  // Scale base section escape bar
-  const [scaleBaseMargin, setScaleBaseMargin] = useState(80)
-  const scaleBaseMarginRef = useRef(80)
-  useEffect(() => { scaleBaseMarginRef.current = scaleBaseMargin }, [scaleBaseMargin])
-  const maxScaleBaseMarginRef = useRef(600)
-  useEffect(() => {
-    if (!previewAreaRef.current) return
-    // Leave at least 200px of body column; account for 96px of preview-scale horizontal padding
-    maxScaleBaseMarginRef.current = Math.max(80, previewAreaRef.current.clientWidth - 96 - 200)
-  }, [fontFace])
+  // The measure range is the reason this app is interesting: a newspaper column runs
+  // 35-45 characters, and that is where justification opens holes and hyphenation earns
+  // its keep. 16em floors it below that; past ~52em everything looks fine and the
+  // controls have nothing to say. Same bounds as ReCal.
 
   // Typography controls
   const [fontSize, setFontSize] = useState(200)
@@ -1095,64 +1078,12 @@ export default function App() {
     }
   }
 
-  // ── Paragraph comfortable max (scales 48→400 as escape bar opens 80→10px) ──
-  const paraComfortableMax = Math.max(18, Math.round(48 + Math.max(0, 80 - rightMargin) * 5))
+  // No comfortable-max any more. It existed to stop a FIXED px column from being filled
+  // by oversized type; with the column set in em it scales with the size, so the
+  // characters-per-line the cap was protecting is now held by construction.
 
-  // Reactively clamp p size when column narrows
-  useEffect(() => {
-    setParaStyles(prev => {
-      if (prev.p.size <= paraComfortableMax) return prev
-      return { ...prev, p: { ...prev.p, size: paraComfortableMax } }
-    })
-  }, [paraComfortableMax])
-
-  const handleEscapeBarMouseDown = useCallback((e) => {
-    e.preventDefault()
-    const startX = e.clientX
-    const startMargin = rightMarginRef.current
-    const onMove = (e) => {
-      // drag right → smaller margin → wider column → higher max
-      const newMargin = Math.max(10, Math.min(maxRightMarginRef.current, startMargin - (e.clientX - startX)))
-      setRightMargin(newMargin)
-    }
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-  }, [])
-
-  const handleScaleEscapeBarMouseDown = useCallback((e) => {
-    e.preventDefault()
-    document.body.style.userSelect = 'none'
-    const startX = e.touches ? e.touches[0].clientX : e.clientX
-    const startMargin = scaleBaseMarginRef.current
-    const onMove = (e) => {
-      if (e.cancelable) e.preventDefault()
-      const x = e.touches ? e.touches[0].clientX : e.clientX
-      setScaleBaseMargin(Math.max(10, Math.min(maxScaleBaseMarginRef.current, startMargin - (x - startX))))
-    }
-    const onUp = () => {
-      document.body.style.userSelect = ''
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-      window.removeEventListener('touchmove', onMove)
-      window.removeEventListener('touchend', onUp)
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-    window.addEventListener('touchmove', onMove, { passive: false })
-    window.addEventListener('touchend', onUp)
-  }, [])
-
-  // Clamp base step font size to maintain ~60 chars/line at current column width
-  const scaleBaseClampPx = useMemo(() => {
-    if (!previewAreaRef.current) return null
-    const colWidth = previewAreaRef.current.clientWidth - scaleBaseMargin
-    return Math.max(8, colWidth / 24)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scaleBaseMargin])
+  // The scale's body column is the same measure, so its clamp follows the same number.
+  const scaleBaseClampPx = useMemo(() => measure / 2.4, [measure])
 
   // ── Per-block style (paragraph mode) ─────────────────────────────────────
   const blockStyle = (type) => {
@@ -1874,6 +1805,17 @@ export default function App() {
             )
           })()}
           {/* Size/Tracking/Leading are per-step in Type Scale, so hide them there */}
+          {(mode === 'paragraph' || mode === 'scale') && (
+            <SliderRow
+              label="Measure"
+              value={measure}
+              min={16}
+              max={52}
+              step={1}
+              suffix="em"
+              onChange={setMeasure}
+            />
+          )}
           {mode !== 'scale' && (<>
           {effectiveParaStyle ? (
             <SliderRow
@@ -1882,11 +1824,7 @@ export default function App() {
               min={8}
               max={400}
               step={1}
-              lockedAbove={effectiveParaStyle === 'p' ? paraComfortableMax : undefined}
-              onChange={v => {
-                const capped = effectiveParaStyle === 'p' ? Math.min(v, paraComfortableMax) : v
-                setParaStyles(prev => ({ ...prev, [effectiveParaStyle]: { ...prev[effectiveParaStyle], size: capped } }))
-              }}
+              onChange={v => setParaStyles(prev => ({ ...prev, [effectiveParaStyle]: { ...prev[effectiveParaStyle], size: v } }))}
             />
           ) : (
             <SliderRow
@@ -2211,13 +2149,7 @@ export default function App() {
         )}
 
         {fontName && mode === 'paragraph' && (
-          <div className="preview-paragraph" style={{ paddingRight: `${rightMargin}px` }}>
-              <div
-                className="escape-bar"
-                style={{ right: `${rightMargin - 14}px` }}
-                onMouseDown={handleEscapeBarMouseDown}
-                title="Drag to expand column"
-              />
+          <div className="preview-paragraph" style={{ maxWidth: `${measure}em` }}>
               {blocks.map((block, i) => (
                 <EditableTextBlock
                   key={block.id}
@@ -2264,23 +2196,8 @@ export default function App() {
         )}
 
         {fontName && mode === 'scale' && (() => {
-          const hasPairs = scalePairSizes.size > 0
-          // escape bar at right: 48(padding) + scaleBaseMargin - 14(handle offset)
-          const escapeRight = 34 + scaleBaseMargin
           return (
-            <div className="preview-scale">
-              {hasPairs && (
-                <>
-                  <div className="scale-margin-fill" style={{ width: `${48 + scaleBaseMargin}px` }} />
-                  <div
-                    className="escape-bar scale-escape-bar"
-                    style={{ right: `${escapeRight}px` }}
-                    onMouseDown={handleScaleEscapeBarMouseDown}
-                    onTouchStart={handleScaleEscapeBarMouseDown}
-                    title="Drag to adjust body column width"
-                  />
-                </>
-              )}
+            <div className="preview-scale" style={{ maxWidth: `${measure}em` }}>
               {visibleScaleSteps.map(step => (
                 <div
                   key={step.key}
@@ -2346,7 +2263,7 @@ export default function App() {
                         spellCheck={false}
                         className="scale-pair-text edit-rail"
                         data-pair-size={pairStep.key}
-                        style={{ ...scaleStepStyle(pairStep, effective), maxWidth: hasPairs ? `calc(100% - ${scaleBaseMargin}px)` : undefined }}
+                        style={scaleStepStyle(pairStep, effective)}
                         onInput={e => handleScalePairInput(`${step.key}__${pairStep.key}`, e)}
                         onClick={e => e.stopPropagation()}
                       />
