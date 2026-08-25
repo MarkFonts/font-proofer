@@ -493,6 +493,23 @@ export default function App() {
   // other three. Only one fitting mode can be live, so it is derived, never stored.
   const [mode, setMode] = useState(() => resolveInitialMode(isCalcom)) // 'big' | 'paragraph' | 'glyphs' | 'scale' | 'calcom' | 'coss'
 
+  // UI tab: the board fills the whole preview area, so it can pan its top row up under
+  // #theme-toggle (fixed, top-right — the only thing that floats over .preview-area here).
+  // Measured rather than guessed since the toggle's own size isn't this component's to
+  // assume; UiKitBoard uses it to rest row 0 clear of the toggle on load, same as before
+  // there was any full-height board to worry about overlapping it.
+  const [uiTopInset, setUiTopInset] = useState(0)
+  useLayoutEffect(() => {
+    if (mode !== 'ui') return
+    const el = document.getElementById('theme-toggle')
+    if (!el) return
+    const measure = () => setUiTopInset(el.getBoundingClientRect().bottom + 16)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [mode])
+
   // Cal.com preview state
   const [calcomFont, setCalcomFont] = useState(calcomFontPrimary)
   const [calcomRoles, setCalcomRoles] = useState(DEFAULT_CALCOM_ROLES)
@@ -2129,6 +2146,7 @@ export default function App() {
                 }}
                 weight={Number(axisValues.wght) || 400}
                 boldWeight={Math.min(900, (Number(axisValues.wght) || 400) + 300)}
+                topInset={uiTopInset}
               />
             </Suspense>
           </div>
