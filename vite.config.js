@@ -12,17 +12,15 @@ const SPECIAL_SLUG_NAMES = {
   calsans: 'CalSans',
   calsansflex: 'CalSans Flex',
   switzerland2038: 'Switzerland 2038',
-  sbromieVF: 'SB Romie Variable',
 }
 
-// Trailing weight/style words to drop from a display name (e.g. "SB Romie Regular" -> "SB Romie")
+// Trailing weight/style words to drop from a display name (e.g. "Foo Regular" -> "Foo")
 const WEIGHT_RE = /\s+(Thin|Extra ?Light|Ultra ?Light|Light|Book|Regular|Medium|Semi ?Bold|Demi ?Bold|Bold|Extra ?Bold|Heavy|Black)(\s+Italic)?$/i
 
 const SPECIAL_SLUG_FILES = {
   calsans: 'CalSansVF.ttf',
   calsansflex: 'CalSansFlexVF.ttf',
   switzerland2038: 'Switzerland2038-500.ttf',
-  sbromieVF: 'SBRomieVF.ttf',
 }
 
 function normalize(s) {
@@ -297,8 +295,8 @@ export default defineConfig({
           const fontFile = findFontFile(fontSlug)
           const rawName = SPECIAL_SLUG_NAMES[fontSlug]
             ?? (fontFile ? fileToDisplayName(fontFile) : fontSlug.charAt(0).toUpperCase() + fontSlug.slice(1))
-          // Drop a trailing weight/style word so a static family reads "SB Romie",
-          // not "SB Romie Black" (findFontFile picks a single weight file).
+          // Drop a trailing weight/style word so a static family reads "Foo",
+          // not "Foo Black" (findFontFile picks a single weight file).
           const fontDisplayName = rawName.replace(/\s+(Thin|Extra ?Light|Ultra ?Light|Light|Book|Regular|Medium|Semi ?Bold|Demi ?Bold|Bold|Extra ?Bold|Heavy|Black)(\s+Italic)?$/i, '').trim() || rawName
           const title = `${fontDisplayName} — Font Proofer`
           const imageUrl = `${SITE_ORIGIN}${SITE_BASE}/og/${fontSlug}.png`

@@ -99,7 +99,6 @@ const SPECIAL_FONTS = {
   calsans: { name: 'CalSans', file: 'CalSansVF.ttf' },
   calsansflex: { name: 'CalSans Flex', file: 'CalSansFlexVF.ttf' },
   switzerland2038: { name: 'Switzerland 2038', file: 'Switzerland2038-500.ttf' },
-  sbromievf: { name: 'SB Romie', file: 'SBRomieVF.ttf' },
 }
 
 function matchSpecial(slug) {
@@ -134,7 +133,7 @@ function matchItalicFont(slug) {
 }
 
 // ── Static family style picker ───────────────────────────────────────────────
-// A static family ships one file per weight×slant (e.g. SBRomie-BoldItalic.ttf).
+// A static family ships one file per weight×slant (e.g. Foo-BoldItalic.ttf).
 // getFamilyStyles groups the slug-matching files by weight so the UI can offer a
 // "Style" dropdown; each entry pairs a roman file with its italic companion.
 const WEIGHT_ORDER = ['thin', 'extralight', 'ultralight', 'light', 'book', 'regular', 'normal', 'medium', 'semibold', 'demibold', 'bold', 'extrabold', 'heavy', 'black']
@@ -1750,7 +1749,7 @@ export default function App() {
               </div>
             )
           })()}
-          {fontFace && (/sb\s*romie/i.test(fontFamilyLabel) || /romie/i.test(fontName || '')) && (glyphFeatures.italic?.includes('ss04') || glyphFeatures.roman?.includes('ss05')) && (
+          {fontFace && (glyphFeatures.italic?.includes('ss04') || glyphFeatures.roman?.includes('ss05')) && (
             <div className="feature-toggles">
               {glyphFeatures.italic?.includes('ss04') && (
                 <button

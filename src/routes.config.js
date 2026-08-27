@@ -11,8 +11,4 @@ export default [
   { clientSlug: 'weltkern', fontSlug: 'switzerland2038' },
   { clientSlug: 'vercel',   fontSlug: 'geist'     },
   { clientSlug: 'vercel',   fontSlug: 'geistserif' },
-  { clientSlug: 'claudetype', fontSlug: 'SBromie' },
-  { clientSlug: 'pentagram',  fontSlug: 'SBromie' },
-  { clientSlug: 'claudetype', fontSlug: 'sbromieVF' },
-  { clientSlug: 'pentagram',  fontSlug: 'sbromieVF' },
 ]
