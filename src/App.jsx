@@ -11,6 +11,7 @@ import {
   nbMinus, EditableTextBlock, GlyphPicker, measureGlyphMetrics, enumerateCmap,
   FLATTERSATZ_DEFAULTS as FIT_DEFAULTS,
   FittingControls, fittingMode, AlignmentButtons, FittedParagraph,
+  PARA_STYLE_DEFAULTS, fitOptionsFor,
   loadSpecimen, specimenChunks, SpecimenNav,
 } from '../shared/index' // wm-primitives (git submodule)
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
@@ -223,14 +224,14 @@ const DEFAULT_COSS_ROLES = {
 // Per-block overrides (weight/italic/ss04/ss05) default to null = inherit the
 // global control, mirroring how axisOverrides inherit axisValues.
 const DEFAULT_PARA_STYLES = {
-  // align / swissRag / hyphenate are the style's OWN, like size and leading and unlike
-  // the axes: they inherit nothing. A heading is ranged left and is not hyphenated, and
-  // justifying the body text is not a statement about the headings above it. The H&J
-  // bands they are fitted to stay global — those belong to the typeface, not the style.
-  h1: { size: 57, leading: 1.1, tracking: 0,     axisOverrides: { wght: 700, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null, align: 'left', swissRag: false, hyphenate: false },
-  h2: { size: 32, leading: 1.2, tracking: 0,     axisOverrides: { wght: 400, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null, align: 'left', swissRag: false, hyphenate: false },
-  h3: { size: 22, leading: 1.3, tracking: 0,     axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null, align: 'left', swissRag: false, hyphenate: false },
-  p:  { size: 18, leading: 1.6, tracking: 0,     axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null, align: 'left', swissRag: false, hyphenate: false },
+  // size / leading / tracking / align / swissRag / hyphenate come from the primitive
+  // (wm-primitives PARA_STYLE_DEFAULTS) -- both paragraph views show the same four
+  // styles with the same numbers. What is added here is what this app draws with: the
+  // family's axes, and the weight/italic/ssXX that scope to a style.
+  h1: { ...PARA_STYLE_DEFAULTS.h1, axisOverrides: { wght: 700, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
+  h2: { ...PARA_STYLE_DEFAULTS.h2, axisOverrides: { wght: 400, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
+  h3: { ...PARA_STYLE_DEFAULTS.h3, axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
+  p:  { ...PARA_STYLE_DEFAULTS.p,  axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
 }
 
 // Shared feature string. ss04 fires only in italic, ss05 only in roman.
@@ -594,11 +595,8 @@ export default function App() {
   // that fits anything, and every block in it answers for itself.
   // Defaults FIRST: a renamed budget (or a session held open across a rename) would
   // otherwise leave the key undefined and take the whole app down on .toFixed.
-  const fitOptsFor = (type) => {
-    const s = paraStyles[type] ?? paraStyles.p
-    return { ...FIT_DEFAULTS, ...fit, hyphenate: s.hyphenate,
-             mode: fittingMode(s.align, s.swissRag), align: s.align, center: s.align === 'center' }
-  }
+  const fitOptsFor = (type) =>
+    fitOptionsFor(paraStyles[type] ?? paraStyles.p, { ...FIT_DEFAULTS, ...fit })
 
   // Glyph set selection
   const [activeGlyphSet, setActiveGlyphSet] = useState('All')
