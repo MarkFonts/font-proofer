@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import '../shared/src/type.css'
+import '../shared/src/motion.css'   // --dur-* (wm-primitives)
 import '../shared/src/corners.css'
 import '../shared/src/space.css'
 import '../shared/src/editRail.css' // canonical edit-rail affordance (wm-primitives)
