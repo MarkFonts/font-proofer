@@ -30,6 +30,24 @@ import cossUserAvatar from '/public/coss-user-avatar.jpg'
 const SHOW_CLIENT_LOGO = true
 
 const _rawLogos = import.meta.glob('./logos/*.svg', { query: '?raw', import: 'default', eager: true })
+
+// Logos are sized by height, never stretched to the sidebar width — a wordmark
+// told to fill the width gets as tall as its aspect ratio says, which is how
+// Vercel's ended up looking huge. Wordmarks (wide) sit at LOGO_HEIGHT; a mark
+// that is squarish or taller than wide would be tiny at that height, so it gets
+// LOGO_HEIGHT_COMPACT instead.
+const LOGO_HEIGHT = 20
+const LOGO_HEIGHT_COMPACT = 32
+const WORDMARK_ASPECT = 2.5
+
+function logoAspect(svg) {
+  const vb = svg.match(/viewBox="\s*[\d.-]+\s+[\d.-]+\s+([\d.]+)\s+([\d.]+)/i)
+  if (vb) return Number(vb[1]) / Number(vb[2])
+  const w = svg.match(/\bwidth="([\d.]+)"/i)
+  const h = svg.match(/\bheight="([\d.]+)"/i)
+  return w && h ? Number(w[1]) / Number(h[1]) : WORDMARK_ASPECT
+}
+
 const CLIENT_LOGOS = Object.fromEntries(
   Object.entries(_rawLogos).map(([path, svg]) => {
     const key = path.replace('./logos/', '').replace(/\.svg$/i, '').toLowerCase()
@@ -37,7 +55,8 @@ const CLIENT_LOGOS = Object.fromEntries(
       .replace(/<\?xml[^?]*\?>\s*/i, '')       // strip XML declaration
       .replace(/<style[\s\S]*?<\/style>/gi, '') // strip embedded styles (prevent global bleed)
       .replace(/(<svg\b[^>]*?)(\s*fill="[^"]*")?(\s*>)/i, '$1 fill="currentColor"$3') // ensure currentColor
-    return [key, clean]
+    const aspect = logoAspect(clean)
+    return [key, { svg: clean, height: aspect < WORDMARK_ASPECT ? LOGO_HEIGHT_COMPACT : LOGO_HEIGHT }]
   })
 )
 function fuzzyClientLogo(slug) {
@@ -48,8 +67,14 @@ function fuzzyClientLogo(slug) {
   return key ? CLIENT_LOGOS[key] : null
 }
 function ClientLogo({ slug, clientLabel }) {
-  const svg = fuzzyClientLogo(slug)
-  if (svg) return <div className="client-logo-svg" dangerouslySetInnerHTML={{ __html: svg }} />
+  const logo = fuzzyClientLogo(slug)
+  if (logo) return (
+    <div
+      className="client-logo-svg"
+      style={{ '--logo-height': `${logo.height}px` }}
+      dangerouslySetInnerHTML={{ __html: logo.svg }}
+    />
+  )
   return <span className="client-logo-text">{clientLabel}</span>
 }
 

@@ -119,6 +119,7 @@
 
 .sidebar-logo {
   position: relative;
+  height: 90px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -128,10 +129,14 @@
 }
 
 .logo-gif {
+  height: var(--logo-height, 20px);
+  width: auto;
   max-width: 100%;
-  max-height: 48px;
   object-fit: contain;
   display: block;
+  /* margin, not padding: box-sizing is border-box globally, so padding here
+     would come out of the 20px rather than sit around it. */
+  margin: var(--spacing-03, 8px) var(--spacing-04, 12px);
 }
 .logo-gif--light { display: none; }
 .logo-gif--dark  { display: block; }
@@ -152,15 +157,16 @@
 }
 
 .client-logo-svg {
-  width: 100%;
-  max-height: 40px;
+  max-width: 100%;
   display: flex;
   align-items: center;
+  justify-content: center;
+  padding: var(--spacing-03, 8px) var(--spacing-04, 12px);
 }
 .client-logo-svg svg {
-  width: 100%;
-  height: auto;
-  max-height: 40px;
+  height: var(--logo-height, 20px);
+  width: auto;
+  max-width: 100%;
   display: block;
   color: var(--text);
 }
