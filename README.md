@@ -102,3 +102,20 @@ npm install
 npm run dev
 # Open http://localhost:5173
 ```
+
+---
+
+## Other fun 🤫
+![Cal Graphics](src/testvgs/CalGraphics-top.svg)
+
+
+![Cal Three Ways](src/testvgs/CalThreeWays.svg)
+
+
+![Optical Size](src/testvgs/OpticalSize.svg)
+
+
+![Variable Morph 1](src/testvgs/VariableMorph.svg)
+
+
+![Variable Morph 2](src/testvgs/VariableMorph2.svg)
