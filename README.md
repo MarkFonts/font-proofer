@@ -106,16 +106,28 @@ npm run dev
 ---
 
 ## Other fun 🤫
-![Cal Graphics](src/testvgs/CalGraphics-top.svg)
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="src/testvgs/CalGraphics-top-dark.svg">
+  <img alt="Cal Graphics" src="src/testvgs/CalGraphics-top.svg">
+</picture>
 
-![Cal Three Ways](src/testvgs/CalThreeWays.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="src/testvgs/CalThreeWays-dark.svg">
+  <img alt="Cal Three Ways" src="src/testvgs/CalThreeWays.svg">
+</picture>
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="src/testvgs/OpticalSize-dark.svg">
+  <img alt="Optical Size" src="src/testvgs/OpticalSize.svg">
+</picture>
 
-![Optical Size](src/testvgs/OpticalSize.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="src/testvgs/VariableMorph-dark.svg">
+  <img alt="Variable Morph 1" src="src/testvgs/VariableMorph.svg">
+</picture>
 
-
-![Variable Morph 1](src/testvgs/VariableMorph.svg)
-
-
-![Variable Morph 2](src/testvgs/VariableMorph2.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="src/testvgs/VariableMorph2-dark.svg">
+  <img alt="Variable Morph 2" src="src/testvgs/VariableMorph2.svg">
+</picture>
