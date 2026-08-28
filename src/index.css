@@ -171,7 +171,7 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 50%;
   background: var(--text);
   margin-top: -6px;
-  transition: transform var(--dur-fast, .12s);
+  transition: transform var(--dur-fast, 140ms);
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
