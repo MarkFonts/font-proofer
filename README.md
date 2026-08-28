@@ -118,6 +118,11 @@ npm run dev
 </picture>
 
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset="src/testvgs/StickerCode-dark.svg">
+  <img alt="Sticker Code" src="src/testvgs/StickerCode.svg">
+</picture>
+
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="src/testvgs/OpticalSize-dark.svg">
   <img alt="Optical Size" src="src/testvgs/OpticalSize.svg">
 </picture>
