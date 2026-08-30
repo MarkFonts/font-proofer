@@ -972,6 +972,17 @@ export default function App() {
     }
   }, [handleDragEnter, handleDragOver, handleDragLeave, handleDrop])
   // ── Font variation string ─────────────────────────────────────────────────
+  // 'auto' is a sentinel, not a value: an axis parked on it is left OUT of
+  // font-variation-settings so the browser can supply it. Only opsz uses this
+  // (see allowAuto on the slider) — moving the slider writes a number, which
+  // lands in the string below and flips font-optical-sizing to 'none'.
+  //
+  // Worth knowing before "fixing" the auto default: Cal Sans carries an avar
+  // version 2 table that cross-maps YTAS off opsz, but only across opsz 8-14.
+  // So while opsz is auto, the browser derives it from font-size and small text
+  // picks up a YTAS shift that a tool pinning opsz explicitly never sees. It is
+  // a default-state, sub-14px edge case, not a general mismatch — measure it
+  // before changing anything here.
   const fontVariationSettings = Object.entries(axisValues)
     .filter(([, val]) => val !== 'auto')
     .map(([tag, val]) => `"${tag}" ${val}`)
