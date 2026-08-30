@@ -494,9 +494,11 @@ export default function App() {
   const [fontFace, setFontFace] = useState(null)
   const [italicFontFace, setItalicFontFace] = useState(null)
   const [isItalic, setIsItalic] = useState(false)
-  // Stylistic-set toggles. ss04 substitutes italic-only glyphs; ss05 roman-only.
-  const [ss04, setSs04] = useState(false)
-  const [ss05, setSs05] = useState(false)
+  // ss04/ss05 were the ShopBop (SB Romie) stylistic-set toggles. There is no
+  // app-wide UI for stylistic sets or character variants, so nothing exposes
+  // these; they stay false and featureStr resolves to no features.
+  const [ss04] = useState(false)
+  const [ss05] = useState(false)
   // Static-family weight picker (null → default weight for the family)
   const [activeStyleKey, setActiveStyleKey] = useState(null)
   const [variationAxes, setVariationAxes] = useState([]) // [{tag, name, min, max, defaultVal}]
@@ -1024,14 +1026,10 @@ export default function App() {
   const styleScope = effectiveParaStyle
   const scopedWeight = styleScope ? (paraStyles[styleScope].weight ?? currentStyleKey) : currentStyleKey
   const scopedItalic = styleScope ? (paraStyles[styleScope].italic ?? isItalic) : isItalic
-  const scopedSs04 = styleScope ? (paraStyles[styleScope].ss04 ?? ss04) : ss04
-  const scopedSs05 = styleScope ? (paraStyles[styleScope].ss05 ?? ss05) : ss05
   const setScopedField = (field, value) =>
     setParaStyles(prev => ({ ...prev, [styleScope]: { ...prev[styleScope], [field]: value } }))
   const setScopedWeight = (v) => styleScope ? setScopedField('weight', v) : setActiveStyleKey(v)
   const setScopedItalic = (v) => styleScope ? setScopedField('italic', v) : setIsItalic(v)
-  const toggleScopedSs04 = () => styleScope ? setScopedField('ss04', !scopedSs04) : setSs04(v => !v)
-  const toggleScopedSs05 = () => styleScope ? setScopedField('ss05', !scopedSs05) : setSs05(v => !v)
 
   // ── Active role for calcom mode ───────────────────────────────────────────
   const effectiveCalcomRole = mode === 'calcom' ? activeCalcomRole : null
@@ -1772,26 +1770,11 @@ export default function App() {
               </div>
             )
           })()}
-          {fontFace && (glyphFeatures.italic?.includes('ss04') || glyphFeatures.roman?.includes('ss05')) && (
-            <div className="feature-toggles">
-              {glyphFeatures.italic?.includes('ss04') && (
-                <button
-                  className={`roman-italic-btn${scopedSs04 ? ' active' : ''}`}
-                  disabled={!scopedItalic}
-                  title={scopedItalic ? 'Stylistic Set 4 (italic)' : 'ss04 applies to italic only'}
-                  onClick={toggleScopedSs04}
-                >ss04</button>
-              )}
-              {glyphFeatures.roman?.includes('ss05') && (
-                <button
-                  className={`roman-italic-btn${scopedSs05 ? ' active' : ''}`}
-                  disabled={scopedItalic}
-                  title={!scopedItalic ? 'Stylistic Set 5 (roman)' : 'ss05 applies to roman only'}
-                  onClick={toggleScopedSs05}
-                >ss05</button>
-              )}
-            </div>
-          )}
+          {/* The ss04/ss05 stylistic-set toggles lived here — built for ShopBop
+              (SB Romie), removed with that font. There is no app-wide UI for
+              stylistic sets or character variants, so nothing is exposed here.
+              The featureStr/paraStyles ss04/ss05 plumbing is still in place if
+              a real one is ever built. */}
           {ttcFonts.length > 1 && (
             <select
               className="instance-select"
