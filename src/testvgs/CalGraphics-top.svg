@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450" role="img" aria-label="Cal Graphics">
-<style>svg{--ink:#e6edf3;--paper:#0d1117;--card:#151515;--chip:#21262d;--chipink:#7d8590;}</style>
+<style>svg{--ink:#242424;--paper:#ffffff;--card:#f8f8f8;--chip:#f3f4f6;--chipink:#8e8e8e;}</style>
 <rect x="24.32" y="24.32" width="751.36" height="401.36" rx="54.16" fill="var(--card)"/>
 <g transform="translate(400.00,119.34) scale(0.85322)">
 <g transform="translate(0,67.68)">
