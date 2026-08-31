@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg height="160" viewBox="0 0 128 160" width="128" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<path d="M79 0V-149V-720H167V0ZM99 276 76 233Q101 218 118 202Q136 187 143 168Q150 148 144 124H143Q137 130 131 132Q125 135 116 135Q98 135 86 122Q74 109 74 89Q74 68 89 56Q104 44 125 44Q158 44 176 70Q195 95 195 139Q195 188 169 221Q143 254 99 276Z" id="path1"/>
+</defs>
+<g>
+<g data-glyph="uni013C" fill="#dee4e3" transform="translate(52.14400 104.99201) rotate(0) scale(0.096)">
+<use href="#path1"/>
+</g>
+</g>
+</svg>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg height="160" viewBox="0 0 128 160" width="128" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<path d="M12 -287V-369L124 -445H135L248 -520V-437L135 -361H124ZM79 0V-149V-720H167V0Z" id="path1"/>
+</defs>
+<g>
+<g data-glyph="lslash" fill="#20242e" transform="translate(52.24000 104.99201) rotate(0) scale(0.096)">
+<use href="#path1"/>
+</g>
+</g>
+</svg>
