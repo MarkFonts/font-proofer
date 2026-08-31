@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "postinstall": "patch-package",
-    "lint:tokens": "node shared/scripts/lint-tokens.mjs"
+    "lint:tokens": "node shared/scripts/lint-tokens.mjs",
+    "font:add": "node scripts/add-font.mjs"
   },
   "dependencies": {
     "@calcom/cal-sans-ui": "latest",

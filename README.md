@@ -136,3 +136,34 @@ npm run dev
   <source media="(prefers-color-scheme: dark)" srcset="src/testvgs/VariableMorph2-dark.svg">
   <img alt="Variable Morph 2" src="src/testvgs/VariableMorph2.svg">
 </picture>
+
+---
+
+## Adding or updating a bundled font
+
+```bash
+npm run font:add -- "src/fonts/GeistSerif-Regular 2.95.ttf"
+```
+
+Renames off the version (`GeistSerif-Regular.ttf`), records `Geist Serif: 2.95`
+in `font-versions.json`, builds, lints, commits. Then `git push origin main` —
+that triggers the deploy. Run with no argument to just rebuild and lint.
+
+Keep the version out of the committed filename: a space or dot makes
+`FontFace.family` serialize quoted (it then double-quotes in CSS and gets
+dropped), and the filename is what the UI shows as the font name — sitting next
+to a version chip read from the font's own name table, which is often a
+different number.
+
+**Cal Sans comes from calbuild.** The copies in `src/fonts/` go stale and
+nothing syncs them:
+
+```bash
+cp ../calbuild/fonts/calsans-var-flex/CalSansFlexVF.ttf src/fonts/
+cp ../calbuild/fonts/calsans-var-full/CalSansVF.ttf src/fonts/
+```
+
+If a glyph renders differently here than in another tool, diff the binaries
+before suspecting the app — instance both at identical coordinates with
+`fontTools.varLib.instancer` and compare outlines with a `RecordingPen`. A stale
+1.998 Flex build with a broken `six` was exactly this.
