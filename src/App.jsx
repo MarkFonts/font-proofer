@@ -598,16 +598,32 @@ export default function App() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true)
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
 
-  // Measure, in em — the same control ReCal carries, so the two proofs agree on what a
-  // column IS. em rather than px is the whole point: characters-per-line then stays put
-  // as size changes, which is what a measure means. The old px right-margin needed a
-  // companion size cap to stay readable; a proportional column needs none.
-  const [measure, setMeasure] = useState(34)
+  // Measure, in PX — the column is a real width and stays put when the type grows, which
+  // is the whole proof: you raise the size and watch the measure tighten. An em column
+  // does the opposite (it grows with the type, so characters-per-line never moves and
+  // the dial has nothing to show) and at large sizes it goes inert entirely — at 57px,
+  // every measure past ~16em is wider than the pane and draws the same column.
+  // This is the escape bar's job, unchanged, with a dial instead of a drag.
+  const [measure, setMeasure] = useState(620)
 
-  // The measure range is the reason this app is interesting: a newspaper column runs
-  // 35-45 characters, and that is where justification opens holes and hyphenation earns
-  // its keep. 16em floors it below that; past ~52em everything looks fine and the
-  // controls have nothing to say. Same bounds as ReCal.
+  // How wide the pane can actually go, so the dial cannot ask for a column that will not
+  // fit. 120px is a real floor: narrower than that and no face sets a line.
+  const [measureMax, setMeasureMax] = useState(900)
+  useEffect(() => {
+    const el = previewAreaRef.current
+    if (!el) return
+    const read = () => {
+      const w = el.clientWidth
+      if (w > 0) setMeasureMax(Math.max(240, Math.round(w - 96)))
+    }
+    read()
+    const ro = new ResizeObserver(read)
+    ro.observe(el)
+    return () => ro.disconnect()
+    // Re-run when the pane appears: on the first mount the ref is still null (or the
+    // element is 0-wide), and an effect that only runs then observes nothing at all —
+    // which pinned the dial's maximum to its own floor.
+  }, [fontFace, mode])
 
   // Typography controls
   const [fontSize, setFontSize] = useState(200)
@@ -1126,12 +1142,54 @@ export default function App() {
     }
   }
 
-  // No comfortable-max any more. It existed to stop a FIXED px column from being filled
-  // by oversized type; with the column set in em it scales with the size, so the
-  // characters-per-line the cap was protecting is now held by construction.
+  // ── Best letters per column ──────────────────────────────────────────────
+  // The Size dial's navigable maximum, derived from the column rather than fitted to it.
+  // The old rule was `48 + (80 - rightMargin) * 5`, which worked out to roughly "keep 34
+  // characters on a line" at the default column — a good target reached by a constant
+  // that only held for one typeface. Measure the face's own 'n' instead: the same target
+  // then means the same thing in a condensed face and a wide one, and it tracks the
+  // axes, because a 700-weight instance sets fewer characters than a 300.
+  const TARGET_CHARS = 34
+
+  // Advance of one 'n' at 1px of font-size. Measured off a real element: canvas silently
+  // ignores font-variation-settings in Chrome, so a canvas measure would report the
+  // default instance no matter where the axes are.
+  const [nAdvance, setNAdvance] = useState(0.5)
+  useEffect(() => {
+    if (!fontFace) return
+    const probe = document.createElement('span')
+    probe.setAttribute('aria-hidden', 'true')
+    probe.textContent = 'n'.repeat(20)          // 20 of them, so rounding is 1/20th
+    Object.assign(probe.style, {
+      position: 'absolute', visibility: 'hidden', whiteSpace: 'pre',
+      fontFamily: `"${fontFace.family}"`, fontSize: '100px',
+      fontVariationSettings: fontVariationSettings || 'normal',
+      letterSpacing: '0',
+    })
+    document.body.appendChild(probe)
+    const w = probe.getBoundingClientRect().width
+    document.body.removeChild(probe)
+    if (w > 0) setNAdvance(w / 20 / 100)
+  }, [fontFace, fontVariationSettings])
+
+  // Tracking widens every advance, so it belongs in the count.
+  const perChar = (size) => size * nAdvance + (paraStyles.p.tracking || 0) * size
+  const paraComfortableMax = Math.max(
+    18,
+    Math.round(measure / (TARGET_CHARS * (nAdvance + (paraStyles.p.tracking || 0)))),
+  )
+  // What the current column actually holds, for the readout.
+  const charsPerLine = Math.max(1, Math.round(measure / perChar(paraStyles.p.size || 16)))
+
+  // Reactively pull p size back under the cap when the column narrows.
+  useEffect(() => {
+    setParaStyles(prev => (prev.p.size <= paraComfortableMax
+      ? prev
+      : { ...prev, p: { ...prev.p, size: paraComfortableMax } }))
+  }, [paraComfortableMax])
 
   // The scale's body column is the same measure, so its clamp follows the same number.
-  const scaleBaseClampPx = useMemo(() => measure / 2.4, [measure])
+  const scaleBaseClampPx = useMemo(() => Math.max(8, measure / 24), [measure])
 
   // ── Per-block style (paragraph mode) ─────────────────────────────────────
   const blockStyle = (type) => {
@@ -1840,28 +1898,33 @@ export default function App() {
           {/* Size/Tracking/Leading are per-step in Type Scale, so hide them there */}
           {(mode === 'paragraph' || mode === 'scale') && (
             <SliderRow
-              label="Measure"
+              label="measure"
               value={measure}
-              min={16}
-              max={52}
+              min={120}
+              max={measureMax}
               step={1}
-              suffix="em"
+              suffix="px"
+              display={`${measure} · ${charsPerLine}n`}
               onChange={setMeasure}
             />
           )}
           {mode !== 'scale' && (<>
           {effectiveParaStyle ? (
             <SliderRow
-              label="Size"
+              label="size"
               value={paraStyles[effectiveParaStyle].size}
               min={8}
               max={400}
               step={1}
-              onChange={v => setParaStyles(prev => ({ ...prev, [effectiveParaStyle]: { ...prev[effectiveParaStyle], size: v } }))}
+              lockedAbove={effectiveParaStyle === 'p' ? paraComfortableMax : undefined}
+              onChange={v => {
+                const capped = effectiveParaStyle === 'p' ? Math.min(v, paraComfortableMax) : v
+                setParaStyles(prev => ({ ...prev, [effectiveParaStyle]: { ...prev[effectiveParaStyle], size: capped } }))
+              }}
             />
           ) : (
             <SliderRow
-              label="Size"
+              label="size"
               value={fontSize}
               min={8}
               max={400}
@@ -1871,7 +1934,7 @@ export default function App() {
           )}
           {effectiveParaStyle ? (
             <SliderRow
-              label="Tracking"
+              label="tracking"
               value={paraStyles[effectiveParaStyle].tracking}
               min={-0.2}
               max={0.5}
@@ -1881,7 +1944,7 @@ export default function App() {
             />
           ) : (
             <SliderRow
-              label="Tracking"
+              label="tracking"
               value={letterSpacing}
               min={-0.2}
               max={0.5}
@@ -1906,7 +1969,7 @@ export default function App() {
           )}
           {effectiveParaStyle ? (
             <SliderRow
-              label="Leading"
+              label="leading"
               value={paraStyles[effectiveParaStyle].leading}
               min={0.6}
               max={3}
@@ -1916,7 +1979,7 @@ export default function App() {
             />
           ) : (
             <SliderRow
-              label="Leading"
+              label="leading"
               value={lineHeight}
               min={0.6}
               max={3}
@@ -2183,7 +2246,7 @@ export default function App() {
         )}
 
         {fontName && mode === 'paragraph' && (
-          <div className="preview-paragraph" style={{ maxWidth: `${measure}em` }}>
+          <div className="preview-paragraph" style={{ maxWidth: `${measure}px` }}>
               {blocks.map((block, i) => (
                 <EditableTextBlock
                   key={block.id}
@@ -2231,7 +2294,7 @@ export default function App() {
 
         {fontName && mode === 'scale' && (() => {
           return (
-            <div className="preview-scale" style={{ maxWidth: `${measure}em` }}>
+            <div className="preview-scale" style={{ maxWidth: `${measure}px` }}>
               {visibleScaleSteps.map(step => (
                 <div
                   key={step.key}
