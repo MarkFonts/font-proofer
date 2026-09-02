@@ -178,7 +178,9 @@ input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.2);
 }
 
-input[type="number"],
+/* `input[type="number"]` dropped from this selector: AxisSlider is one text field now,
+   so nothing in the app is a number input any more. The .slider-number half stays — this
+   is deliberately how font-proofer dresses a dial's value. */
 input.slider-number {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -195,14 +197,11 @@ input.slider-number {
   font-feature-settings: "tnum";
 }
 
-input[type="number"]:focus,
-input.slider-number:focus {
-  border-color: var(--text-muted);
-}
-
-input[type="number"]::-webkit-inner-spin-button {
-  opacity: 1;
-}
+/* The number inputs are gone: AxisSlider is one text field now, so it can print a real
+   minus. Both rules below were about that element — a focus border it no longer wants,
+   and a WebKit-only override forcing the native spinner visible, which did nothing in
+   Firefox and drew a different control from ReCal's. The stepper is the primitive's own
+   now, so there is nothing here to style. */
 
 input[type="text"] {
   background: var(--bg-elevated);
