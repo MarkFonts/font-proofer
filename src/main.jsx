@@ -2,6 +2,11 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
+import '../shared/src/color.css'    // the ramp, as DEFAULTS (wm-primitives). Layered
+                                    // (@layer wm.color), so index.css's own :root always
+                                    // wins whatever the import order -- this only decides
+                                    // what a token resolves to when the app has not set it,
+                                    // which used to be "inherit whatever you are sitting in".
 import '../shared/src/type.css'
 import '../shared/src/motion.css'   // --dur-* (wm-primitives)
 import '../shared/src/corners.css'
