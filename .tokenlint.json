@@ -2,5 +2,15 @@
   "roots": [
     "src"
   ],
-  "exempt": []
+  "exempt": [],
+  "_tokenSources": "Where the tokens these files read are DECLARED. roots is src, but the tokens live in the submodule, so without this every var() into shared reads as undefined.",
+  "tokenSources": [
+    "shared/src"
+  ],
+  "_runtimeTokens": "Set by JS as an inline style on the element itself, so no stylesheet declares them: --logo-height and --caret-x from App.jsx, --locked-pct from the AxisSlider primitive.",
+  "runtimeTokens": [
+    "--caret-x",
+    "--locked-pct",
+    "--logo-height"
+  ]
 }

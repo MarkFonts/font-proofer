@@ -1554,15 +1554,40 @@
 }
 
 /* ── Booking Events (coss.com) preview ───────────────────────────────────── */
+/* ── CossPreview palette ──────────────────────────────────────────────────────
+   The mock runs on THIS app's tokens, not Cal.com's. It reads as Cal.com because of
+   its layout, density and copy -- the colour does not have to be borrowed too, and
+   borrowing it meant a second palette that no retheme ever reached.
+
+   Named rather than used raw so the mock's roles stay legible (a card is a surface, a
+   slug is faint) and so one line here moves every use. Defined ONCE: --bg/--text/etc.
+   already flip with the theme, so the mock follows without a light-mode block. The two
+   52-rule [data-theme="light"] / [data-theme="auto"] overrides this replaces were
+   byte-identical to each other and are gone.
+
+   Ink steps are written rgba(var(--text-rgb), a) rather than picked greys, so every
+   level the mock had survives and inverts on its own. COMMA-separated channels: the
+   rgb(... / a) slash form silently fails against a comma-separated custom property. */
+:root {
+  --coss-ground:  var(--bg);            /* the page under the cards */
+  --coss-surface: var(--surface);       /* shell, sidebar, cards, menus, bars */
+  --coss-ink:     var(--text);          /* headings, wordmark, primary fill */
+  --coss-on-ink:  var(--bg);            /* the label ON that fill */
+  --coss-off:     var(--track-empty);   /* toggle, off */
+}
+/* Deliberately NOT tokenised, and not drift: the status hues. Green paid, amber hidden,
+   violet AI, red danger, pink accent -- they carry meaning rather than theme, so they
+   hold their value in both. Same for the toggle thumb, which is white on a coloured
+   track and would go black if it followed --text into light mode. */
 .coss-shell {
   display: flex;
   width: 100%;
   height: 100%;
   min-height: 600px;
-  background: #0f0f0f;
+  background: var(--coss-surface);
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.07);
+  border: 1px solid rgba(var(--text-rgb), 0.07);
   container-type: inline-size;
 }
 
@@ -1573,8 +1598,8 @@
 .coss-sidebar {
   width: 220px;
   flex-shrink: 0;
-  background: #111;
-  border-right: 1px solid rgba(255,255,255,0.06);
+  background: var(--coss-surface);
+  border-right: 1px solid rgba(var(--text-rgb), 0.06);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1585,7 +1610,7 @@
   display: flex;
   flex-direction: column;
   padding: 8px 0;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid rgba(var(--text-rgb), 0.05);
 }
 
 .coss-logo-row {
@@ -1597,14 +1622,14 @@
 .coss-wordmark {
   height: 16px;
   width: auto;
-  color: #f0f0f0;
+  color: var(--coss-ink);
   flex-shrink: 0;
 }
 .coss-logo-actions { display: flex; align-items: center; gap: 6px; }
 .coss-logo-icon {
   width: 15px;
   height: 15px;
-  color: rgba(255,255,255,0.35);
+  color: rgba(var(--text-rgb), 0.35);
 }
 .coss-avatar-img {
   width: 24px;
@@ -1624,14 +1649,14 @@
   border-radius: 7px;
   border: none;
   background: transparent;
-  color: rgba(255,255,255,0.68);
+  color: rgba(var(--text-rgb), 0.68);
   cursor: pointer;
   text-align: left;
   transition: background var(--dur-fast, 140ms), color var(--dur-fast, 140ms);
   white-space: nowrap;
 }
-.coss-nav-item:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); }
-.coss-nav-item.active { background: rgba(255,255,255,0.08); color: #f0f0f0; }
+.coss-nav-item:hover { background: rgba(var(--text-rgb), 0.05); color: rgba(var(--text-rgb), 0.8); }
+.coss-nav-item.active { background: rgba(var(--text-rgb), 0.08); color: var(--coss-ink); }
 .coss-nav-icon {
   width: 15px;
   height: 15px;
@@ -1672,13 +1697,13 @@
   padding: 6px 16px;
   border: none;
   background: transparent;
-  color: rgba(255,255,255,0.4);
+  color: rgba(var(--text-rgb), 0.4);
   cursor: pointer;
   text-align: left;
   transition: color var(--dur-fast, 140ms);
   white-space: nowrap;
 }
-.coss-sidebar-link:hover { color: rgba(255,255,255,0.7); }
+.coss-sidebar-link:hover { color: rgba(var(--text-rgb), 0.7); }
 
 /* Main content */
 .coss-main {
@@ -1686,7 +1711,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: #161616;
+  background: var(--coss-ground);
   padding: var(--spacing-06, 24px) var(--spacing-07, 32px);
   overflow-y: auto;
 }
@@ -1697,11 +1722,11 @@
   margin-bottom: 24px;
 }
 .coss-page-title {
-  color: #f0f0f0;
+  color: var(--coss-ink);
   cursor: pointer;
 }
 .coss-page-sub {
-  color: rgba(255,255,255,0.45);
+  color: rgba(var(--text-rgb), 0.45);
   margin-top: 3px;
   cursor: pointer;
 }
@@ -1710,19 +1735,19 @@
   width: 32px;
   height: 32px;
   border-radius: 7px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(var(--text-rgb), 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.coss-search-icon { width: 14px; height: 14px; color: rgba(255,255,255,0.4); }
+.coss-search-icon { width: 14px; height: 14px; color: rgba(var(--text-rgb), 0.4); }
 .coss-new-btn {
   height: 32px;
   padding: 0 var(--spacing-04, 12px);
   border-radius: 7px;
   border: none;
-  background: #f0f0f0;
-  color: #111;
+  background: var(--coss-ink);
+  color: var(--coss-surface);
   font-size: var(--type-ui-size, 0.75rem);
   font-weight: 500;
   cursor: pointer;
@@ -1735,8 +1760,8 @@
   align-items: center;
   padding: var(--spacing-04, 12px) var(--spacing-05, 16px);
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.07);
-  background: #1e1e1e;
+  border: 1px solid rgba(var(--text-rgb), 0.07);
+  background: var(--coss-surface);
   gap: 12px;
   position: relative;
 }
@@ -1755,15 +1780,15 @@
 .coss-card-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--spacing-01, 4px); }
 .coss-card-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .coss-card-title {
-  color: #f0f0f0;
+  color: var(--coss-ink);
   cursor: pointer;
 }
 .coss-card-slug {
-  color: rgba(255,255,255,0.35);
+  color: rgba(var(--text-rgb), 0.35);
   cursor: pointer;
 }
 .coss-card-desc {
-  color: rgba(255,255,255,0.5);
+  color: rgba(var(--text-rgb), 0.5);
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1779,10 +1804,10 @@
   border-radius: 99px;
   cursor: pointer;
 }
-.coss-badge--duration { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
-.coss-badge--confirm  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
+.coss-badge--duration { background: rgba(var(--text-rgb), 0.06); color: rgba(var(--text-rgb), 0.5); }
+.coss-badge--confirm  { background: rgba(var(--text-rgb), 0.06); color: rgba(var(--text-rgb), 0.5); }
 .coss-badge--hidden   { background: rgba(245,158,11,0.15);  color: #fbbf24; }
-.coss-badge--paid     { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.38); }
+.coss-badge--paid     { background: rgba(var(--text-rgb), 0.06); color: rgba(var(--text-rgb), 0.38); }
 .coss-badge-icon { width: 10px; height: 10px; flex-shrink: 0; }
 
 .coss-card-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -1797,7 +1822,7 @@
   cursor: pointer;
 }
 .coss-toggle.on  { background: #22c55e; justify-content: flex-end; }
-.coss-toggle.off { background: #3a3a3a; justify-content: flex-start; }
+.coss-toggle.off { background: var(--coss-off); justify-content: flex-start; }
 .coss-toggle-thumb {
   width: 16px;
   height: 16px;
@@ -1810,7 +1835,7 @@
   border-radius: 6px;
   border: none;
   background: transparent;
-  color: rgba(255,255,255,0.35);
+  color: rgba(var(--text-rgb), 0.35);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1818,17 +1843,17 @@
   transition: color var(--dur-fast, 140ms), background var(--dur-fast, 140ms);
 }
 .coss-icon-btn svg { width: 15px; height: 15px; }
-.coss-icon-btn:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
+.coss-icon-btn:hover { background: rgba(var(--text-rgb), 0.06); color: rgba(var(--text-rgb), 0.7); }
 .coss-icon-btn--menu {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.5);
+  background: rgba(var(--text-rgb), 0.05);
+  border: 1px solid rgba(var(--text-rgb), 0.1);
+  color: rgba(var(--text-rgb), 0.5);
 }
 .coss-icon-btn--menu:hover,
 .coss-icon-btn--menu.active {
-  background: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.9);
-  border-color: rgba(255,255,255,0.2);
+  background: rgba(var(--text-rgb), 0.1);
+  color: rgba(var(--text-rgb), 0.9);
+  border-color: rgba(var(--text-rgb), 0.2);
 }
 
 .coss-menu-wrap { position: relative; }
@@ -1836,8 +1861,8 @@
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
-  background: #1e1e1e;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--coss-surface);
+  border: 1px solid rgba(var(--text-rgb), 0.1);
   border-radius: 10px;
   padding: 4px;
   min-width: 220px;
@@ -1846,7 +1871,7 @@
 }
 .coss-ctx-section {
   font-size: var(--type-ui-size, 0.75rem);
-  color: rgba(255,255,255,0.35);
+  color: rgba(var(--text-rgb), 0.35);
   padding: var(--spacing-02, 6px) var(--spacing-03, 8px) var(--spacing-01, 4px);
   /* token-lint: allow -- the COSS landing imitates a client page, not house chrome */
   letter-spacing: 0.02em;
@@ -1859,19 +1884,19 @@
   padding: var(--spacing-03, 8px) var(--spacing-03, 8px);
   border: none;
   background: transparent;
-  color: rgba(255,255,255,0.85);
+  color: rgba(var(--text-rgb), 0.85);
   font-size: var(--type-ui-size, 0.75rem);
   border-radius: 6px;
   cursor: pointer;
   text-align: left;
   transition: background var(--dur-fast, 140ms);
 }
-.coss-ctx-item:hover { background: rgba(255,255,255,0.07); }
-.coss-ctx-item--muted { color: rgba(255,255,255,0.4); }
+.coss-ctx-item:hover { background: rgba(var(--text-rgb), 0.07); }
+.coss-ctx-item--muted { color: rgba(var(--text-rgb), 0.4); }
 .coss-ctx-item--danger { color: #f87171; }
 .coss-ctx-item--danger:hover { background: rgba(248,113,113,0.08); }
 .coss-ctx-icon { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.7; }
-.coss-ctx-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 4px 0; }
+.coss-ctx-divider { height: 1px; background: rgba(var(--text-rgb), 0.07); margin: 4px 0; }
 
 /* Bookings page */
 .coss-bookings-tabs-row {
@@ -1884,7 +1909,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(var(--text-rgb), 0.06);
   border-radius: 8px;
   padding: 3px;
 }
@@ -1892,28 +1917,28 @@
   padding: var(--spacing-01, 4px) var(--spacing-04, 12px);
   border: none;
   background: transparent;
-  color: rgba(255,255,255,0.4);
+  color: rgba(var(--text-rgb), 0.4);
   cursor: pointer;
   border-radius: 6px;
   transition: color var(--dur-fast, 140ms), background var(--dur-fast, 140ms);
 }
-.coss-bookings-tab:hover { color: rgba(255,255,255,0.7); }
-.coss-bookings-tab.active { background: rgba(255,255,255,0.12); color: #f0f0f0; }
+.coss-bookings-tab:hover { color: rgba(var(--text-rgb), 0.7); }
+.coss-bookings-tab.active { background: rgba(var(--text-rgb), 0.12); color: var(--coss-ink); }
 .coss-bookings-filter-btn {
   display: flex;
   align-items: center;
   gap: var(--spacing-01, 4px);
   padding: var(--spacing-01, 4px) var(--spacing-04, 12px);
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid rgba(var(--text-rgb), 0.15);
   background: transparent;
-  color: rgba(255,255,255,0.5);
+  color: rgba(var(--text-rgb), 0.5);
   cursor: pointer;
   border-radius: 7px;
   font-size: var(--type-ui-size, 0.75rem);
   margin-left: auto;
   transition: color var(--dur-fast, 140ms), border-color var(--dur-fast, 140ms);
 }
-.coss-bookings-filter-btn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.3); }
+.coss-bookings-filter-btn:hover { color: rgba(var(--text-rgb), 0.8); border-color: rgba(var(--text-rgb), 0.3); }
 
 .coss-bookings-empty {
   display: flex;
@@ -1924,9 +1949,9 @@
   padding: var(--spacing-09, 64px) var(--spacing-06, 24px);
   text-align: center;
 }
-.coss-empty-icon { width: 32px; height: 32px; color: rgba(255,255,255,0.2); margin-bottom: 4px; }
-.coss-empty-title { color: #f0f0f0; cursor: pointer; }
-.coss-empty-sub { color: rgba(255,255,255,0.4); max-width: 320px; cursor: pointer; }
+.coss-empty-icon { width: 32px; height: 32px; color: rgba(var(--text-rgb), 0.2); margin-bottom: 4px; }
+.coss-empty-title { color: var(--coss-ink); cursor: pointer; }
+.coss-empty-sub { color: rgba(var(--text-rgb), 0.4); max-width: 320px; cursor: pointer; }
 
 .coss-booking-list { display: flex; flex-direction: column; gap: 2px; }
 .coss-booking-row {
@@ -1934,7 +1959,7 @@
   align-items: flex-start;
   gap: var(--spacing-05, 16px);
   padding: var(--spacing-05, 16px) var(--spacing-05, 16px);
-  background: rgba(255,255,255,0.025);
+  background: rgba(var(--text-rgb), 0.025);
   border-radius: 10px;
   position: relative;
 }
@@ -1957,19 +1982,19 @@
   column-gap: var(--spacing-05, 16px);
   align-items: baseline;
 }
-.coss-booking-date-label { color: rgba(255,255,255,0.8); cursor: pointer; }
-.coss-booking-time { color: rgba(255,255,255,0.45); }
+.coss-booking-date-label { color: rgba(var(--text-rgb), 0.8); cursor: pointer; }
+.coss-booking-time { color: rgba(var(--text-rgb), 0.45); }
 .coss-booking-left-badge { padding-top: 6px; }
-.coss-booking-title { color: rgba(255,255,255,0.85); cursor: pointer; }
-.coss-booking-people { color: rgba(255,255,255,0.45); cursor: pointer; }
+.coss-booking-title { color: rgba(var(--text-rgb), 0.85); cursor: pointer; }
+.coss-booking-people { color: rgba(var(--text-rgb), 0.45); cursor: pointer; }
 .coss-booking-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-top: 6px; }
-.coss-badge--platform { background: transparent; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.85); }
+.coss-badge--platform { background: transparent; border: 1px solid rgba(var(--text-rgb), 0.18); color: rgba(var(--text-rgb), 0.85); }
 .coss-badge--reschedule { background: rgba(245,158,11,0.15); color: #fbbf24; }
-.coss-badge--cal { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); }
+.coss-badge--cal { background: rgba(var(--text-rgb), 0.07); color: rgba(var(--text-rgb), 0.5); }
 
 .coss-no-more {
   text-align: center;
-  color: rgba(255,255,255,0.25);
+  color: rgba(var(--text-rgb), 0.25);
   padding: 16px 0;
   cursor: pointer;
 }
@@ -1989,14 +2014,14 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    background: #111;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: var(--coss-surface);
+    border-bottom: 1px solid rgba(var(--text-rgb), 0.06);
     flex-shrink: 0;
   }
   .coss-mobile-wordmark {
     font-size: var(--type-body-size, 1rem);
     font-weight: 600;
-    color: #f0f0f0;
+    color: var(--coss-ink);
     /* token-lint: allow -- COSS mock wordmark, imitation chrome */
     letter-spacing: -0.01em;
   }
@@ -2022,8 +2047,8 @@
     align-items: center;
     justify-content: space-around;
     padding: var(--spacing-03, 8px) var(--spacing-03, 8px);
-    background: #111;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    background: var(--coss-surface);
+    border-top: 1px solid rgba(var(--text-rgb), 0.06);
     flex-shrink: 0;
   }
   .coss-bottom-btn {
@@ -2035,129 +2060,21 @@
     border-radius: 50%;
     background: none;
     border: none;
-    color: rgba(255,255,255,0.45);
+    color: rgba(var(--text-rgb), 0.45);
     cursor: pointer;
   }
   .coss-bottom-btn svg { width: 20px; height: 20px; }
   .coss-bottom-btn--fab {
     width: 44px;
     height: 44px;
-    background: #f5faff;
-    color: #111;
+    background: var(--coss-ink);
+    color: var(--coss-surface);
     font-size: var(--type-title-size, 1.625rem);
     font-weight: 300;
     line-height: 1;
   }
 }
 
-/* ── CossPreview light mode ──────────────────────────────────────────────── */
-[data-theme="light"] .coss-shell                   { background: #fff; border-color: #e5e7eb; }
-[data-theme="light"] .coss-sidebar                 { background: #fff; border-right-color: #e5e7eb; }
-[data-theme="light"] .coss-sidebar-bottom          { border-top-color: #e5e7eb; }
-[data-theme="light"] .coss-wordmark                { color: #111827; }
-[data-theme="light"] .coss-logo-icon               { color: #6b7280; }
-[data-theme="light"] .coss-nav-item                { color: #374151; }
-[data-theme="light"] .coss-nav-item:hover          { background: #f3f4f6; color: #111827; }
-[data-theme="light"] .coss-nav-item.active         { background: #eff6ff; color: #111827; }
-[data-theme="light"] .coss-ai-badge                { background: rgba(139,92,246,0.12); color: #7c3aed; }
-[data-theme="light"] .coss-sidebar-link            { color: #6b7280; }
-[data-theme="light"] .coss-sidebar-link:hover      { color: #111827; }
-[data-theme="light"] .coss-main                    { background: #f9fafb; }
-[data-theme="light"] .coss-page-title              { color: #111827; }
-[data-theme="light"] .coss-page-sub                { color: #6b7280; }
-[data-theme="light"] .coss-search-bar              { border-color: #e5e7eb; background: #fff; }
-[data-theme="light"] .coss-search-icon             { color: #9ca3af; }
-[data-theme="light"] .coss-new-btn                 { background: #111827; color: #fff; }
-[data-theme="light"] .coss-event-card              { background: #fff; border-color: #e5e7eb; }
-[data-theme="light"] .coss-card-title              { color: #111827; }
-[data-theme="light"] .coss-card-slug               { color: #9ca3af; }
-[data-theme="light"] .coss-card-desc               { color: #4b5563; }
-[data-theme="light"] .coss-badge--duration         { background: #f3f4f6; color: #374151; }
-[data-theme="light"] .coss-badge--confirm          { background: #f3f4f6; color: #374151; }
-[data-theme="light"] .coss-badge--hidden           { background: rgba(245,158,11,0.1); color: #b45309; }
-[data-theme="light"] .coss-badge--paid             { background: #f3f4f6; color: #374151; }
-[data-theme="light"] .coss-toggle.on               { background: #111827; }
-[data-theme="light"] .coss-toggle.off              { background: #d1d5db; }
-[data-theme="light"] .coss-icon-btn                { color: #9ca3af; }
-[data-theme="light"] .coss-icon-btn:hover          { background: #f3f4f6; color: #374151; }
-[data-theme="light"] .coss-icon-btn--menu.active   { background: #f3f4f6; color: #374151; }
-[data-theme="light"] .coss-ctx-menu                { background: #fff; border-color: #e5e7eb; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-[data-theme="light"] .coss-ctx-item                { color: #374151; }
-[data-theme="light"] .coss-ctx-item:hover          { background: #f3f4f6; }
-[data-theme="light"] .coss-ctx-item--muted         { color: #9ca3af; }
-[data-theme="light"] .coss-ctx-divider             { background: #e5e7eb; }
-[data-theme="light"] .coss-bookings-tab            { color: #6b7280; }
-[data-theme="light"] .coss-bookings-tab.active     { background: #f3f4f6; color: #111827; }
-[data-theme="light"] .coss-bookings-filter-btn     { color: #374151; border-color: #e5e7eb; }
-[data-theme="light"] .coss-booking-row             { background: #fff; }
-[data-theme="light"] .coss-booking-date-label      { color: #111827; }
-[data-theme="light"] .coss-booking-time            { color: #6b7280; }
-[data-theme="light"] .coss-booking-title           { color: #111827; }
-[data-theme="light"] .coss-booking-people          { color: #6b7280; }
-[data-theme="light"] .coss-empty-title             { color: #111827; }
-[data-theme="light"] .coss-empty-sub               { color: #6b7280; }
-[data-theme="light"] .coss-empty-icon              { color: #d1d5db; }
-[data-theme="light"] .coss-no-more                 { color: #9ca3af; }
-[data-theme="light"] .coss-mobile-bar              { background: #fff; border-bottom-color: #e5e7eb; }
-[data-theme="light"] .coss-mobile-wordmark         { color: #111827; }
-[data-theme="light"] .coss-bottom-nav              { background: #fff; border-top-color: #e5e7eb; }
-[data-theme="light"] .coss-bottom-btn              { color: #9ca3af; }
-[data-theme="light"] .coss-bottom-btn--fab         { background: #111827; color: #fff; }
-
-@media (prefers-color-scheme: light) {
-  [data-theme="auto"] .coss-shell                  { background: #fff; border-color: #e5e7eb; }
-  [data-theme="auto"] .coss-sidebar                { background: #fff; border-right-color: #e5e7eb; }
-  [data-theme="auto"] .coss-sidebar-bottom         { border-top-color: #e5e7eb; }
-  [data-theme="auto"] .coss-wordmark               { color: #111827; }
-  [data-theme="auto"] .coss-logo-icon              { color: #6b7280; }
-  [data-theme="auto"] .coss-nav-item               { color: #374151; }
-  [data-theme="auto"] .coss-nav-item:hover         { background: #f3f4f6; color: #111827; }
-  [data-theme="auto"] .coss-nav-item.active        { background: #eff6ff; color: #111827; }
-  [data-theme="auto"] .coss-ai-badge               { background: rgba(139,92,246,0.12); color: #7c3aed; }
-  [data-theme="auto"] .coss-sidebar-link           { color: #6b7280; }
-  [data-theme="auto"] .coss-sidebar-link:hover     { color: #111827; }
-  [data-theme="auto"] .coss-main                   { background: #f9fafb; }
-  [data-theme="auto"] .coss-page-title             { color: #111827; }
-  [data-theme="auto"] .coss-page-sub               { color: #6b7280; }
-  [data-theme="auto"] .coss-search-bar             { border-color: #e5e7eb; background: #fff; }
-  [data-theme="auto"] .coss-search-icon            { color: #9ca3af; }
-  [data-theme="auto"] .coss-new-btn                { background: #111827; color: #fff; }
-  [data-theme="auto"] .coss-event-card             { background: #fff; border-color: #e5e7eb; }
-  [data-theme="auto"] .coss-card-title             { color: #111827; }
-  [data-theme="auto"] .coss-card-slug              { color: #9ca3af; }
-  [data-theme="auto"] .coss-card-desc              { color: #4b5563; }
-  [data-theme="auto"] .coss-badge--duration        { background: #f3f4f6; color: #374151; }
-  [data-theme="auto"] .coss-badge--confirm         { background: #f3f4f6; color: #374151; }
-  [data-theme="auto"] .coss-badge--hidden          { background: rgba(245,158,11,0.1); color: #b45309; }
-  [data-theme="auto"] .coss-badge--paid            { background: #f3f4f6; color: #374151; }
-  [data-theme="auto"] .coss-toggle.on              { background: #111827; }
-  [data-theme="auto"] .coss-toggle.off             { background: #d1d5db; }
-  [data-theme="auto"] .coss-icon-btn               { color: #9ca3af; }
-  [data-theme="auto"] .coss-icon-btn:hover         { background: #f3f4f6; color: #374151; }
-  [data-theme="auto"] .coss-icon-btn--menu.active  { background: #f3f4f6; color: #374151; }
-  [data-theme="auto"] .coss-ctx-menu               { background: #fff; border-color: #e5e7eb; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-  [data-theme="auto"] .coss-ctx-item               { color: #374151; }
-  [data-theme="auto"] .coss-ctx-item:hover         { background: #f3f4f6; }
-  [data-theme="auto"] .coss-ctx-item--muted        { color: #9ca3af; }
-  [data-theme="auto"] .coss-ctx-divider            { background: #e5e7eb; }
-  [data-theme="auto"] .coss-bookings-tab           { color: #6b7280; }
-  [data-theme="auto"] .coss-bookings-tab.active    { background: #f3f4f6; color: #111827; }
-  [data-theme="auto"] .coss-bookings-filter-btn    { color: #374151; border-color: #e5e7eb; }
-  [data-theme="auto"] .coss-booking-row            { background: #fff; }
-  [data-theme="auto"] .coss-booking-date-label     { color: #111827; }
-  [data-theme="auto"] .coss-booking-time           { color: #6b7280; }
-  [data-theme="auto"] .coss-booking-title          { color: #111827; }
-  [data-theme="auto"] .coss-booking-people         { color: #6b7280; }
-  [data-theme="auto"] .coss-empty-title            { color: #111827; }
-  [data-theme="auto"] .coss-empty-sub              { color: #6b7280; }
-  [data-theme="auto"] .coss-empty-icon             { color: #d1d5db; }
-  [data-theme="auto"] .coss-no-more                { color: #9ca3af; }
-  [data-theme="auto"] .coss-mobile-bar             { background: #fff; border-bottom-color: #e5e7eb; }
-  [data-theme="auto"] .coss-mobile-wordmark        { color: #111827; }
-  [data-theme="auto"] .coss-bottom-nav             { background: #fff; border-top-color: #e5e7eb; }
-  [data-theme="auto"] .coss-bottom-btn             { color: #9ca3af; }
-  [data-theme="auto"] .coss-bottom-btn--fab        { background: #111827; color: #fff; }
-}
 
 /* ── UI preview (ported CossScene board) ─────────────────────────────────────
    Fills the preview area with a bounded height so the board's internal
