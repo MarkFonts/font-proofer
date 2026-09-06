@@ -178,24 +178,14 @@ input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.2);
 }
 
-/* `input[type="number"]` dropped from this selector: AxisSlider is one text field now,
-   so nothing in the app is a number input any more. The .slider-number half stays — this
-   is deliberately how font-proofer dresses a dial's value. */
-input.slider-number {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: var(--radius);
-  padding: 4px 6px;
-  font-family: inherit;
-  font-size: var(--type-ui-size, 0.75rem);
-  width: 64px;
-  min-width: 64px;
-  text-align: right;
-  outline: none;
-  flex-shrink: 0;
-  font-feature-settings: "tnum";
-}
+/* The dial's value is NOT dressed here any more. This app used to own the field -- box,
+   border, 64px width, its own focus colour -- while ReCal styled none of it, so one
+   component wore two different clothes and every change turned into a specificity fight
+   with the primitive. AxisSlider owns the field now (see .slider-number there): the
+   house treatment is an underline that hugs the value, and an app that wants the old box
+   asks for it rather than reaching in.
+   The generic input[type="text"] rule below excludes .slider-number for the same reason
+   -- it was dressing the field a second time, through the back door. */
 
 /* The number inputs are gone: AxisSlider is one text field now, so it can print a real
    minus. Both rules below were about that element — a focus border it no longer wants,
@@ -203,7 +193,7 @@ input.slider-number {
    Firefox and drew a different control from ReCal's. The stepper is the primitive's own
    now, so there is nothing here to style. */
 
-input[type="text"] {
+input[type="text"]:not(.slider-number) {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   color: var(--text);
@@ -215,20 +205,7 @@ input[type="text"] {
   width: 100%;
 }
 
-input[type="text"]:focus {
-  border-color: var(--text-muted);
-}
-
-input[type="text"].slider-number {
-  width: 64px;
-  min-width: 64px;
-  padding: 4px 6px;
-  font-size: var(--type-ui-size, 0.75rem);
-  text-align: right;
-  flex-shrink: 0;
-}
-
-input[type="text"].slider-number:focus {
+input[type="text"]:not(.slider-number):focus {
   border-color: var(--text-muted);
 }
 

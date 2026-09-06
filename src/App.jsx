@@ -1915,20 +1915,20 @@ export default function App() {
           })()}
           {/* Size/Tracking/Leading are per-step in Type Scale, so hide them there */}
           {(mode === 'paragraph' || mode === 'scale') && (
-            <SliderRow
+            <SliderRow variant="track"
               label="measure"
               value={measure}
               min={120}
               max={measureMax}
               step={1}
               suffix="px"
-              display={`${measure} · ${charsPerLine}n`}
+              display={measure}
               onChange={setMeasure}
             />
           )}
           {mode !== 'scale' && (<>
           {effectiveParaStyle ? (
-            <SliderRow
+            <SliderRow variant="track"
               label="size"
               value={paraStyles[effectiveParaStyle].size}
               min={8}
@@ -1941,7 +1941,7 @@ export default function App() {
               }}
             />
           ) : (
-            <SliderRow
+            <SliderRow variant="track"
               label="size"
               value={fontSize}
               min={8}
@@ -1951,7 +1951,7 @@ export default function App() {
             />
           )}
           {effectiveParaStyle ? (
-            <SliderRow
+            <SliderRow variant="track"
               label="tracking"
               value={paraStyles[effectiveParaStyle].tracking}
               min={-0.2}
@@ -1961,7 +1961,7 @@ export default function App() {
               display={paraStyles[effectiveParaStyle].tracking.toFixed(3)}
             />
           ) : (
-            <SliderRow
+            <SliderRow variant="track"
               label="tracking"
               value={letterSpacing}
               min={-0.2}
@@ -1986,7 +1986,7 @@ export default function App() {
             </>
           )}
           {effectiveParaStyle ? (
-            <SliderRow
+            <SliderRow variant="track"
               label="leading"
               value={paraStyles[effectiveParaStyle].leading}
               min={0.6}
@@ -1996,7 +1996,7 @@ export default function App() {
               display={paraStyles[effectiveParaStyle].leading.toFixed(2)}
             />
           ) : (
-            <SliderRow
+            <SliderRow variant="track"
               label="leading"
               value={lineHeight}
               min={0.6}
@@ -2108,7 +2108,7 @@ export default function App() {
                   ? paraStyles[effectiveParaStyle].size
                   : fontSize
                 return (
-                  <SliderRow
+                  <SliderRow variant="track"
                     key={axis.tag}
                     label={titleCaseAxis(axis.name)}
                     tag={axis.tag}
