@@ -183,6 +183,16 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* One label column for the whole rail, so every axis tag lands on the same x. The
+     primitive defaults to 105px, which fits the longest bare name; the opsz row also
+     carries the `auto` pill, and a component cannot measure its siblings, so the rail
+     sets the width once here and every row moves together.
+
+     125px is the ceiling, not a preference: the row is 227px, and the widest tag (GEOM,
+     28px) plus the gaps and the 64px field leave exactly this much. It also clears the
+     widest left side -- "Optical Size" 66 + gap + the auto pill = 110. Go past it and
+     every tag slides under the value field. */
+  --axis-label-w: 125px;
 }
 
 .sidebar-divider {

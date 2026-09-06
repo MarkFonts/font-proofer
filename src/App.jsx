@@ -107,6 +107,28 @@ function toDisplayName(slug) {
 const HASH_TO_MODE = { '#big': 'big', '#paragraph': 'paragraph', '#glyphs': 'glyphs', '#type-scale': 'scale', '#calcom': 'calcom', '#coss': 'coss', '#ui': 'ui' }
 const MODE_TO_HASH = { big: '#big', paragraph: '#paragraph', glyphs: '#glyphs', scale: '#type-scale', calcom: '#calcom', coss: '#coss', ui: '#ui' }
 
+// The axes rail starts opsz on `auto`, not on the font's fvar default. Every style
+// preset here already does -- PARA_STYLE_DEFAULTS, the calcom rows, the Tailwind scale
+// all set opsz:'auto' -- so the rail was the one place that pinned it, and a pinned
+// opsz stops the browser deriving optical size from font-size. On Cal Sans that also
+// freezes the avar2 YTAS cross-map, which only moves across opsz 8-14, so small text
+// silently lost the ascender shift it is supposed to pick up. Every other axis keeps
+// its shipped default.
+// Axis names come from the font. The REGISTERED ones ship sentence case -- opsz is
+// "Optical size" in the spec and in Cal Sans -- while this family's custom axes are
+// title case ("Geometric Form", "Ascender Height"), so one row in the rail read as if
+// someone else had typed it. Capitalise each word for display only, leaving the rest of
+// each word as authored so acronyms and the font's own spelling survive. Not an
+// override map: this app proofs arbitrary fonts, and what a font calls its own axis is
+// its business.
+const titleCaseAxis = name => String(name).replace(/\b[a-z]/g, c => c.toUpperCase())
+
+function axisDefaults(axes) {
+  const out = {}
+  axes.forEach(a => { out[a.tag] = a.tag === 'opsz' ? 'auto' : a.defaultVal })
+  return out
+}
+
 function resolveInitialMode(isCalcom) {
   const fromHash = HASH_TO_MODE[window.location.hash]
   if (fromHash === 'calcom' || fromHash === 'coss') return isCalcom ? fromHash : 'paragraph'
@@ -815,9 +837,7 @@ export default function App() {
       setNamedInstances(instances)
       setSupportedRanges(chars ?? null)
       setGlyphMatchUnavailable(false)
-      const defaults = {}
-      axes.forEach(a => { defaults[a.tag] = a.defaultVal })
-      setAxisValues(defaults)
+      setAxisValues(axisDefaults(axes))
     }
     loadRouteFont().catch(console.error)
   }, [fontSlug, currentStyleKey])
@@ -908,9 +928,7 @@ export default function App() {
       setVariationAxes(known.axes)
       setNamedInstances(known.instances)
       setSupportedRanges(known.chars ?? null)
-      const defaults = {}
-      known.axes.forEach(a => { defaults[a.tag] = a.defaultVal })
-      setAxisValues(defaults)
+      setAxisValues(axisDefaults(known.axes))
       return
     }
     // Fallback: parse TTF/OTF inline (woff2 will return empty)
@@ -958,7 +976,7 @@ export default function App() {
         instances.push({ name, coordinates: coords })
       }
       setVariationAxes(axes); setNamedInstances(instances)
-      const defaults={}; axes.forEach(a => { defaults[a.tag]=a.defaultVal }); setAxisValues(defaults)
+      setAxisValues(axisDefaults(axes))
     } catch { setVariationAxes([]); setNamedInstances([]); setAxisValues({}) }
   }
 
@@ -2092,7 +2110,7 @@ export default function App() {
                 return (
                   <SliderRow
                     key={axis.tag}
-                    label={axis.name}
+                    label={titleCaseAxis(axis.name)}
                     tag={axis.tag}
                     value={val}
                     min={axis.min}
