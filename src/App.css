@@ -729,7 +729,12 @@
    which have already parted the document from the chrome, and it reads as the page failing
    to start rather than as air. The gap is not doing the job it was added for, so it goes. */
 @media (max-width: 768px) {
-  .para-block-wrap:first-child .para-block { margin-top: var(--spacing-04, 12px); }
+  /* One em line-space, not a token step: this gap is measured against the TEXT it opens,
+     not against the chrome above it, so it should scale with the type rather than sit on
+     the spacing ladder. 1rem is the document's own em -- deliberately not 1em, which is
+     the block's own size and would give a 57px heading 57px again, the exact scaling
+     mistake the block rhythm was fixed to remove. */
+  .para-block-wrap:first-child .para-block { margin-top: 1rem; }
 }
 
 /* The wrapper exists so the style rail can sit BESIDE the editable element rather than
