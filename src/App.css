@@ -729,12 +729,14 @@
    which have already parted the document from the chrome, and it reads as the page failing
    to start rather than as air. The gap is not doing the job it was added for, so it goes. */
 @media (max-width: 768px) {
-  /* One em line-space, not a token step: this gap is measured against the TEXT it opens,
-     not against the chrome above it, so it should scale with the type rather than sit on
-     the spacing ladder. 1rem is the document's own em -- deliberately not 1em, which is
-     the block's own size and would give a 57px heading 57px again, the exact scaling
-     mistake the block rhythm was fixed to remove. */
-  .para-block-wrap:first-child .para-block { margin-top: 1rem; }
+  /* NONE, because the surface already opened the page. .preview-paragraph carries 16px of
+     padding-top and the block was adding 16 more on top of it -- two rules doing one job,
+     stacked, for 32px above the first line where 16 was the intent. Measured from the chip
+     bar the run was 6 + 44 (the theme row, real content) + 6 + 16 + 16 = 88px, and the
+     last 16 is the only part that was neither chrome nor deliberate.
+     On desktop the 3rem stays: there the column starts partway down a tall window and the
+     space reads as a margin rather than as the page failing to begin. */
+  .para-block-wrap:first-child .para-block { margin-top: 0; }
 }
 
 /* The wrapper exists so the style rail can sit BESIDE the editable element rather than
