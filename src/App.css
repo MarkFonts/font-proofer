@@ -723,6 +723,15 @@
 
 .para-block-wrap:first-child .para-block { margin-top: 3rem; }
 
+/* Not on a phone. 48px of opening air is right under a desktop sidebar, where the column
+   begins partway down a tall window and the space reads as a margin. On a 375px screen the
+   same 48 sits directly beneath two stacked bars -- the mode tabs and the style chips --
+   which have already parted the document from the chrome, and it reads as the page failing
+   to start rather than as air. The gap is not doing the job it was added for, so it goes. */
+@media (max-width: 768px) {
+  .para-block-wrap:first-child .para-block { margin-top: var(--spacing-04, 12px); }
+}
+
 /* The wrapper exists so the style rail can sit BESIDE the editable element rather than
    inside it: anything inside a contentEditable is counted by the caret helpers and is
    typeable. Relative, because it is what BlockStyleRail positions against -- without it
