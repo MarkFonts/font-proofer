@@ -693,40 +693,35 @@
   position: relative;
 }
 
-.para-block {
-  margin-bottom: 0.6em;
-}
+/* ── Paragraph block rhythm ───────────────────────────────────────────────────
+   ONE GAP, the same between every pair of blocks whatever their levels. It was four
+   different numbers before -- 0.6em below each block, 0.4em extra between paragraphs,
+   1em above a heading, 0.2em below one -- and every one of them was in `em`, so it
+   scaled with the block's OWN size: a 57px h1 reserved 57px above itself and a 22px h3
+   reserved 22. The bigger the heading, the bigger its gap, which is backwards. A heading
+   already announces itself by being large; the space is there to part it from the block
+   above, which has not changed size.
+   So: rem, not em, and one value. The only exception is the top of the document, which is
+   a different event from one block following another. */
+.para-block { margin: 0; }
+
+.para-block-wrap + .para-block-wrap { margin-top: 0.75rem; }
+
+.para-block-wrap:first-child .para-block { margin-top: 3rem; }
 
 /* The wrapper exists so the style rail can sit BESIDE the editable element rather than
    inside it: anything inside a contentEditable is counted by the caret helpers and is
    typeable. Relative, because it is what BlockStyleRail positions against -- without it
    the rail resolves to .preview-paragraph and every block's rail stacks at the top of the
-   column instead of beside its own paragraph. */
+   column instead of beside its own paragraph.
+
+   The flow rules live on the WRAPPER, not the block, and that is not cosmetic: wrapping
+   each block broke every sibling and child selector at once, silently and all in the same
+   direction. `.para-block:last-child` began matching every block, because each is now the
+   only child of its own wrapper; `.para-block--p + .para-block--p` matched nothing,
+   because no two blocks are siblings any more. Everything collapsed to zero, which reads
+   as a deliberate rhythm rather than as breakage. */
 .para-block-wrap { position: relative; }
-
-/* THROUGH THE WRAPPER, not the block. Every one of these was written when the blocks were
-   siblings of each other; wrapping each block to hang the style rail off it broke all
-   three at once, silently and in the same direction -- everything collapsed to zero.
-   `:last-child` matched EVERY block, because each is now the only child of its own
-   wrapper, so the "no margin after the last one" rule zeroed all of them. And
-   `.para-block--p + .para-block--p` matched nothing, because no two blocks are siblings
-   any more, so paragraphs lost the space between them.
-   The wrapper is the thing in the flow now, so the flow rules live on it and reach the
-   block through :has(). */
-.para-block-wrap:last-child .para-block {
-  margin-bottom: 0;
-}
-
-.para-block-wrap:has(.para-block--p) + .para-block-wrap:has(.para-block--p) .para-block {
-  margin-top: 0.4em;
-}
-
-.para-block--h1,
-.para-block--h2,
-.para-block--h3 {
-  margin-top: 1em;
-  margin-bottom: 0.2em;
-}
 
 /* Paragraph menu-target highlight now uses the shared edit-rail (edit-rail--target);
    see wm-primitives/src/editRail.css. The old offset outline was retired. */

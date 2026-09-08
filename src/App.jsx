@@ -1473,7 +1473,7 @@ export default function App() {
           {mode === 'paragraph' && (['h1', 'h2', 'h3', 'p']).map(type => (
             <button
               key={type}
-              className={`mobile-sub-btn ${activeParaStyle === type ? 'active' : ''}`}
+              className={`mobile-sub-btn ${effectiveParaStyle === type ? 'active' : ''}`}
               onClick={() => setActiveParaStyle(prev => prev === type ? null : type)}
             >
               {type === 'p' ? 'P' : type.toUpperCase()}
@@ -2699,7 +2699,13 @@ export default function App() {
                       kind: 'axis',
                     })),
                   ],
-                  selected: activeParaStyle === type,
+                  /* effectiveParaStyle, not activeParaStyle: entering paragraph mode
+                     already targets `p` (see the `activeParaStyle ?? 'p'` above), so the
+                     panel has to say so. Highlighting the raw state left every row unlit
+                     while the sidebar was quietly editing the paragraph -- the controls
+                     and the picker disagreed about what was selected, and the picker was
+                     the one that was wrong. */
+                  selected: effectiveParaStyle === type,
                 }
               })}
             />
