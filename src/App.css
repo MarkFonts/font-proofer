@@ -1,15 +1,18 @@
 /* ── Theme toggle ────────────────────────────────────────────────────────── */
-/* The control itself is the house Toggle Group (shared/src/toggleGroup.css). What stays
-   here is placement: a fixed affordance that recedes until you reach for it. */
+/* Three marks now, not the house Toggle Group: brightness_auto / light_mode / dark_mode,
+   each a .wm-icon-btn that draws nothing. What stays here is placement and the row.
+   The blanket `opacity: .6` is gone with the lozenge -- it dimmed the CHOSEN option as
+   much as the other two, which fought the ink ladder the marks now use to say which is
+   on. The marks recede on their own: ink-faint at rest is quieter than .6 ever was. */
 #theme-toggle {
   position: fixed;
   top: 20px;
   right: 20px;
   z-index: 100;
-  opacity: 0.6;
-  transition: opacity var(--dur-fast, 140ms);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-01, 4px);
 }
-#theme-toggle:hover { opacity: 1; }
 
 /* ── Layout ──────────────────────────────────────────────────────────────── */
 .layout {
@@ -263,20 +266,36 @@
   gap: 4px;
 }
 
+/* THE ROW IS THE BAR. The panel toggle used to be a sibling sitting beside the mode
+   button with a 4px gap, which read as one pill and a loose mark next to it -- and once
+   the mark lost its box there was nothing tying the two together at all.
+   So the fill and the radius move up to the row: the label and the toggle are inside one
+   bar, which is what they always were logically -- a mode, and the way into its settings.
+   Nesting the toggle inside .mode-btn would be the other fix and is not available: a
+   button inside a button is invalid, and the outer one would swallow its clicks. */
 .mode-btn-row {
   display: flex;
   align-items: stretch;
-  gap: 4px;
+  gap: 0;
+  border-radius: var(--radius);
+  transition: background var(--dur-fast, 140ms);
 }
+.mode-btn-row:hover,
+.mode-btn-row:has(.mode-btn.active) { background: var(--bg-elevated); }
 
 .mode-btn-row .mode-btn {
   flex: 1;
 }
+/* Inside the bar the button paints nothing -- the bar is doing it, and two nested fills
+   read as a pill inside a pill. */
+.mode-btn-row .mode-btn,
+.mode-btn-row .mode-btn:hover,
+.mode-btn-row .mode-btn.active { background: transparent; }
 
 .mode-btn-row .styles-toggle-btn {
   width: 30px;
   height: auto;
-  border-radius: var(--radius);
+  border-radius: 0;
   flex-shrink: 0;
 }
 
@@ -432,35 +451,34 @@
   gap: 3px;      /* 4 -> 3: five buttons in the width three used to have */
 }
 
+/* NO BOX. This drew a 28px bordered square with its own fill, and the state lived in it
+   -- border-color and background -- while the mark inside barely moved. Beside the four
+   alignments, which lost theirs when they became Material Symbols, the reset was the one
+   button in the row still wearing chrome.
+   The mark carries the state now: Icon moves ink and weight together, so active is bolder
+   as well as brighter. What is left here is the target, and it draws nothing. */
 .align-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 28, not 32: the row now carries five — reset plus four alignments. */
+  /* Still 28: the target does not shrink because the box left. */
   width: 28px;
   height: 28px;
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-  transition: background var(--dur-fast, 140ms), color var(--dur-fast, 140ms), border-color var(--dur-fast, 140ms);
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
 }
 
-.align-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-muted);
-}
+/* Hover and active are the MARK's now -- icon.css owns them, on ink and weight together.
+   Nothing here paints a background or a border for a state any more.
+   .reset-clean stays: "nothing to reset" is a real third state, and it is exactly what
+   Icon calls `off`. Left as an opacity here so the existing className keeps working;
+   the row should pass state="off" to Icon instead once the call sites move. */
+.align-btn.reset-clean { opacity: 0.4; }
 
-.align-btn.active {
-  background: var(--bg-hover);
-  color: var(--text);
-  border-color: var(--text-muted);
-}
-
-.align-btn.reset-clean {
-  color: var(--text-dim);
-  opacity: 0.4;
-}
+@media (pointer: coarse) { .align-btn { width: 44px; height: 44px; } }
 
 /* ── Glyph set buttons ───────────────────────────────────────────────────── */
 .glyph-set-group {
