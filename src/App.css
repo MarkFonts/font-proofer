@@ -697,11 +697,27 @@
   margin-bottom: 0.6em;
 }
 
-.para-block:last-child {
+/* The wrapper exists so the style rail can sit BESIDE the editable element rather than
+   inside it: anything inside a contentEditable is counted by the caret helpers and is
+   typeable. Relative, because it is what BlockStyleRail positions against -- without it
+   the rail resolves to .preview-paragraph and every block's rail stacks at the top of the
+   column instead of beside its own paragraph. */
+.para-block-wrap { position: relative; }
+
+/* THROUGH THE WRAPPER, not the block. Every one of these was written when the blocks were
+   siblings of each other; wrapping each block to hang the style rail off it broke all
+   three at once, silently and in the same direction -- everything collapsed to zero.
+   `:last-child` matched EVERY block, because each is now the only child of its own
+   wrapper, so the "no margin after the last one" rule zeroed all of them. And
+   `.para-block--p + .para-block--p` matched nothing, because no two blocks are siblings
+   any more, so paragraphs lost the space between them.
+   The wrapper is the thing in the flow now, so the flow rules live on it and reach the
+   block through :has(). */
+.para-block-wrap:last-child .para-block {
   margin-bottom: 0;
 }
 
-.para-block--p + .para-block--p {
+.para-block-wrap:has(.para-block--p) + .para-block-wrap:has(.para-block--p) .para-block {
   margin-top: 0.4em;
 }
 

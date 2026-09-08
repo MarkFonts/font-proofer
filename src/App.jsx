@@ -9,7 +9,7 @@ import {
   AxisSlider as SliderRow,
   Icon,
   makeGlyphSets, parseCmapRanges, isSupported,
-  nbMinus, EditableTextBlock, GlyphPicker, measureGlyphMetrics, enumerateCmap,
+  nbMinus, EditableTextBlock, BlockStyleRail, GlyphPicker, measureGlyphMetrics, enumerateCmap,
   FLATTERSATZ_DEFAULTS as FIT_DEFAULTS,
   FittingControls, fittingMode, AlignmentButtons, FittedParagraph,
   PARA_STYLE_DEFAULTS, fitOptionsFor,
@@ -2267,8 +2267,20 @@ export default function App() {
         {fontName && mode === 'paragraph' && (
           <div className="preview-paragraph" style={{ maxWidth: `${measure}px` }}>
               {blocks.map((block, i) => (
+                /* The rail is a SIBLING of the editable element, not a child: anything
+                   inside a contentEditable is counted by the caret helpers and is
+                   typeable. The wrapper is what the rail is positioned against. */
+                <div className="para-block-wrap" key={block.id}>
+                {focusedBlockId === block.id && (
+                  <BlockStyleRail
+                    value={block.type}
+                    onChange={k => {
+                      setBlocks(prev => prev.map(x => x.id === block.id ? { ...x, type: k } : x))
+                      requestAnimationFrame(() => blockRefs.current[block.id]?.focus())
+                    }}
+                  />
+                )}
                 <EditableTextBlock
-                  key={block.id}
                   value={block.text}
                   focused={focusedBlockId === block.id}
                   onFocusChange={f => setFocusedBlockId(cur => f ? block.id : (cur === block.id ? null : cur))}
@@ -2297,6 +2309,7 @@ export default function App() {
                     )
                   }}
                 />
+                </div>
               ))}
               {/* The tail of a part-loaded work fades instead of stopping dead, so the
                   cut reads as "more of this" rather than the end of the specimen. The
