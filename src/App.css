@@ -1083,7 +1083,14 @@
   .mobile-sub-btn {
     flex-shrink: 0;
     padding: var(--spacing-01, 4px) var(--spacing-04, 12px);
-    border-radius: 20px;
+    /* The house radius, not a 20px literal. corners.css applies the corner law to every
+       rounded corner already -- `*` with superellipse(--corner-k) -- so what this changes
+       is not the SHAPE but the ladder: 20px was a number nobody chose twice, and a pill
+       whose radius exceeds half its height is a stadium, which flattens the G2 easing
+       into a plain semicircular cap. At --radius the curvature has somewhere to ease.
+       Note for review on a phone: Safari has no corner-shape and fails it SILENTLY, so on
+       iOS these are plain rounded rects either way. The radius still matters there. */
+    border-radius: var(--radius);
     font-size: var(--type-ui-size, 0.75rem);
     font-family: 'Face', system-ui, sans-serif;
     color: var(--text-muted);
@@ -1099,6 +1106,25 @@
     color: var(--text);
     border-color: var(--text-muted);
   }
+
+  /* THE PARAGRAPH-LEVEL PILLS ARE MARKS, so they lose the pill. The specimen chips beside
+     them stay pills because they carry WORDS -- "A Tale of Two Cities" needs a shape to
+     sit in; a mark does not, and four bordered lozenges around four glyphs read as chrome
+     competing with the glyphs. The state moves into the mark: Icon carries ink and GRAD
+     together, so active is denser as well as brighter.
+     44px square, because this bar is only ever touched. */
+  .mobile-sub-btn--mark {
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 0;
+    border-radius: 0;
+  }
+  .mobile-sub-btn--mark.active { background: none; border: 0; }
 
   .mobile-multi-btn {
     position: sticky;

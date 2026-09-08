@@ -1473,10 +1473,17 @@ export default function App() {
           {mode === 'paragraph' && (['h1', 'h2', 'h3', 'p']).map(type => (
             <button
               key={type}
-              className={`mobile-sub-btn ${effectiveParaStyle === type ? 'active' : ''}`}
+              /* The same marks the styles panel and the margin rail use, so a level is
+                 named one way everywhere. H1/H2/H3/P as letters was a fourth spelling of
+                 the four things, and the odd one out was `P` -- a capital P for a
+                 paragraph, where the rest of the app draws a pilcrow. */
+              className={`mobile-sub-btn mobile-sub-btn--mark ${effectiveParaStyle === type ? 'active' : ''}`}
+              aria-label={type === 'p' ? 'Paragraph' : `Heading ${type[1]}`}
+              title={type === 'p' ? 'Paragraph' : `Heading ${type[1]}`}
               onClick={() => setActiveParaStyle(prev => prev === type ? null : type)}
             >
-              {type === 'p' ? 'P' : type.toUpperCase()}
+              <Icon name={type === 'p' ? 'format_paragraph' : `format_h${type[1]}`} size={20}
+                state={effectiveParaStyle === type ? 'active' : 'rest'} />
             </button>
           ))}
           {mode === 'paragraph' && <span className="mobile-sub-divider" />}
