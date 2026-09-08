@@ -5,7 +5,12 @@
    won over AxisSlider's green `auto` state and left it inheriting the label's grey.
    Anything unlayered still beats all of these, which is where this app's own component
    rules live and where a genuine override belongs. */
-@layer app.base, wm.color, wm.type, wm.controls;
+@layer app.base, wm.color, wm.type, wm.controls, wm.icon;
+/* AFTER the statement above, never before it. A layer's position is fixed when it is
+   first CREATED, so an @import that pulls in `@layer wm.icon` ahead of the ordering line
+   puts wm.icon first and the statement can no longer move it. Same failure that cost an
+   evening when App.jsx was imported before index.css -- see DIAL.md §6. */
+@import '../shared/src/icon.css';
 @import url("https://fonts.googleapis.com/css2?family=Cal+Sans&display=swap");
 
 @font-face {

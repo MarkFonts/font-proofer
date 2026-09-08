@@ -7,8 +7,9 @@ import {
   placeCaretAtEnd as placeCursorAtEnd,
   splitInlineMarkup, isPlainRun,
   AxisSlider as SliderRow,
+  Icon,
   makeGlyphSets, parseCmapRanges, isSupported,
-  nbMinus, EditableTextBlock, GlyphPicker, measureGlyphMetrics, enumerateCmap,
+  nbMinus, EditableTextBlock, BlockStyleRail, Chevron, GlyphPicker, measureGlyphMetrics, enumerateCmap,
   FLATTERSATZ_DEFAULTS as FIT_DEFAULTS,
   FittingControls, fittingMode, AlignmentButtons, FittedParagraph,
   PARA_STYLE_DEFAULTS, fitOptionsFor,
@@ -1448,13 +1449,13 @@ export default function App() {
 
       {/* Mobile tab bar */}
       <nav className="mobile-tabs">
-        {isCalcom && <button className={`mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><CalIcon /> cal.com/peer</button>}
-        {isCalcom && <button className={`mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><CalIcon /> booking events</button>}
-        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><BigIcon className={mode === 'big' ? 'aa-animated' : undefined} /> Big Word</button>
-        <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><ParaIcon /> Paragraph</button>
-        <button className={`mobile-tab ${mode === 'ui' ? 'active' : ''}`} onClick={() => setMode('ui')}><CalIcon /> UI</button>
-        <button className={`mobile-tab ${mode === 'scale' ? 'active' : ''}`} onClick={() => setMode('scale')}><ScaleIcon /> Type Scale</button>
-        <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><GlyphIcon /> Glyphs</button>
+        {isCalcom && <button className={`mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><Icon name="calendar_month" /> cal.com/peer</button>}
+        {isCalcom && <button className={`mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><Icon name="calendar_month" /> booking events</button>}
+        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><Icon name="insert_text" className={mode === 'big' ? 'aa-animated' : undefined} /> Big Word</button>
+        <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><Icon name="format_paragraph" /> Paragraph</button>
+        <button className={`mobile-tab ${mode === 'ui' ? 'active' : ''}`} onClick={() => setMode('ui')}><Icon name="calendar_month" /> UI</button>
+        <button className={`mobile-tab ${mode === 'scale' ? 'active' : ''}`} onClick={() => setMode('scale')}><Icon name="text_fields" /> Type Scale</button>
+        <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><Icon name="grid_view" /> Glyphs</button>
       </nav>
 
       {/* Mobile sub-bar: context-sensitive chips */}
@@ -1472,7 +1473,7 @@ export default function App() {
           {mode === 'paragraph' && (['h1', 'h2', 'h3', 'p']).map(type => (
             <button
               key={type}
-              className={`mobile-sub-btn ${activeParaStyle === type ? 'active' : ''}`}
+              className={`mobile-sub-btn ${effectiveParaStyle === type ? 'active' : ''}`}
               onClick={() => setActiveParaStyle(prev => prev === type ? null : type)}
             >
               {type === 'p' ? 'P' : type.toUpperCase()}
@@ -1493,7 +1494,7 @@ export default function App() {
               className={`mobile-multi-btn ${scaleMultiSelectMode ? 'active' : ''}`}
               onClick={() => setScaleMultiSelectMode(p => !p)}
               title="Select multiple steps"
-            ><MultiSelectIcon /></button>
+            ><Icon name="forms_add_on" /></button>
           )}
           {mode === 'scale' && visibleScaleSteps.map(step => {
             const isSelected = selectedScaleSteps.includes(step.key) || activeScaleStep === step.key
@@ -1563,16 +1564,21 @@ export default function App() {
         onClick={() => setDesktopSidebarOpen(p => !p)}
         title={desktopSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
       >
-        {desktopSidebarOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+        {/* The house Chevron, rotated, not arrow_back_ios_new: a chevron is a chevron
+            wherever it appears, and Material's has flat ends, a steeper angle and a 20px
+            opsz floor. Material keeps the SYMBOLS -- pilcrow, aligns, reset, theme -- which
+            are never asked to be 6px. */}
+        <Chevron dir={-1} width={12} height={7}
+          className={desktopSidebarOpen ? 'chev-left' : 'chev-right'} />
       </button>
       {!mobileSidebarOpen && (
         <button className="mobile-sidebar-lift-tab" onClick={() => setMobileSidebarOpen(true)}>
-          <ChevronUpIcon />
+          <Icon name="keyboard_arrow_up" />
         </button>
       )}
       <aside className={`sidebar${mobileSidebarOpen ? '' : ' mobile-collapsed'}${desktopSidebarOpen ? '' : ' desktop-collapsed'}`}>
         <button className="mobile-sidebar-handle" onClick={() => setMobileSidebarOpen(false)}>
-          <ChevronDownIcon />
+          <Chevron dir={-1} width={12} height={7} />
         </button>
         {/* Logo */}
         <div className="sidebar-logo">
@@ -1628,7 +1634,7 @@ export default function App() {
             {isCalcom && (
               <div className="mode-btn-row">
                 <ModeBtn active={mode === 'calcom'} onClick={() => setMode('calcom')}>
-                  <CalIcon /> cal.com/peer
+                  <Icon name="calendar_month" /> cal.com/peer
                 </ModeBtn>
                 {fontName && mode === 'calcom' && (
                   <button
@@ -1637,7 +1643,7 @@ export default function App() {
                     title="Type roles panel"
                     onClick={() => setCalcomPanelOpen(p => !p)}
                   >
-                    <SlidersIcon />
+                    <Icon name="discover_tune" />
                   </button>
                 )}
               </div>
@@ -1645,7 +1651,7 @@ export default function App() {
             {isCalcom && (
               <div className="mode-btn-row">
                 <ModeBtn active={mode === 'coss'} onClick={() => setMode('coss')}>
-                  <CalIcon /> booking events
+                  <Icon name="calendar_month" /> booking events
                 </ModeBtn>
                 {fontName && mode === 'coss' && (
                   <button
@@ -1654,17 +1660,17 @@ export default function App() {
                     title="Type roles panel"
                     onClick={() => setCossPanelOpen(p => !p)}
                   >
-                    <SlidersIcon />
+                    <Icon name="discover_tune" />
                   </button>
                 )}
               </div>
             )}
             <ModeBtn active={mode === 'big'} onClick={() => setMode('big')}>
-              <BigIcon className={mode === 'big' ? 'aa-animated' : undefined} /> Big Word
+              <Icon name="insert_text" className={mode === 'big' ? 'aa-animated' : undefined} /> Big Word
             </ModeBtn>
             <div className="mode-btn-row">
               <ModeBtn active={mode === 'paragraph'} onClick={() => setMode('paragraph')}>
-                <ParaIcon /> Paragraph
+                <Icon name="format_paragraph" /> Paragraph
               </ModeBtn>
               {fontName && mode === 'paragraph' && (
                 <button
@@ -1673,16 +1679,16 @@ export default function App() {
                   title="Styles panel"
                   onClick={() => setParaStylesPanelOpen(p => !p)}
                 >
-                  <SlidersIcon />
+                  <Icon name="discover_tune" />
                 </button>
               )}
             </div>
             <ModeBtn active={mode === 'ui'} onClick={() => setMode('ui')}>
-              <CalIcon /> UI
+              <Icon name="calendar_month" /> UI
             </ModeBtn>
             <div className="mode-btn-row">
               <ModeBtn active={mode === 'scale'} onClick={() => setMode('scale')}>
-                <ScaleIcon /> Type Scale
+                <Icon name="text_fields" /> Type Scale
               </ModeBtn>
               {fontName && mode === 'scale' && (
                 <button
@@ -1691,12 +1697,12 @@ export default function App() {
                   title="Scale steps panel"
                   onClick={() => setScaleStepsPanelOpen(p => !p)}
                 >
-                  <SlidersIcon />
+                  <Icon name="discover_tune" />
                 </button>
               )}
             </div>
             <ModeBtn active={mode === 'glyphs'} onClick={() => setMode('glyphs')}>
-              <GlyphIcon /> Glyphs
+              <Icon name="grid_view" /> Glyphs
             </ModeBtn>
           </div>
         </div>
@@ -1812,7 +1818,7 @@ export default function App() {
                       }
                       setFit(FIT_DEFAULTS)
                     }}
-                  ><ResetIcon /></button>
+                  ><Icon name="settings_backup_restore" /></button>
                 )
               })()}
               {/* In paragraph mode alignment belongs to the SELECTED style, the same as
@@ -1825,6 +1831,7 @@ export default function App() {
             )}
           </div>
           {isFamily && (
+            <span className="instance-select-wrap">
             <select
               className="instance-select"
               value={scopedWeight ?? ''}
@@ -1835,6 +1842,11 @@ export default function App() {
                 <option key={s.key} value={s.key}>{s.label}</option>
               ))}
             </select>
+              {/* The HOUSE chevron, not keyboard_arrow_down: Material's has flat ends and a
+      steeper angle than the stepper chevrons beside the numbers, and those are
+      the ones that have to be right. See shared/src/Chevron.tsx. */}
+  <Chevron dir={-1} width={12} height={7} />
+            </span>
           )}
           {(italicFontFace || variationAxes.some(a => a.tag === 'ital')) && (() => {
             const italAxis = variationAxes.find(a => a.tag === 'ital')
@@ -1863,6 +1875,7 @@ export default function App() {
               The featureStr/paraStyles ss04/ss05 plumbing is still in place if
               a real one is ever built. */}
           {ttcFonts.length > 1 && (
+            <span className="instance-select-wrap">
             <select
               className="instance-select"
               value={ttcIndex}
@@ -1872,6 +1885,11 @@ export default function App() {
                 <option key={i} value={i}>{name}</option>
               ))}
             </select>
+              {/* The HOUSE chevron, not keyboard_arrow_down: Material's has flat ends and a
+      steeper angle than the stepper chevrons beside the numbers, and those are
+      the ones that have to be right. See shared/src/Chevron.tsx. */}
+  <Chevron dir={-1} width={12} height={7} />
+            </span>
           )}
           {namedInstances.length > 0 && (() => {
             const currentCoords = effectiveScaleStep
@@ -1901,6 +1919,7 @@ export default function App() {
               }
             }
             return (
+              <span className="instance-select-wrap">
               <select
                 className="instance-select"
                 value={activeInst?.name ?? ''}
@@ -1911,6 +1930,11 @@ export default function App() {
                   <option key={inst.name} value={inst.name}>{inst.name}</option>
                 ))}
               </select>
+                {/* The HOUSE chevron, not keyboard_arrow_down: Material's has flat ends and a
+      steeper angle than the stepper chevrons beside the numbers, and those are
+      the ones that have to be right. See shared/src/Chevron.tsx. */}
+  <Chevron dir={-1} width={12} height={7} />
+              </span>
             )
           })()}
           {/* Size/Tracking/Leading are per-step in Type Scale, so hide them there */}
@@ -2082,7 +2106,7 @@ export default function App() {
                           setAxisValues(defaults)
                         }
                       }}
-                    ><ResetIcon /></button>
+                    ><Icon name="settings_backup_restore" /></button>
                   )
                 })()}
               </div>
@@ -2266,8 +2290,20 @@ export default function App() {
         {fontName && mode === 'paragraph' && (
           <div className="preview-paragraph" style={{ maxWidth: `${measure}px` }}>
               {blocks.map((block, i) => (
+                /* The rail is a SIBLING of the editable element, not a child: anything
+                   inside a contentEditable is counted by the caret helpers and is
+                   typeable. The wrapper is what the rail is positioned against. */
+                <div className="para-block-wrap" key={block.id}>
+                {focusedBlockId === block.id && (
+                  <BlockStyleRail
+                    value={block.type}
+                    onChange={k => {
+                      setBlocks(prev => prev.map(x => x.id === block.id ? { ...x, type: k } : x))
+                      requestAnimationFrame(() => blockRefs.current[block.id]?.focus())
+                    }}
+                  />
+                )}
                 <EditableTextBlock
-                  key={block.id}
                   value={block.text}
                   focused={focusedBlockId === block.id}
                   onFocusChange={f => setFocusedBlockId(cur => f ? block.id : (cur === block.id ? null : cur))}
@@ -2296,6 +2332,7 @@ export default function App() {
                     )
                   }}
                 />
+                </div>
               ))}
               {/* The tail of a part-loaded work fades instead of stopping dead, so the
                   cut reads as "more of this" rather than the end of the specimen. The
@@ -2559,7 +2596,7 @@ export default function App() {
                 className={`scale-multi-btn ${scaleMultiSelectMode ? 'active' : ''}`}
                 onClick={() => setScaleMultiSelectMode(p => !p)}
                 title="Select multiple steps"
-              ><MultiSelectIcon /></button>
+              ><Icon name="forms_add_on" /></button>
             </div>
             {/* migrated to shared StyleScopeList (multi-select); keeps this panel's own
                 trigger/positioning and the shift-range / multi-mode selection logic */}
@@ -2656,7 +2693,19 @@ export default function App() {
                 const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
                 return {
                   id: type,
-                  label: type === 'p' ? 'Paragraph' : `Heading ${type[1]}`,
+                  /* The MARK names the level now -- format_h1/h2/h3, and the same pilcrow
+                     the Paragraph preview mode uses -- which frees the label to stop
+                     being the words "Heading 1" and become a specimen instead. */
+                  icon: type === 'p' ? 'format_paragraph' : `format_h${type[1]}`,
+                  /* "Rag" rather than "Heading 1": the mark beside it already says which
+                     level this is, so the label is free to be a specimen -- ascender,
+                     descender, round and diagonal in four characters.
+                     Still CLAMPED to 22px, not set at the style's real size. Real size was
+                     tried and taken back: at 57px the h1 row is taller than the other
+                     three put together, so the list stops being a list of four choices and
+                     becomes one big word with three footnotes. The size is already in the
+                     chip, stated exactly; the specimen is here to show the FACE. */
+                  label: 'Rag',
                   labelStyle: {
                     fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
                     fontStyle,
@@ -2673,7 +2722,13 @@ export default function App() {
                       kind: 'axis',
                     })),
                   ],
-                  selected: activeParaStyle === type,
+                  /* effectiveParaStyle, not activeParaStyle: entering paragraph mode
+                     already targets `p` (see the `activeParaStyle ?? 'p'` above), so the
+                     panel has to say so. Highlighting the raw state left every row unlit
+                     while the sidebar was quietly editing the paragraph -- the controls
+                     and the picker disagreed about what was selected, and the picker was
+                     the one that was wrong. */
+                  selected: effectiveParaStyle === type,
                 }
               })}
             />
@@ -3222,6 +3277,11 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
 }
 
 // ── Theme Toggle ──────────────────────────────────────────────────────────────
+// Three marks, not a segmented lozenge of three words. The lozenge spelled Auto / Light /
+// Dark and drew a pill around whichever was on, which is a lot of chrome to say a thing
+// each icon says by itself -- and it read as a control ABOUT the page rather than part of
+// it. The state is the mark's own now, as everywhere else: ink and GRAD together.
+const THEME_ICON = { auto: 'brightness_auto', light: 'light_mode', dark: 'dark_mode' }
 function ThemeToggle() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wm-theme') || 'auto')
   const apply = (t) => {
@@ -3230,10 +3290,21 @@ function ThemeToggle() {
     document.documentElement.dataset.theme = t
   }
   return (
-    <div id="theme-toggle" className="ui-seg" role="group" aria-label="Color scheme">
+    <div id="theme-toggle" className="theme-toggle" role="group" aria-label="Color scheme">
       {['auto', 'light', 'dark'].map(t => (
-        <button key={t} data-mode={t} className={theme === t ? 'active' : ''} onClick={() => apply(t)}>
-          {t.charAt(0).toUpperCase() + t.slice(1)}
+        <button
+          key={t}
+          data-mode={t}
+          /* aria-pressed, which the lozenge never had: it carried state in a className
+             only, so a screen reader heard three buttons and no indication of which was
+             on. */
+          aria-pressed={theme === t}
+          aria-label={`${t.charAt(0).toUpperCase() + t.slice(1)} colour scheme`}
+          title={`${t.charAt(0).toUpperCase() + t.slice(1)}`}
+          className={`wm-icon-btn${theme === t ? ' active' : ''}`}
+          onClick={() => apply(t)}
+        >
+          <Icon name={THEME_ICON[t]} size={20} />
         </button>
       ))}
     </div>
@@ -3241,150 +3312,8 @@ function ThemeToggle() {
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
-function CalIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
-      <rect width="20" height="20" rx="3" ry="3" fill="currentColor" fillOpacity="0.15"/>
-      <path fill="currentColor" d="M5.155 12.422c-.43-.25-.769-.587-1.016-1.012-.247-.425-.371-.893-.371-1.402 0-.515.12-.987.36-1.417.24-.43.574-.77 1.001-1.02.427-.25.914-.375 1.459-.375.405 0 .777.071 1.117.214.34.143.635.358.885.648l-.772.735c-.17-.18-.35-.314-.54-.401-.19-.087-.42-.131-.69-.131-.345 0-.646.076-.904.229-.257.153-.456.361-.596.626-.14.265-.21.562-.21.892 0 .33.07.625.21.885.14.26.341.465.604.615.262.15.568.225.918.225.235 0 .456-.042.664-.128.207-.085.383-.21.529-.375l.795.698c-.22.265-.498.476-.832.633-.335.157-.728.236-1.177.236-.525 0-1.002-.125-1.432-.375ZM9.835 12.516c-.3-.193-.534-.449-.701-.769-.168-.32-.251-.665-.251-1.035 0-.37.084-.715.251-1.035.167-.32.401-.576.701-.769.3-.193.64-.289 1.02-.289.285 0 .542.064.772.191.23.128.383.3.458.514h.052v-.6h1.027v3.974h-1.027v-.585h-.052c-.075.205-.228.371-.458.499-.23.127-.487.191-.772.191-.38 0-.72-.096-1.02-.288Zm1.743-.833c.162-.097.29-.231.382-.401.092-.17.139-.36.139-.57 0-.215-.047-.407-.139-.577-.092-.17-.22-.304-.382-.401-.163-.097-.346-.146-.551-.146-.31 0-.568.106-.772.319-.205.213-.307.478-.307.799 0 .21.046.401.139.574.092.172.221.307.386.405.165.097.35.146.555.146.205 0 .389-.049.551-.146ZM15.391 12.7h-1.057v-.877l.007-4.53h1.058l-.008 5.406Z"/>
-    </svg>
-  )
-}
-function BigIcon({ className }) {
-  return <svg className={className} width="20" height="14" viewBox="0 0 20 14" fill="none"><text x="10" y="12" textAnchor="middle" fontSize="13" fill="currentColor" fontFamily="'Face', system-ui, sans-serif" style={{fontSynthesis:'none'}}>Aa</text></svg>
-}
-function ParaIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="1" y="2" width="12" height="1.5" rx="0.75" fill="currentColor"/>
-      <rect x="1" y="5.5" width="12" height="1.5" rx="0.75" fill="currentColor"/>
-      <rect x="1" y="9" width="8" height="1.5" rx="0.75" fill="currentColor"/>
-    </svg>
-  )
-}
-function GlyphIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-      <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-      <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-      <rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-    </svg>
-  )
-}
-function ScaleIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="1" y="1.5" width="12" height="3" rx="0.75" fill="currentColor"/>
-      <rect x="1" y="6.5" width="12" height="2" rx="0.75" fill="currentColor"/>
-      <rect x="1" y="10.5" width="12" height="1.25" rx="0.625" fill="currentColor"/>
-    </svg>
-  )
-}
-function SlidersIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <line x1="1" y1="3" x2="11" y2="3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-      <circle cx="4" cy="3" r="1.5" fill="currentColor"/>
-      <line x1="1" y1="9" x2="11" y2="9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-      <circle cx="8" cy="9" r="1.5" fill="currentColor"/>
-    </svg>
-  )
-}
-function AlignLeftIcon() {
-  // One long and one short length across every alignment icon, so the row reads as a set.
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="2" y="1.6" width="10" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="2" y="5.0" width="6" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="2" y="8.4" width="10" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="2" y="11.8" width="6" height="1.2" rx="0.6" fill="currentColor"/>
-    </svg>
-  )
-}
-function AlignCenterIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="2.0" y="1.6" width="10" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="4.0" y="5.0" width="6" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="2.0" y="8.4" width="10" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="4.0" y="11.8" width="6" height="1.2" rx="0.6" fill="currentColor"/>
-    </svg>
-  )
-}
-function AlignRightIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="2" y="1.6" width="10" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="6" y="5.0" width="6" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="2" y="8.4" width="10" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="6" y="11.8" width="6" height="1.2" rx="0.6" fill="currentColor"/>
-    </svg>
-  )
-}
-function AlignJustifyIcon() {
-  // Three flush lines and a short last one: justification never forces the final line.
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="2" y="1.6" width="10" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="2" y="5.0" width="10" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="2" y="8.4" width="10" height="1.2" rx="0.6" fill="currentColor"/>
-      <rect x="2" y="11.8" width="6" height="1.2" rx="0.6" fill="currentColor"/>
-    </svg>
-  )
-}
-function ChevronLeftIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="9,2 4,7 9,12" />
-    </svg>
-  )
-}
 
-function ChevronRightIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="5,2 10,7 5,12" />
-    </svg>
-  )
-}
 
-function ChevronDownIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="3,6 8,11 13,6" />
-    </svg>
-  )
-}
 
-function ChevronUpIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="3,10 8,5 13,10" />
-    </svg>
-  )
-}
 
-function MultiSelectIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-      <circle cx="3" cy="4" r="1.5" />
-      <line x1="6.5" y1="4" x2="12" y2="4" />
-      <circle cx="3" cy="10" r="1.5" />
-      <line x1="6.5" y1="10" x2="12" y2="10" />
-    </svg>
-  )
-}
 
-function ResetIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
-      <defs>
-        <style>{`.rst0{stroke-miterlimit:10}.rst0,.rst1{display:none;fill:none;stroke:currentColor;stroke-linecap:round;stroke-width:1.4px}.rst1{stroke-linejoin:round}`}</style>
-      </defs>
-      <path className="rst0" d="M8,2.39906c3.09331,0,5.60094,2.50763,5.60094,5.60094s-2.50763,5.60094-5.60094,5.60094-5.60094-2.50763-5.60094-5.60094c0-1.74259.7958-3.29931,2.04381-4.32656"/>
-      <polyline className="rst1" points="2.04069 3.38941 4.84717 3.38941 4.84717 6.19617"/>
-      <path d="M8,14.2909c-3.47461,0-6.30127-2.81629-6.30127-6.2909,0-2.57326,1.51851-3.90145,2.46222-4.67831.19366-.15897.47817-.12995.6365.06182.15865.19272.10866.45416-.06182.6365-.72266.77296-1.63651,1.99428-1.63651,3.97999,0,2.70215,2.19824,4.91247,4.90088,4.91247,2.70215,0,4.90039-2.21033,4.90039-4.91247,0-2.70264-2.19824-4.90088-4.90039-4.90088-.38672,0-.7002-.31348-.7002-.7002s.31348-.7002.7002-.7002c3.47461,0,6.30078,2.82666,6.30078,6.30127s-2.82617,6.2909-6.30078,6.2909Z"/>
-      <path d="M4.84717,6.89648c-.38672,0-.7002-.31348-.7002-.7002v-2.12169h-2.10645c-.38672,0-.7002-.31032-.7002-.69704s.31348-.68811.7002-.68811h2.80664c.38672,0,.7002.31348.7002.7002v2.80664c0,.38672-.31348.7002-.7002.7002Z"/>
-    </svg>
-  )
-}

@@ -1,15 +1,18 @@
 /* ── Theme toggle ────────────────────────────────────────────────────────── */
-/* The control itself is the house Toggle Group (shared/src/toggleGroup.css). What stays
-   here is placement: a fixed affordance that recedes until you reach for it. */
+/* Three marks now, not the house Toggle Group: brightness_auto / light_mode / dark_mode,
+   each a .wm-icon-btn that draws nothing. What stays here is placement and the row.
+   The blanket `opacity: .6` is gone with the lozenge -- it dimmed the CHOSEN option as
+   much as the other two, which fought the ink ladder the marks now use to say which is
+   on. The marks recede on their own: ink-faint at rest is quieter than .6 ever was. */
 #theme-toggle {
   position: fixed;
   top: 20px;
   right: 20px;
   z-index: 100;
-  opacity: 0.6;
-  transition: opacity var(--dur-fast, 140ms);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-01, 4px);
 }
-#theme-toggle:hover { opacity: 1; }
 
 /* ── Layout ──────────────────────────────────────────────────────────────── */
 .layout {
@@ -263,20 +266,36 @@
   gap: 4px;
 }
 
+/* THE ROW IS THE BAR. The panel toggle used to be a sibling sitting beside the mode
+   button with a 4px gap, which read as one pill and a loose mark next to it -- and once
+   the mark lost its box there was nothing tying the two together at all.
+   So the fill and the radius move up to the row: the label and the toggle are inside one
+   bar, which is what they always were logically -- a mode, and the way into its settings.
+   Nesting the toggle inside .mode-btn would be the other fix and is not available: a
+   button inside a button is invalid, and the outer one would swallow its clicks. */
 .mode-btn-row {
   display: flex;
   align-items: stretch;
-  gap: 4px;
+  gap: 0;
+  border-radius: var(--radius);
+  transition: background var(--dur-fast, 140ms);
 }
+.mode-btn-row:hover,
+.mode-btn-row:has(.mode-btn.active) { background: var(--bg-elevated); }
 
 .mode-btn-row .mode-btn {
   flex: 1;
 }
+/* Inside the bar the button paints nothing -- the bar is doing it, and two nested fills
+   read as a pill inside a pill. */
+.mode-btn-row .mode-btn,
+.mode-btn-row .mode-btn:hover,
+.mode-btn-row .mode-btn.active { background: transparent; }
 
 .mode-btn-row .styles-toggle-btn {
   width: 30px;
   height: auto;
-  border-radius: var(--radius);
+  border-radius: 0;
   flex-shrink: 0;
 }
 
@@ -377,20 +396,34 @@
   font-size: var(--type-ui-size, 0.75rem);
   outline: none;
   cursor: pointer;
-  appearance: auto;
-  -webkit-appearance: auto;
+
+  /* OUR CHEVRON, NOT THE PLATFORM'S. `appearance: auto` let the OS draw the dropdown
+     arrow, so the one mark in this panel nobody could restyle was also the one matching
+     nothing -- and under 768px a media query swapped in a hand-rolled data-URI chevron at
+     stroke 1.5 with a hardcoded #888, so it did not even match itself across viewports.
+     The arrow is a real <Icon> in .instance-select-wrap now, which is the only way it can
+     be the same mark as every other chevron: a data: URI cannot read currentColor, so as
+     a background-image it is a fixed grey that ignores the theme and the ink ladder, and
+     a mask on the <select> itself would mask the option text along with it. */
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: var(--spacing-06, 24px);
 }
 
-@media (max-width: 768px) {
-  .instance-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    padding-right: var(--spacing-06, 24px);
-    appearance: none;
-    -webkit-appearance: none;
-  }
+/* The wrapper exists only to hang the arrow off; the select still owns its own box. */
+.instance-select-wrap { position: relative; display: block; }
+.instance-select-wrap .wm-chevron {
+  position: absolute;
+  right: var(--spacing-03, 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  /* The select is what you are clicking; the mark is decoration on top of it. */
+  pointer-events: none;
+  color: var(--text-muted);
 }
+
+/* The narrow-viewport override that used to draw a SECOND chevron here is gone: the rule
+   above is unconditional now, so there is one drawing at every width. */
 
 .instance-select:focus {
   border-color: var(--text-muted);
@@ -432,35 +465,34 @@
   gap: 3px;      /* 4 -> 3: five buttons in the width three used to have */
 }
 
+/* NO BOX. This drew a 28px bordered square with its own fill, and the state lived in it
+   -- border-color and background -- while the mark inside barely moved. Beside the four
+   alignments, which lost theirs when they became Material Symbols, the reset was the one
+   button in the row still wearing chrome.
+   The mark carries the state now: Icon moves ink and weight together, so active is bolder
+   as well as brighter. What is left here is the target, and it draws nothing. */
 .align-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 28, not 32: the row now carries five — reset plus four alignments. */
+  /* Still 28: the target does not shrink because the box left. */
   width: 28px;
   height: 28px;
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-  transition: background var(--dur-fast, 140ms), color var(--dur-fast, 140ms), border-color var(--dur-fast, 140ms);
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
 }
 
-.align-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-muted);
-}
+/* Hover and active are the MARK's now -- icon.css owns them, on ink and weight together.
+   Nothing here paints a background or a border for a state any more.
+   .reset-clean stays: "nothing to reset" is a real third state, and it is exactly what
+   Icon calls `off`. Left as an opacity here so the existing className keeps working;
+   the row should pass state="off" to Icon instead once the call sites move. */
+.align-btn.reset-clean { opacity: 0.4; }
 
-.align-btn.active {
-  background: var(--bg-hover);
-  color: var(--text);
-  border-color: var(--text-muted);
-}
-
-.align-btn.reset-clean {
-  color: var(--text-dim);
-  opacity: 0.4;
-}
+@media (pointer: coarse) { .align-btn { width: 44px; height: 44px; } }
 
 /* ── Glyph set buttons ───────────────────────────────────────────────────── */
 .glyph-set-group {
@@ -675,24 +707,35 @@
   position: relative;
 }
 
-.para-block {
-  margin-bottom: 0.6em;
-}
+/* ── Paragraph block rhythm ───────────────────────────────────────────────────
+   ONE GAP, the same between every pair of blocks whatever their levels. It was four
+   different numbers before -- 0.6em below each block, 0.4em extra between paragraphs,
+   1em above a heading, 0.2em below one -- and every one of them was in `em`, so it
+   scaled with the block's OWN size: a 57px h1 reserved 57px above itself and a 22px h3
+   reserved 22. The bigger the heading, the bigger its gap, which is backwards. A heading
+   already announces itself by being large; the space is there to part it from the block
+   above, which has not changed size.
+   So: rem, not em, and one value. The only exception is the top of the document, which is
+   a different event from one block following another. */
+.para-block { margin: 0; }
 
-.para-block:last-child {
-  margin-bottom: 0;
-}
+.para-block-wrap + .para-block-wrap { margin-top: 0.75rem; }
 
-.para-block--p + .para-block--p {
-  margin-top: 0.4em;
-}
+.para-block-wrap:first-child .para-block { margin-top: 3rem; }
 
-.para-block--h1,
-.para-block--h2,
-.para-block--h3 {
-  margin-top: 1em;
-  margin-bottom: 0.2em;
-}
+/* The wrapper exists so the style rail can sit BESIDE the editable element rather than
+   inside it: anything inside a contentEditable is counted by the caret helpers and is
+   typeable. Relative, because it is what BlockStyleRail positions against -- without it
+   the rail resolves to .preview-paragraph and every block's rail stacks at the top of the
+   column instead of beside its own paragraph.
+
+   The flow rules live on the WRAPPER, not the block, and that is not cosmetic: wrapping
+   each block broke every sibling and child selector at once, silently and all in the same
+   direction. `.para-block:last-child` began matching every block, because each is now the
+   only child of its own wrapper; `.para-block--p + .para-block--p` matched nothing,
+   because no two blocks are siblings any more. Everything collapsed to zero, which reads
+   as a deliberate rhythm rather than as breakage. */
+.para-block-wrap { position: relative; }
 
 /* Paragraph menu-target highlight now uses the shared edit-rail (edit-rail--target);
    see wm-primitives/src/editRail.css. The old offset outline was retired. */
