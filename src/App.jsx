@@ -9,7 +9,7 @@ import {
   AxisSlider as SliderRow,
   Icon,
   makeGlyphSets, parseCmapRanges, isSupported,
-  nbMinus, EditableTextBlock, BlockStyleRail, GlyphPicker, measureGlyphMetrics, enumerateCmap,
+  nbMinus, EditableTextBlock, BlockStyleRail, Chevron, GlyphPicker, measureGlyphMetrics, enumerateCmap,
   FLATTERSATZ_DEFAULTS as FIT_DEFAULTS,
   FittingControls, fittingMode, AlignmentButtons, FittedParagraph,
   PARA_STYLE_DEFAULTS, fitOptionsFor,
@@ -1564,7 +1564,12 @@ export default function App() {
         onClick={() => setDesktopSidebarOpen(p => !p)}
         title={desktopSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
       >
-        {desktopSidebarOpen ? <Icon name="arrow_back_ios_new" /> : <Icon name="arrow_forward_ios" />}
+        {/* The house Chevron, rotated, not arrow_back_ios_new: a chevron is a chevron
+            wherever it appears, and Material's has flat ends, a steeper angle and a 20px
+            opsz floor. Material keeps the SYMBOLS -- pilcrow, aligns, reset, theme -- which
+            are never asked to be 6px. */}
+        <Chevron dir={-1} width={12} height={7}
+          className={desktopSidebarOpen ? 'chev-left' : 'chev-right'} />
       </button>
       {!mobileSidebarOpen && (
         <button className="mobile-sidebar-lift-tab" onClick={() => setMobileSidebarOpen(true)}>
@@ -1573,7 +1578,7 @@ export default function App() {
       )}
       <aside className={`sidebar${mobileSidebarOpen ? '' : ' mobile-collapsed'}${desktopSidebarOpen ? '' : ' desktop-collapsed'}`}>
         <button className="mobile-sidebar-handle" onClick={() => setMobileSidebarOpen(false)}>
-          <Icon name="keyboard_arrow_down" />
+          <Chevron dir={-1} width={12} height={7} />
         </button>
         {/* Logo */}
         <div className="sidebar-logo">
@@ -1826,6 +1831,7 @@ export default function App() {
             )}
           </div>
           {isFamily && (
+            <span className="instance-select-wrap">
             <select
               className="instance-select"
               value={scopedWeight ?? ''}
@@ -1836,6 +1842,11 @@ export default function App() {
                 <option key={s.key} value={s.key}>{s.label}</option>
               ))}
             </select>
+              {/* The HOUSE chevron, not keyboard_arrow_down: Material's has flat ends and a
+      steeper angle than the stepper chevrons beside the numbers, and those are
+      the ones that have to be right. See shared/src/Chevron.tsx. */}
+  <Chevron dir={-1} width={12} height={7} />
+            </span>
           )}
           {(italicFontFace || variationAxes.some(a => a.tag === 'ital')) && (() => {
             const italAxis = variationAxes.find(a => a.tag === 'ital')
@@ -1864,6 +1875,7 @@ export default function App() {
               The featureStr/paraStyles ss04/ss05 plumbing is still in place if
               a real one is ever built. */}
           {ttcFonts.length > 1 && (
+            <span className="instance-select-wrap">
             <select
               className="instance-select"
               value={ttcIndex}
@@ -1873,6 +1885,11 @@ export default function App() {
                 <option key={i} value={i}>{name}</option>
               ))}
             </select>
+              {/* The HOUSE chevron, not keyboard_arrow_down: Material's has flat ends and a
+      steeper angle than the stepper chevrons beside the numbers, and those are
+      the ones that have to be right. See shared/src/Chevron.tsx. */}
+  <Chevron dir={-1} width={12} height={7} />
+            </span>
           )}
           {namedInstances.length > 0 && (() => {
             const currentCoords = effectiveScaleStep
@@ -1902,6 +1919,7 @@ export default function App() {
               }
             }
             return (
+              <span className="instance-select-wrap">
               <select
                 className="instance-select"
                 value={activeInst?.name ?? ''}
@@ -1912,6 +1930,11 @@ export default function App() {
                   <option key={inst.name} value={inst.name}>{inst.name}</option>
                 ))}
               </select>
+                {/* The HOUSE chevron, not keyboard_arrow_down: Material's has flat ends and a
+      steeper angle than the stepper chevrons beside the numbers, and those are
+      the ones that have to be right. See shared/src/Chevron.tsx. */}
+  <Chevron dir={-1} width={12} height={7} />
+              </span>
             )
           })()}
           {/* Size/Tracking/Leading are per-step in Type Scale, so hide them there */}

@@ -396,20 +396,34 @@
   font-size: var(--type-ui-size, 0.75rem);
   outline: none;
   cursor: pointer;
-  appearance: auto;
-  -webkit-appearance: auto;
+
+  /* OUR CHEVRON, NOT THE PLATFORM'S. `appearance: auto` let the OS draw the dropdown
+     arrow, so the one mark in this panel nobody could restyle was also the one matching
+     nothing -- and under 768px a media query swapped in a hand-rolled data-URI chevron at
+     stroke 1.5 with a hardcoded #888, so it did not even match itself across viewports.
+     The arrow is a real <Icon> in .instance-select-wrap now, which is the only way it can
+     be the same mark as every other chevron: a data: URI cannot read currentColor, so as
+     a background-image it is a fixed grey that ignores the theme and the ink ladder, and
+     a mask on the <select> itself would mask the option text along with it. */
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: var(--spacing-06, 24px);
 }
 
-@media (max-width: 768px) {
-  .instance-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    padding-right: var(--spacing-06, 24px);
-    appearance: none;
-    -webkit-appearance: none;
-  }
+/* The wrapper exists only to hang the arrow off; the select still owns its own box. */
+.instance-select-wrap { position: relative; display: block; }
+.instance-select-wrap .wm-chevron {
+  position: absolute;
+  right: var(--spacing-03, 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  /* The select is what you are clicking; the mark is decoration on top of it. */
+  pointer-events: none;
+  color: var(--text-muted);
 }
+
+/* The narrow-viewport override that used to draw a SECOND chevron here is gone: the rule
+   above is unconditional now, so there is one drawing at every width. */
 
 .instance-select:focus {
   border-color: var(--text-muted);
