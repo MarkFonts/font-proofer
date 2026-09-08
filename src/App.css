@@ -1097,17 +1097,18 @@
   .mobile-sub-btn {
     flex-shrink: 0;
     padding: var(--spacing-01, 4px) var(--spacing-04, 12px);
-    /* A PILL, and back to being one. This was briefly var(--radius), on the reasoning
-       that a radius past half the height is a stadium which flattens the G2 easing into a
-       plain semicircular cap -- true, and beside the point: it turned four text chips into
-       rounded rectangles. That is a shape change, not a ladder change, and saying it was
-       not one was simply wrong.
-       A chip carrying a title wants a stadium. The corner law still governs the cap --
-       corners.css reaches every rounded corner -- there is just less curve for it to ease
-       through, which is the honest trade for the shape being right.
-       (On iOS none of this shows either way: Safari has no corner-shape and fails it
-       silently.) */
-    border-radius: 999px;   /* token-lint: allow -- a stadium is a shape, not a step */
+    /* WHERE THE G2 IS ACTUALLY VISIBLE. corner-shape eases curvature THROUGH the corner
+       and into the straight edge, so it needs a straight edge to ease into. At 999px the
+       radius clamps to half the height -- 22 on this 44px chip -- and the cap is a full
+       semicircle: the corner law is applied and invisible, which is why it can be seen
+       elsewhere in the app and not on these.
+       6px showed it and made them rounded squares. 14 is the middle: 16px of straight
+       edge either side for the easing to resolve into, and still a chip rather than a
+       box. The shape is chosen for the curve to be legible, which is the point of having
+       the law at all.
+       (Not on iOS: Safari has no corner-shape and fails it silently, so there these are
+       plain 14px rounded rects.) */
+    border-radius: 14px;   /* token-lint: allow -- set against this chip's 44px height */
     font-size: var(--type-ui-size, 0.75rem);
     font-family: 'Face', system-ui, sans-serif;
     color: var(--text-muted);
