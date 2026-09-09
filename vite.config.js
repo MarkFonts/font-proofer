@@ -1,12 +1,30 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from 'fs'
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync, readdirSync, existsSync } from 'fs'
 import { createRequire } from 'module'
 import routes from './src/routes.config.js'
 
 // OG/Twitter image URLs must be absolute (https://…) — scrapers drop root-relative ones.
 const SITE_ORIGIN = 'https://wordmark.nyc'
 const SITE_BASE = '/font-proofer'
+
+/* CAL SANS LIVES IN THE SUBMODULE. shared/ IS wm-primitives, and deploy.yml already
+   advances its pointer on every `primitive-updated` dispatch -- so keeping the face there
+   and nowhere else means the app follows a font bump with no sync step and no second copy
+   to go stale. src/fonts/CalSansVF.ttf was that second copy: it sat at 2.000 while the
+   package shipped 2.001, because nothing pushes into src/fonts and bump-font.yml only
+   fires on that path.
+   src/fonts stays the SPECIMEN directory -- it is what the proofer enumerates, and most
+   faces genuinely live there. Rather than move them all, shared/fonts is a second source
+   dir for the few faces that are ours: resolve through fontPath(), enumerate through
+   listFontFiles(), and nothing else in the build has to know. */
+const SHARED_FACES = ['CalSansVF.ttf', 'CalSansFlexVF.ttf']
+const fontPath = file =>
+  existsSync(`src/fonts/${file}`) ? `src/fonts/${file}` : `shared/fonts/${file}`
+const listFontFiles = () => [
+  ...readdirSync('src/fonts').filter(f => /\.(ttf|otf|woff|woff2)$/i.test(f)),
+  ...SHARED_FACES.filter(f => existsSync(`shared/fonts/${f}`)),
+]
 
 const SPECIAL_SLUG_NAMES = {
   calsans: 'CalSans',
@@ -41,7 +59,7 @@ function fileToDisplayName(file) {
 
 function findFontFile(fontSlug) {
   const needle = normalize(fontSlug)
-  const files = readdirSync('src/fonts').filter(f => /\.(ttf|otf|woff|woff2)$/i.test(f))
+  const files = listFontFiles()
   const matches = files.filter(f => {
     const n = normalize(f.replace(/\.[^.]+$/, ''))
     return n.includes(needle) || needle.includes(n)
@@ -172,7 +190,7 @@ async function generateOgImages() {
 
   const calsansuiFile = SPECIAL_SLUG_FILES.calsans ?? findFontFile('calsans')
   const uiFont = calsansuiFile
-    ? await loadFontForSatori(`src/fonts/${calsansuiFile}`)
+    ? await loadFontForSatori(fontPath(calsansuiFile))
     : null
 
   mkdirSync('dist/og', { recursive: true })
@@ -188,7 +206,7 @@ async function generateOgImages() {
       continue
     }
 
-    const fontBuffer = await loadFontForSatori(`src/fonts/${file}`)
+    const fontBuffer = await loadFontForSatori(fontPath(file))
     const displayName = SPECIAL_SLUG_NAMES[fontSlug]
       ?? (fileToDisplayName(file).replace(WEIGHT_RE, '').trim() || fileToDisplayName(file))
 
@@ -262,11 +280,11 @@ export default defineConfig({
       },
       async load(id) {
         if (id !== '\0virtual:font-axes') return
-        const files = readdirSync('src/fonts').filter(f => /\.(ttf|otf|woff|woff2)$/i.test(f))
+        const files = listFontFiles()
         const result = {}
         for (const file of files) {
           try {
-            const rawBuf = await loadFontForSatori(`src/fonts/${file}`)
+            const rawBuf = await loadFontForSatori(fontPath(file))
             const ab = rawBuf.buffer.slice(rawBuf.byteOffset, rawBuf.byteOffset + rawBuf.byteLength)
             result[file] = { ...parseFontAxesFromBuffer(ab), chars: parseCmapRangesFromBuffer(ab) }
           } catch (e) {

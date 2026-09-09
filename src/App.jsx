@@ -137,6 +137,15 @@ function resolveInitialMode(isCalcom) {
 }
 
 // ── Font fuzzy matching ──────────────────────────────────────────────────────
+/* Cal Sans comes from the SUBMODULE, not from a copy in src/fonts. shared/ IS
+   wm-primitives, and deploy.yml already advances its pointer on every
+   `primitive-updated` dispatch -- so the face follows the bump with no sync step and
+   no second file to go stale. src/fonts/CalSansVF.ttf was that second file: it sat at
+   2.000 while the package shipped 2.001, because nothing pushes into src/fonts and
+   bump-font.yml only fires on that path. */
+import calSansUrl from '../shared/fonts/CalSansVF.ttf?url'
+import calSansFlexUrl from '../shared/fonts/CalSansFlexVF.ttf?url'
+
 const fontModules = import.meta.glob('/src/fonts/*.{ttf,otf,woff,woff2}', { eager: true, query: '?url', import: 'default' })
 
 function normalize(s) {
@@ -145,8 +154,8 @@ function normalize(s) {
 
 // ── Special built-in fonts (UI fonts, not from src/fonts/) ───────────────────
 const SPECIAL_FONTS = {
-  calsans: { name: 'CalSans', file: 'CalSansVF.ttf' },
-  calsansflex: { name: 'CalSans Flex', file: 'CalSansFlexVF.ttf' },
+  calsans: { name: 'CalSans', file: 'CalSansVF.ttf', url: calSansUrl },
+  calsansflex: { name: 'CalSans Flex', file: 'CalSansFlexVF.ttf', url: calSansFlexUrl },
   switzerland2038: { name: 'Switzerland 2038', file: 'Switzerland2038-500.ttf' },
 }
 
@@ -776,8 +785,11 @@ export default function App() {
     const special = matchSpecial(fontSlug)
     let matched, italicMatch, resolvedSlug
     if (special?.file) {
-      const entry = Object.entries(fontModules).find(([path]) => path.endsWith('/' + special.file))
-      matched = entry ? { url: entry[1], filename: special.file } : null
+      // A `url` on the entry wins: that face is imported directly (see calSansUrl) and
+      // so is not in the src/fonts glob at all.
+      const entry = special.url ? null : Object.entries(fontModules).find(([path]) => path.endsWith('/' + special.file))
+      matched = special.url ? { url: special.url, filename: special.file }
+              : entry ? { url: entry[1], filename: special.file } : null
       italicMatch = null
       resolvedSlug = fontSlug
     } else if (isFamily) {
@@ -1451,7 +1463,7 @@ export default function App() {
       <nav className="mobile-tabs">
         {isCalcom && <button className={`mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><Icon name="calendar_month" /> cal.com/peer</button>}
         {isCalcom && <button className={`mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><Icon name="calendar_month" /> booking events</button>}
-        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><Icon name="insert_text" className={mode === 'big' ? 'aa-animated' : undefined} /> Big Word</button>
+        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><Icon name="insert_text" /> Big Word</button>
         <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><Icon name="format_paragraph" /> Paragraph</button>
         <button className={`mobile-tab ${mode === 'ui' ? 'active' : ''}`} onClick={() => setMode('ui')}><Icon name="calendar_month" /> UI</button>
         <button className={`mobile-tab ${mode === 'scale' ? 'active' : ''}`} onClick={() => setMode('scale')}><Icon name="text_fields" /> Type Scale</button>
@@ -1673,7 +1685,7 @@ export default function App() {
               </div>
             )}
             <ModeBtn active={mode === 'big'} onClick={() => setMode('big')}>
-              <Icon name="insert_text" className={mode === 'big' ? 'aa-animated' : undefined} /> Big Word
+              <Icon name="insert_text" /> Big Word
             </ModeBtn>
             <div className="mode-btn-row">
               <ModeBtn active={mode === 'paragraph'} onClick={() => setMode('paragraph')}>

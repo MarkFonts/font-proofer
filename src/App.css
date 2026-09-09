@@ -323,16 +323,6 @@
   color: var(--text);
 }
 
-@keyframes aa-party {
-  0%     { font-variation-settings: 'wght' 700, 'SHRP' 0; }
-  33.33% { font-variation-settings: 'wght' 700, 'SHRP' 100; }
-  50%    { font-variation-settings: 'wght' 400, 'SHRP' 100; }
-  83.33% { font-variation-settings: 'wght' 400, 'SHRP' 0; }
-  100%   { font-variation-settings: 'wght' 700, 'SHRP' 0; }
-}
-.aa-animated {
-  animation: aa-party 2.1s ease-in-out infinite;
-}
 
 /* ── Slider row ──────────────────────────────────────────────────────────── */
 /* slider CSS moved to wm-primitives AxisSlider.css */
@@ -1236,7 +1226,11 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 6px 0 2px;
+    /* Symmetric, and on the scale. 6px over / 2px under was pinching a chevron_L (12x7)
+       into a ~15px bar -- the mark sat low in its own bar and the paragraph above ran
+       right into it. The medium step either side gives the chevron its own air and makes
+       the bar read as a bar rather than as a gap between two things. */
+    padding: var(--spacing-04, 12px) 0;
     border: none;
     background: transparent;
     cursor: pointer;

@@ -35,7 +35,7 @@
    survives a reface. Same CalSansVF.ttf today. */
 @font-face {
   font-family: "Face";
-  src: url("./fonts/CalSansVF.ttf") format("truetype");
+  src: url("../shared/fonts/CalSansVF.ttf") format("truetype");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
@@ -43,7 +43,7 @@
 
 @font-face {
   font-family: "CalSans";
-  src: url("./fonts/CalSansVF.ttf") format("truetype");
+  src: url("../shared/fonts/CalSansVF.ttf") format("truetype");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
