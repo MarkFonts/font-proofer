@@ -549,6 +549,27 @@
   letter-spacing: 0;
 }
 
+/* A TYPED VALUE EASES; A DRAGGED ONE DOES NOT. Committing 60 from 20 is one decision, and
+   it reads better arriving than appearing. A drag is not a decision, it is a hundred of
+   them a second -- and animating those is wrong twice over: the eye never asked to see the
+   positions in between, and interpolating font-variation-settings re-rasterises the glyph
+   run on every frame of the ease, on top of the frames the drag already costs. That
+   backlog is what made dragging feel eased when nothing was animating at all.
+   AxisSlider sets data-scrubbing on the root for exactly the duration of a drag, so the
+   transition is switched off while one is happening. A host that ignores the attribute
+   loses nothing; this one uses it. */
+.preview-paragraph,
+.editable-big {
+  transition: font-variation-settings var(--dur-med, 240ms) ease;
+}
+:root[data-scrubbing] .preview-paragraph,
+:root[data-scrubbing] .editable-big {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .preview-paragraph, .editable-big { transition: none; }
+}
+
 /* ── Big word mode ───────────────────────────────────────────────────────── */
 .preview-big {
   padding: var(--spacing-09, 64px);
