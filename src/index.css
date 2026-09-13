@@ -173,7 +173,17 @@ html, body, #root {
   }
 }
 
-.slider-track-wrap {
+/* Not on the TRACK variant, where the bar IS the row. This padding gives a visible thumb
+   room to sit at either end without clipping -- real for the default rail, wrong for the
+   track one, whose input is opacity: 0 with the fill drawn by the label. There it took
+   16px off each end of the bar and gave it to nothing: the rail stopped short of the ends
+   it is meant to reach, so MIN and MAX were the two values you could not press, the
+   ew-resize cursor did not appear there, and a click did nothing at all.
+   It has to be fixed HERE rather than in the primitive: this rule is unlayered, and an
+   unlayered rule beats any layered one at any specificity -- which is the primitive's
+   documented interface, working exactly as intended. AxisSlider.css does declare
+   `padding: 0` for the variant; it simply cannot win against an app that says otherwise. */
+.slider-row:not(.slider-row--track) .slider-track-wrap {
   padding: 0 16px;
 }
 
