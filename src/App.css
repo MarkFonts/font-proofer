@@ -1226,13 +1226,23 @@
     align-items: center;
     justify-content: center;
     width: 100%;
+    /* PINNED TO THE TOP OF THE TRAY. The handle is the first child of .sidebar, and on
+       mobile .sidebar IS the scroller (42vh, overflow-y: auto) -- so it scrolled away with
+       the content, and the one control that closes the tray was gone exactly when you had
+       scrolled far enough to want it. Sticky keeps it against the top edge.
+       It needs its own background: sticky elements do not get one for free, and rows
+       sliding under a transparent bar read as a rendering fault. --bg is the sidebar's own
+       (see .sidebar), so the bar is the tray rather than a strip laid over it. */
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--bg);
     /* Symmetric, and on the scale. 6px over / 2px under was pinching a chevron_L (12x7)
        into a ~15px bar -- the mark sat low in its own bar and the paragraph above ran
        right into it. The medium step either side gives the chevron its own air and makes
        the bar read as a bar rather than as a gap between two things. */
     padding: var(--spacing-04, 12px) 0;
     border: none;
-    background: transparent;
     cursor: pointer;
     color: var(--text-dim);
     flex-shrink: 0;
