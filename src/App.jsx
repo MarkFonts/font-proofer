@@ -1131,7 +1131,8 @@ export default function App() {
       // In Inter mode fvs is 'normal', so the role's weight has to ride font-weight or
       // every role renders at 400 -- the title, host, meta and slots are 500-600 on cal.com.
       ...(calcomFont === 'calsans' ? {} : { fontWeight: merged.wght }),
-      fontOpticalSizing: (calcomFont === 'calsans') && opszAuto ? 'auto' : 'none',
+      // Inter runs opsz auto on cal.com (measured: no rule pins it), so it does here too.
+      fontOpticalSizing: (calcomFont !== 'calsans' || opszAuto) ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
     }
