@@ -49,3 +49,6 @@ dist/
 # Claude Code
 CLAUDE.md
 public/_dial*.html
+
+# Screenshots dropped at the root while comparing against a reference
+CleanShot *.png
