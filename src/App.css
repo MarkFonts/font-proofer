@@ -1510,22 +1510,24 @@
 .calcom-month-year { color: #a3a3a3; }
 .calcom-nav-btns {
   display: flex;
-  gap: 4px;
+  gap: 0;
 }
 .calcom-nav-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   border: 0;
   color: #a3a3a3;
+  opacity: 0.7;
   background: transparent;
   cursor: pointer;
-  font-size: var(--type-ui-size, 0.75rem);
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.calcom-nav-btn:hover { color: #fafafa; }
+.calcom-nav-btn svg { width: 16px; height: 16px; }
+.calcom-nav-btn:hover:not(:disabled) { opacity: 1; }
+.calcom-nav-btn:disabled { opacity: 0.3; cursor: default; }
 
 .calcom-cal-grid {
   display: grid;

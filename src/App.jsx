@@ -2881,9 +2881,15 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
                 <strong style={{...roleStyle('calHeader'), fontSize: '16px', letterSpacing: 0, textTransform: 'none'}}>September</strong>
                 <span className="calcom-month-year" style={{...roleStyle('calHeader'), fontSize: '16px', letterSpacing: 0, textTransform: 'none'}}>2026</span>
               </div>
+              {/* Lucide chevrons at 16px / stroke 2 in 36px buttons, as cal.com; the previous
+                  month is disabled (opacity .3) because you cannot book into the past. */}
               <div className="calcom-nav-btns">
-                <button className="calcom-nav-btn">‹</button>
-                <button className="calcom-nav-btn">›</button>
+                <button className="calcom-nav-btn" disabled aria-label="Previous month">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <button className="calcom-nav-btn" aria-label="Next month">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
               </div>
             </div>
             <div className="calcom-cal-grid">
