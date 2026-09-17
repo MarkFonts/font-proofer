@@ -1379,60 +1379,69 @@
 }
 
 /* ── Cal.com preview page ────────────────────────────────────────────────── */
+/* Every color and dimension below is the computed value off cal.com/peer in dark mode
+   (references/, Sept 2026), not a house token -- this block imitates their UI. */
 .calcom-page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 32px 32px 48px;
+  /* cal.com: main is flex items-center justify-center min-h-[100dvh], the block inside
+     it has my-20 -- centered vertically, never closer than 80px to either edge. */
+  justify-content: center;
+  padding: 80px 32px;
   min-height: 100%;
   overflow-y: auto;
   container-type: inline-size;
+  background: #111111;
 }
 
 .calcom-card {
   display: flex;
-  background: #111;
-  border: 1px solid #252525;
-  border-radius: 12px;
+  background: #171717;
+  border: 1px solid #262626;
+  border-radius: 8px;
   overflow: hidden;
   width: 100%;
-  max-width: 820px;
-  color: #f5faff;
+  max-width: 1040px;
+  /* cal.com's card is 490px tall; the slot column scrolls inside it rather than
+     stretching the card to the length of the day. */
+  max-height: 490px;
+  color: #d4d4d4;
 }
 
 .calcom-left {
-  width: 270px;
-  min-width: 270px;
-  border-right: 1px solid #1e1e1e;
+  width: 280px;
+  min-width: 280px;
+  border-right: 1px solid #262626;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-03, 8px);
 }
 
+/* The banner shows whole at 3:1 (object-contain), the avatar hangs 12px below its edge. */
 .calcom-cover {
   position: relative;
   flex-shrink: 0;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 .calcom-cover-img-wrap {
-  height: 100px;
+  aspect-ratio: 3 / 1;
   overflow: hidden;
 }
 .calcom-cover-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center 30%;
+  object-fit: contain;
+  object-position: top;
   display: block;
 }
 .calcom-avatar {
   position: absolute;
-  bottom: -20px;
+  bottom: -12px;
   left: 24px;
-  width: 48px;
-  height: 48px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  border: 2px solid #111111;
+  border: 1px solid #262626;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -1444,40 +1453,25 @@
 }
 
 .calcom-left-body {
-  padding: var(--spacing-06, 24px) var(--spacing-06, 24px) var(--spacing-07, 32px);
+  padding: 0 24px 32px;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-03, 8px);
+  gap: 4px;
 }
+.calcom-event-host { color: #a3a3a3; outline: none; }
+.calcom-event-title { color: #d4d4d4; outline: none; }
+.calcom-event-desc { color: #ffffff; outline: none; }
 
-.calcom-event-host { color: rgba(245,250,255,0.55); outline: none; }
-.calcom-event-title { color: #f5faff; margin-top: 2px; outline: none; }
-.calcom-event-desc { color: #d4d4d4; margin-top: 2px; outline: none; }
-
-.calcom-durations {
+.calcom-meta {
   display: flex;
-  gap: 6px;
-  margin-top: 4px;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
 }
-.calcom-dur-btn {
-  padding: 4px 12px;
-  border-radius: 20px;
-  border: 1px solid #333;
-  color: rgba(245,250,255,0.45);
-  background: transparent;
-  cursor: pointer;
-  transition: color var(--dur-fast, 140ms), border-color var(--dur-fast, 140ms);
-}
-.calcom-dur-btn.active {
-  color: #f5faff;
-  border-color: #555;
-  background: rgba(245,250,255,0.06);
-}
-
 .calcom-meta-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: #d4d4d4;
   cursor: default;
 }
@@ -1485,7 +1479,6 @@
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-  opacity: 0.6;
   color: currentColor;
 }
 
@@ -1512,7 +1505,9 @@
   display: flex;
   gap: 6px;
   align-items: baseline;
+  color: #fafafa;
 }
+.calcom-month-year { color: #a3a3a3; }
 .calcom-nav-btns {
   display: flex;
   gap: 4px;
@@ -1521,8 +1516,8 @@
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  border: 1px solid #2a2a2a;
-  color: rgba(245,250,255,0.45);
+  border: 0;
+  color: #a3a3a3;
   background: transparent;
   cursor: pointer;
   font-size: var(--type-ui-size, 0.75rem);
@@ -1530,88 +1525,175 @@
   align-items: center;
   justify-content: center;
 }
-.calcom-nav-btn:hover { color: #f5faff; border-color: #444; }
+.calcom-nav-btn:hover { color: #fafafa; }
 
 .calcom-cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
+  gap: 4px;
 }
 
 .calcom-weekday {
   text-align: center;
-  padding: 6px 0;
-  color: rgba(245,250,255,0.3);
+  padding: 6px 0 14px;
+  color: #fafafa;
   text-transform: uppercase;
   cursor: pointer;
 }
 
+/* Unavailable and past days look the same on cal.com: light weight, no box. */
 .calcom-day {
+  position: relative;
   text-align: center;
-  padding: var(--spacing-03, 8px) var(--spacing-01, 4px);
-  min-height: 44px;
+  aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  cursor: pointer;
-  color: #f5faff;
+  border: 2px solid transparent;
+  cursor: default;
+  color: #d4d4d4;
+  font-weight: 300;
   transition: background var(--dur-fast, 140ms);
   user-select: none;
 }
 .calcom-day.empty { pointer-events: none; }
-.calcom-day.past { color: rgba(245,250,255,0.2); pointer-events: none; }
-.calcom-day:not(.empty):not(.past):hover { background: #1e1e1e; }
-.calcom-day.today { color: #f5faff; font-weight: 500; position: relative; }
+.calcom-day.avail { background: #404040; color: #fafafa; font-weight: 500; cursor: pointer; }
+/* cal.com: hover:border-brand-default on the 2px transparent border. The inline
+   --cal-brand: #292929 on <html> is overridden by the dark theme to #fff. */
+.calcom-day.avail:hover { border-color: #fff; }
+/* The month-cap cell's rollover: bg-inverted / text-inverted, which in dark mode is a
+   light pill with black text (the inverse of the black one in light mode), set in
+   fontHeading -- Cal Sans -- whichever font the preview is in, as on the live site. */
+.calcom-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #fafafa;
+  color: #000;
+  font-family: "CalSans", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-fast, 140ms);
+  z-index: 2;
+}
+.calcom-day:hover .calcom-tip { opacity: 1; }
+.calcom-day.selected { background: #292929; color: #ffffff; font-weight: 500; }
 .calcom-day.today::after {
   content: '';
   position: absolute;
-  bottom: 5px;
+  bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: #f5faff;
+  background: #292929;
 }
-.calcom-day.selected {
-  background: #f5faff;
-  color: #111;
+/* cal.com pins the cap to the cell's top-left corner as a small pill (29x19 at 10px),
+   the number stays centered under it. */
+.calcom-month-cap {
+  position: absolute;
+  /* -2px pulls it past the cell's own 2px border so it sits at the border-box corner,
+     where cal.com measures it. */
+  top: -2px;
+  left: -2px;
+  padding: 3px 4px;
+  line-height: 13px;
+  font-size: 10px;
+  font-weight: 600;
+  /* token-lint: allow -- cal.com's own cap tracking; this block imitates their UI */
+  letter-spacing: 0.25px;
+  text-transform: uppercase;
+  color: #d4d4d4;
 }
-.calcom-day.selected.today::after { background: #111; }
 
 .calcom-times-wrap {
-  width: 160px;
-  border-left: 1px solid #1e1e1e;
-  padding: 32px 12px;
+  width: 271px;
+  min-width: 271px;
+  border-left: 1px solid #262626;
+  padding: 32px 16px;
   overflow-y: auto;
   scrollbar-width: none;
 }
-.calcom-time-date {
-  color: rgba(245,250,255,0.5);
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  /* token-lint: allow -- Cal.com's own label tracking; this block imitates their UI */
-  letter-spacing: 0.04em;
+.calcom-times-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
+.calcom-time-date {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.calcom-time-dow { color: #fafafa; text-transform: uppercase; }
+.calcom-time-dnum { color: #d4d4d4; }
+.calcom-clock-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 12px;
+  background: #1c1c1c;
+}
+.calcom-clock-btn {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #d4d4d4;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+}
+.calcom-clock-btn.active { background: #0f0f0f; border-color: #262626; }
 .calcom-time-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 .calcom-time-btn {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   width: 100%;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #2a2a2a;
-  color: #f5faff;
-  background: transparent;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #4d4d4d;
+  color: #d4d4d4;
+  background: #0f0f0f;
   cursor: pointer;
-  text-align: center;
   transition: background var(--dur-fast, 140ms), border-color var(--dur-fast, 140ms);
 }
-.calcom-time-btn:hover { background: #1e1e1e; border-color: #3a3a3a; }
+.calcom-time-btn:hover { background: #1a1a1a; }
+.calcom-slot-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+
+.calcom-footer-logo {
+  height: 15px;
+  width: auto;
+  margin-top: 32px;
+  filter: invert(1);
+  opacity: 0.85;
+}
 
 /* Role highlight ring */
 .calcom-role-highlight {
@@ -1654,14 +1736,6 @@
   }
   .calcom-calendar-wrap {
     padding: var(--spacing-06, 24px) var(--spacing-05, 16px) var(--spacing-05, 16px);
-  }
-  /* Available days show as tappable tiles */
-  .calcom-day:not(.empty):not(.past) {
-    background: #1a1a1a;
-  }
-  .calcom-day.selected {
-    background: #f5faff;
-    color: #111;
   }
   .calcom-times-wrap {
     width: 100%;

@@ -10,6 +10,18 @@
       ],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "calcom-ref",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4380",
+        "--directory",
+        "references"
+      ],
+      "port": 4380
     }
   ]
 }

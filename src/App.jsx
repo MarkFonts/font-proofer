@@ -23,6 +23,7 @@ import logoGifDark from '/public/logo_darkmode.gif'
 import peerAvatar from '/public/peer-richelsen.png'
 import calcomIcon from '/public/calcom-icon.svg'
 import calcomBanner from '/public/calcom-banner.png'
+import calcomLogo from '/public/calcom-logo.svg'
 import cossCalAvatar from '/public/coss-cal-avatar.jpg'
 import cossUserAvatar from '/public/coss-user-avatar.jpg'
 
@@ -253,14 +254,17 @@ const CALCOM_ROLE_LABELS = {
   eventHost: 'Host', eventTitle: 'Title', eventDesc: 'Desc',
   eventMeta: 'Meta', calHeader: 'Cal',   calDay: 'Day', timeSlot: 'Time',
 }
+// Sizes, weights and tracking are cal.com/peer's computed values (Sept 2026 capture in
+// references/), not approximations: host 14/600, title 20/600, desc 16/400, meta 14/500,
+// weekday 12/500 at 1.2px tracking, day 14, slot 14/500.
 const DEFAULT_CALCOM_ROLES = {
-  eventHost:  { size: 14, tracking: 0,      leading: 1.4, axisOverrides: {} },
-  eventTitle: { size: 28, tracking: 0, interTracking: -0.015, leading: 1.1, axisOverrides: { wght: 700, opsz: 'auto', GEOM: 50 } },
-  eventDesc:  { size: 13, tracking: 0,      leading: 1.5, axisOverrides: {} },
-  eventMeta:  { size: 13, tracking: 0,      leading: 1.4, axisOverrides: {} },
-  calHeader:  { size: 11, tracking: 0.05,   leading: 1,   axisOverrides: { wght: 500 } },
-  calDay:     { size: 13, tracking: 0,      leading: 1,   axisOverrides: {} },
-  timeSlot:   { size: 14, tracking: 0,      leading: 1,   axisOverrides: {} },
+  eventHost:  { size: 14, tracking: 0,      leading: 1.43, axisOverrides: { wght: 600 } },
+  eventTitle: { size: 20, tracking: 0,      leading: 1.4,  axisOverrides: { wght: 600, opsz: 'auto', GEOM: 50 } },
+  eventDesc:  { size: 16, tracking: 0,      leading: 1.5,  axisOverrides: {} },
+  eventMeta:  { size: 14, tracking: 0,      leading: 1.43, axisOverrides: { wght: 500 } },
+  calHeader:  { size: 12, tracking: 0.1,    leading: 1.33, axisOverrides: { wght: 500 } },
+  calDay:     { size: 14, tracking: 0,      leading: 1.43, axisOverrides: {} },
+  timeSlot:   { size: 14, tracking: 0,      leading: 1,    axisOverrides: { wght: 500 } },
 }
 
 // ── Coss (booking events) type role model ────────────────────────────────────
@@ -1110,18 +1114,9 @@ export default function App() {
     const merged = { ...axisValues, ...r.axisOverrides }
     const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     const opszAuto = merged['opsz'] === 'auto'
-    if (role === 'eventTitle' && calcomFont !== 'calsans') {
-      return {
-        fontFamily: "'CalSansBold', sans-serif",
-        fontSize: `${r.size}px`,
-        letterSpacing: `${r.interTracking ?? r.tracking}em`,
-        lineHeight: r.leading,
-        fontVariationSettings: 'normal',
-        fontOpticalSizing: 'none',
-        fontSynthesis: 'none',
-        fontFeatureSettings: 'normal',
-      }
-    }
+    // The title used to be forced into CalSansBold even in Inter mode, after an older
+    // cal.com that set the heading in fontHeading. Peer's page now sets "Meeting" in
+    // Inter (font-sans), so the title follows the chosen font like every other role.
     const family = calcomFont === 'calsans'
       ? (fontFace ? `"${fontFace.family}"` : '"Inter", system-ui, sans-serif')
       : calcomFont === 'calsans'
@@ -1133,6 +1128,9 @@ export default function App() {
       letterSpacing: `${r.tracking}em`,
       lineHeight: r.leading,
       fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
+      // In Inter mode fvs is 'normal', so the role's weight has to ride font-weight or
+      // every role renders at 400 -- the title, host, meta and slots are 500-600 on cal.com.
+      ...(calcomFont === 'calsans' ? {} : { fontWeight: merged.wght }),
       fontOpticalSizing: (calcomFont === 'calsans') && opszAuto ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
@@ -2760,19 +2758,47 @@ export default function App() {
 
 // ── Cal.com preview ───────────────────────────────────────────────────────────
 function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
-  const [selectedDate, setSelectedDate] = useState(22)
-  const [selectedDur, setSelectedDur] = useState(15)
+  const [selectedDate, setSelectedDate] = useState('18')
+  const [clock, setClock] = useState('12h')
 
-  // April 2026: April 1 = Wednesday → startOffset 2 (Mon=0, Tue=1, Wed=2)
-  const startOffset = 2
-  const cells = []
-  for (let i = 0; i < startOffset; i++) cells.push(null)
-  for (let d = 1; d <= 30; d++) cells.push(d)
-  while (cells.length % 7 !== 0) cells.push(null)
+  // September 2026 as cal.com/peer rendered it (references/): today the 16th, the 18th
+  // selected, the first week gone and Mon the 7th left blank, October spilling in to fill
+  // the last two rows with an OCT cap on the 1st. Availability is the boxed set from the
+  // capture. Keys are strings so October's 1..11 can't collide with September's.
+  const AVAIL = new Set(['18','22','23','24','25','28','29','30','o1','o2','o5','o6','o7','o8','o9'])
+  const cells = [
+    null, '8','9','10','11','12','13',
+    '14','15','16','17','18','19','20',
+    '21','22','23','24','25','26','27',
+    '28','29','30','o1','o2','o3','o4',
+    'o5','o6','o7','o8','o9','o10','o11',
+  ]
+  const label = k => k && k.replace(/^o/, '')
 
-  const times = ['4:15am','4:20am','4:25am','4:30am','6:00am','6:05am','6:15am','6:30am','6:45am','7:00am','11:30am','1:15pm','1:30pm']
+  // Fictional: 9:00am up in five-minute steps, the count the reference column holds.
+  const times = Array.from({ length: 32 }, (_, i) => {
+    const m = 9 * 60 + i * 5
+    const h = Math.floor(m / 60), mm = String(m % 60).padStart(2, '0')
+    return clock === '12h'
+      ? `${h > 12 ? h - 12 : h}:${mm}${h >= 12 ? 'pm' : 'am'}`
+      : `${String(h).padStart(2, '0')}:${mm}`
+  })
 
   const roleClass = (role) => activeRole === role ? 'calcom-role-highlight' : ''
+
+  // cal.com sets available days at 500 and everything else at 300. On a variable font
+  // the role's inline font-variation-settings pins wght and beats any CSS font-weight,
+  // so the difference has to go into the axis: +100 / -100 off the role's weight.
+  // Cal Sans VF bottoms out at 400, so its muted days land at 400 -- the closest the
+  // font can get to a 300. Inter's fvs is 'normal', where the CSS weights already apply.
+  const dayStyle = (avail) => {
+    const st = roleStyle('calDay')
+    const fvs = st.fontVariationSettings
+    const bump = w => Math.max(400, Number(w) + (avail ? 100 : -100))
+    // Inter mode: the weight rides font-weight (no 400 floor -- Inter has a 300).
+    if (!fvs || fvs === 'normal') return { ...st, fontWeight: Number(st.fontWeight) + (avail ? 100 : -100) }
+    return { ...st, fontVariationSettings: fvs.replace(/"wght" (\d+)/, (_, w) => `"wght" ${bump(w)}`) }
+  }
 
   return (
     <div className="calcom-page">
@@ -2803,29 +2829,23 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
             onClick={() => onRoleClick(r => r === 'eventDesc' ? null : 'eventDesc')}>
             A quick screen share demo or longer conversation.
           </div>
-          <div className={`calcom-meta-item ${roleClass('eventDesc')}`} style={roleStyle('eventDesc')}>
+          <div className="calcom-meta">
+          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}
+            onClick={() => onRoleClick(r => r === 'eventMeta' ? null : 'eventMeta')}>
             <svg className="calcom-meta-icon-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/>
               <path d="m9 12 2 2 4-4"/>
             </svg>
             Requires confirmation
           </div>
+          {/* A single duration is plain text on cal.com, not a chip. */}
           <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}
             onClick={() => onRoleClick(r => r === 'eventMeta' ? null : 'eventMeta')}>
             <svg className="calcom-meta-icon-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
-            <div className="calcom-durations">
-              {[15, 30].map(d => (
-                <button
-                  key={d}
-                  className={`calcom-dur-btn ${selectedDur === d ? 'active' : ''}`}
-                  style={roleStyle('eventMeta')}
-                  onClick={e => { e.stopPropagation(); setSelectedDur(d) }}
-                >{d}m</button>
-              ))}
-            </div>
+            15m
           </div>
           <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}
             onClick={() => onRoleClick(r => r === 'eventMeta' ? null : 'eventMeta')}>
@@ -2839,6 +2859,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
             </svg>
             America/New York
           </div>
+          </div>
           </div>{/* end calcom-left-body */}
         </div>
 
@@ -2847,8 +2868,8 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
           <div className="calcom-calendar-wrap">
             <div className="calcom-month-nav">
               <div className="calcom-month-label">
-                <span style={{...roleStyle('calHeader'), fontSize: '14px'}}>April</span>
-                <span style={{...roleStyle('calHeader'), fontSize: '14px', color: 'rgba(245,250,255,0.4)'}}>2026</span>
+                <strong style={{...roleStyle('calHeader'), fontSize: '16px', letterSpacing: 0, textTransform: 'none'}}>September</strong>
+                <span className="calcom-month-year" style={{...roleStyle('calHeader'), fontSize: '16px', letterSpacing: 0, textTransform: 'none'}}>2026</span>
               </div>
               <div className="calcom-nav-btns">
                 <button className="calcom-nav-btn">‹</button>
@@ -2862,42 +2883,51 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
                   {d}
                 </div>
               ))}
-              {cells.map((day, i) => (
+              {cells.map((k, i) => (
                 <div
                   key={i}
-                  className={`calcom-day${day === null ? ' empty' : ''}${day === 22 ? ' today' : ''}${day === selectedDate ? ' selected' : ''}${day !== null && day < 22 ? ' past' : ''} ${day !== null ? roleClass('calDay') : ''}`}
-                  style={day !== null ? roleStyle('calDay') : {}}
+                  className={`calcom-day${k === null ? ' empty' : ''}${AVAIL.has(k) ? ' avail' : ''}${k === '16' ? ' today' : ''}${k === selectedDate ? ' selected' : ''} ${k !== null ? roleClass('calDay') : ''}`}
+                  style={k !== null ? dayStyle(AVAIL.has(k)) : {}}
                   onClick={() => {
-                    if (day !== null && day >= 22) setSelectedDate(day)
+                    if (AVAIL.has(k)) setSelectedDate(k)
                     onRoleClick(r => r === 'calDay' ? null : 'calDay')
                   }}
                 >
-                  {day}
+                  {k === 'o1' && <span className="calcom-month-cap">Oct</span>}
+                  {k === 'o1' && <span className="calcom-tip">October</span>}
+                  {label(k)}
                 </div>
               ))}
             </div>
           </div>
 
           {/* Time slots */}
-          {selectedDate && (
-            <div className="calcom-times-wrap">
-              <div className="calcom-time-date" style={{...roleStyle('calHeader'), fontSize: '14px', textTransform: 'none'}}>
-                Wed {selectedDate}
+          <div className="calcom-times-wrap">
+            <div className="calcom-times-head">
+              <div className="calcom-time-date">
+                <span className="calcom-time-dow" style={roleStyle('calHeader')}>Fri</span>
+                <span className="calcom-time-dnum" style={{...roleStyle('calHeader'), fontSize: '14px', letterSpacing: 0, textTransform: 'none'}}>{label(selectedDate)}th</span>
               </div>
-              <div className="calcom-time-list">
-                {times.map(t => (
-                  <button
-                    key={t}
-                    className={`calcom-time-btn ${roleClass('timeSlot')}`}
-                    style={roleStyle('timeSlot')}
-                    onClick={() => onRoleClick(r => r === 'timeSlot' ? null : 'timeSlot')}
-                  >{t}</button>
+              <div className="calcom-clock-toggle">
+                {['12h','24h'].map(c => (
+                  <button key={c} className={`calcom-clock-btn ${clock === c ? 'active' : ''}`} onClick={() => setClock(c)}>{c}</button>
                 ))}
               </div>
             </div>
-          )}
+            <div className="calcom-time-list">
+              {times.map(t => (
+                <button
+                  key={t}
+                  className={`calcom-time-btn ${roleClass('timeSlot')}`}
+                  style={roleStyle('timeSlot')}
+                  onClick={() => onRoleClick(r => r === 'timeSlot' ? null : 'timeSlot')}
+                ><span className="calcom-slot-dot" />{t}</button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
+      <img src={calcomLogo} alt="Cal.com" className="calcom-footer-logo" />
     </div>
   )
 }
