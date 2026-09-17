@@ -1621,14 +1621,14 @@
   color: #d4d4d4;
 }
 
-/* The slot column starts at the weekday row, not the month label: its header shares
-   the weekday line (32px card padding + 36px month nav + 20px = 88px down), and the
-   first slot starts on the first day row (header 24px + 8px). */
+/* The slot header shares the month-label line, and the first slot is centred on the
+   weekday row: weekday row centre = 36px nav + 20px + 8px = 64px below the padding
+   edge; slot centre = 24px header + 22px + 18px = 64px. */
 .calcom-times-wrap {
   width: 271px;
   min-width: 271px;
   border-left: 1px solid #262626;
-  padding: 88px 16px 32px;
+  padding: 32px 16px;
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -1637,7 +1637,7 @@
   align-items: center;
   justify-content: space-between;
   height: 24px;
-  margin-bottom: 8px;
+  margin-bottom: 22px;
 }
 .calcom-time-date {
   display: flex;
