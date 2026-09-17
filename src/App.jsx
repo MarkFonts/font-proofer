@@ -8,6 +8,7 @@ import {
   splitInlineMarkup, isPlainRun,
   AxisSlider as SliderRow,
   Icon,
+  ThemeSwitch,
   makeGlyphSets, parseCmapRanges, isSupported,
   nbMinus, EditableTextBlock, BlockStyleRail, Chevron, GlyphPicker, measureGlyphMetrics, enumerateCmap,
   FLATTERSATZ_DEFAULTS as FIT_DEFAULTS,
@@ -1483,7 +1484,7 @@ export default function App() {
     <div
       className={`layout ${isDragging ? 'dragging' : ''}`}
     >
-      <ThemeToggle />
+      <ThemeSwitch look="marks" id="theme-toggle" />
       {/* Drop overlay */}
       {isDragging && (
         <div className="drop-overlay">
@@ -3387,39 +3388,9 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
 }
 
 // ── Theme Toggle ──────────────────────────────────────────────────────────────
-// Three marks, not a segmented lozenge of three words. The lozenge spelled Auto / Light /
-// Dark and drew a pill around whichever was on, which is a lot of chrome to say a thing
-// each icon says by itself -- and it read as a control ABOUT the page rather than part of
-// it. The state is the mark's own now, as everywhere else: ink and GRAD together.
-const THEME_ICON = { auto: 'brightness_auto', light: 'light_mode', dark: 'dark_mode' }
-function ThemeToggle() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('wm-theme') || 'auto')
-  const apply = (t) => {
-    setTheme(t)
-    localStorage.setItem('wm-theme', t)
-    document.documentElement.dataset.theme = t
-  }
-  return (
-    <div id="theme-toggle" className="theme-toggle" role="group" aria-label="Color scheme">
-      {['auto', 'light', 'dark'].map(t => (
-        <button
-          key={t}
-          data-mode={t}
-          /* aria-pressed, which the lozenge never had: it carried state in a className
-             only, so a screen reader heard three buttons and no indication of which was
-             on. */
-          aria-pressed={theme === t}
-          aria-label={`${t.charAt(0).toUpperCase() + t.slice(1)} colour scheme`}
-          title={`${t.charAt(0).toUpperCase() + t.slice(1)}`}
-          className={`wm-icon-btn${theme === t ? ' active' : ''}`}
-          onClick={() => apply(t)}
-        >
-          <Icon name={THEME_ICON[t]} size={20} />
-        </button>
-      ))}
-    </div>
-  )
-}
+// The theme switch is the primitive now (ThemeSwitch, look="marks"): the three marks
+// this file drew, over the shared engine -- one storage key, one attribute, one event.
+// Placement (#theme-toggle, top-right) stays in App.css.
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
