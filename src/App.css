@@ -1460,7 +1460,7 @@
 }
 .calcom-event-host { color: #a3a3a3; outline: none; }
 .calcom-event-title { color: #d4d4d4; outline: none; }
-.calcom-event-desc { color: #ffffff; outline: none; }
+.calcom-event-desc { color: #d4d4d4; outline: none; }
 
 .calcom-meta {
   display: flex;

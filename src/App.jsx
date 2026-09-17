@@ -256,14 +256,15 @@ const CALCOM_ROLE_LABELS = {
 }
 // Sizes, weights and tracking are cal.com/peer's computed values (Sept 2026 capture in
 // references/), not approximations: host 14/600, title 20/600, desc 16/400, meta 14/500,
-// weekday 12/500 at 1.2px tracking, day 14, slot 14/500.
+// weekday 12/500 at 1.2px tracking, day 14, slot 14/500. Desc is 14, not 16: the
+// first pass measured its wrapper.
 const DEFAULT_CALCOM_ROLES = {
-  eventHost:  { size: 14, tracking: 0,      leading: 1.43, axisOverrides: { wght: 600 } },
+  eventHost:  { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: { wght: 600 } },
   eventTitle: { size: 20, tracking: 0,      leading: 1.4,  axisOverrides: { wght: 600, opsz: 'auto', GEOM: 50 } },
-  eventDesc:  { size: 16, tracking: 0,      leading: 1.5,  axisOverrides: {} },
-  eventMeta:  { size: 14, tracking: 0,      leading: 1.43, axisOverrides: { wght: 500 } },
+  eventDesc:  { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: {} },
+  eventMeta:  { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: { wght: 500 } },
   calHeader:  { size: 12, tracking: 0.1,    leading: 1.33, axisOverrides: { wght: 500 } },
-  calDay:     { size: 14, tracking: 0,      leading: 1.43, axisOverrides: {} },
+  calDay:     { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: {} },
   timeSlot:   { size: 14, tracking: 0,      leading: 1,    axisOverrides: { wght: 500 } },
 }
 
@@ -2801,7 +2802,8 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
   }
   const dayStyle = (avail) => {
     const st = roleStyle('calDay')
-    const base = Number((st.fontVariationSettings.match(/"wght" (\d+)/) || [])[1] ?? st.fontWeight)
+    // || 400: on first paint the axis values aren't populated yet and this would be NaN.
+    const base = Number((st.fontVariationSettings.match(/"wght" (\d+)/) || [])[1] ?? st.fontWeight) || 400
     const w = base + (avail ? 100 : -100)
     // Cal Sans VF bottoms out at 400; Inter has a 300.
     return withWght(st, st.fontVariationSettings === 'normal' ? w : Math.max(400, w))
@@ -2858,7 +2860,8 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
             onClick={() => onRoleClick(r => r === 'eventMeta' ? null : 'eventMeta')}>
             <img src={calcomIcon} alt="" className="calcom-meta-icon-img" /> Cal Video
           </div>
-          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}>
+          {/* The timezone row is the one meta line cal.com sets at 400, not 500. */}
+          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={withWght(roleStyle('eventMeta'), 400)}>
             <svg className="calcom-meta-icon-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <line x1="2" y1="12" x2="22" y2="12"/>
