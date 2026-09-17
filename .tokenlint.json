@@ -7,10 +7,12 @@
   "tokenSources": [
     "shared/src"
   ],
-  "_runtimeTokens": "Set by JS as an inline style on the element itself, so no stylesheet declares them: --logo-height and --caret-x from App.jsx, --locked-pct from the AxisSlider primitive.",
+  "_runtimeTokens": "Set by JS as an inline style on the element itself, so no stylesheet declares them: --logo-height and --caret-x from App.jsx, --locked-pct from the AxisSlider primitive. --ab-family and --ab-fvs are set on the calcom preview root by App.jsx in A/B screenshot mode.",
   "runtimeTokens": [
     "--caret-x",
     "--locked-pct",
-    "--logo-height"
+    "--logo-height",
+    "--ab-family",
+    "--ab-fvs"
   ]
 }

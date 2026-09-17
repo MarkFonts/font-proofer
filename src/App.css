@@ -1388,6 +1388,7 @@
   /* cal.com: main is flex items-center justify-center min-h-[100dvh], the block inside
      it has my-20 -- centered vertically, never closer than 80px to either edge. */
   justify-content: center;
+  /* token-lint: allow -- cal.com's my-20; this block imitates their UI */
   padding: 80px 32px;
   min-height: 100%;
   overflow-y: auto;
@@ -1471,7 +1472,7 @@
 .calcom-meta-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 10px;   /* token-lint: allow -- cal.com's icon-to-label gap, measured */
   color: #d4d4d4;
   cursor: default;
 }
@@ -1581,7 +1582,7 @@
   font-family: "CalSans", sans-serif;
   font-variation-settings: normal;  /* the cell's inline wght would otherwise win */
   font-weight: 600;
-  font-size: 13px;
+  font-size: 13px;   /* token-lint: allow -- cal.com's tooltip size; imitation chrome */
   line-height: 1.2;
   letter-spacing: 0;
   text-transform: none;
@@ -1614,7 +1615,7 @@
   left: -2px;
   padding: 3px 4px;
   line-height: 13px;
-  font-size: 10px;
+  font-size: 10px;   /* token-lint: allow -- cal.com's month-cap size; imitation chrome */
   font-variation-settings: normal;  /* see .calcom-tip */
   font-weight: 600;
   /* token-lint: allow -- cal.com's own cap tracking; this block imitates their UI */
@@ -1662,7 +1663,7 @@
   background: transparent;
   color: #d4d4d4;
   font: inherit;
-  font-size: 14px;
+  font-size: 14px;   /* token-lint: allow -- cal.com's 12h/24h toggle size; imitation chrome */
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
