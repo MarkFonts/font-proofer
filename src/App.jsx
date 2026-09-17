@@ -109,6 +109,17 @@ function toDisplayName(slug) {
 const HASH_TO_MODE = { '#big': 'big', '#paragraph': 'paragraph', '#glyphs': 'glyphs', '#type-scale': 'scale', '#calcom': 'calcom', '#coss': 'coss', '#ui': 'ui' }
 const MODE_TO_HASH = { big: '#big', paragraph: '#paragraph', glyphs: '#glyphs', scale: '#type-scale', calcom: '#calcom', coss: '#coss', ui: '#ui' }
 
+// ── A/B screenshot mode ──────────────────────────────────────────────────────
+// Reachable only by hash: ...#calcom#abtest is variant A (Inter), ...#calcom#abtest=b is
+// variant B (Cal Sans VF at AB_CALSANS_AXES). It exists to produce two clean captures --
+// the sidebar is hidden and the hash, not any persisted font or axis state, decides what
+// renders. The hash is read as a raw string: it is not one well-formed fragment.
+export const AB_CALSANS_AXES = { opsz: 'auto', GEOM: 25, wght: 400, YTAS: 720, SHRP: 0, ital: 0 }
+const abVariantFromHash = h => !/abtest/.test(h) ? null : /abtest=b/.test(h) ? 'b' : 'a'
+const abFragmentFromHash = h => (h.match(/#abtest(=b)?/) || [''])[0]
+// The first '#…' token is the mode; anything after it (the abtest fragment) is not.
+const modeFragment = h => '#' + (h.split('#').filter(Boolean)[0] || '')
+
 // The axes rail starts opsz on `auto`, not on the font's fvar default. Every style
 // preset here already does -- PARA_STYLE_DEFAULTS, the calcom rows, the Tailwind scale
 // all set opsz:'auto' -- so the rail was the one place that pinned it, and a pinned
@@ -132,7 +143,8 @@ function axisDefaults(axes) {
 }
 
 function resolveInitialMode(isCalcom) {
-  const fromHash = HASH_TO_MODE[window.location.hash]
+  if (isCalcom && abVariantFromHash(window.location.hash)) return 'calcom'
+  const fromHash = HASH_TO_MODE[modeFragment(window.location.hash)]
   if (fromHash === 'calcom' || fromHash === 'coss') return isCalcom ? fromHash : 'paragraph'
   return fromHash ?? 'paragraph'
 }
@@ -576,6 +588,27 @@ export default function App() {
 
   // Cal.com preview state
   const [calcomFont, setCalcomFont] = useState(calcomFontPrimary)
+  // A/B screenshot mode. Derived from the hash alone; re-evaluated on hashchange.
+  const [abVariant, setAbVariant] = useState(() => isCalcom ? abVariantFromHash(window.location.hash) : null)
+  useEffect(() => {
+    if (!isCalcom) return
+    const onHash = () => {
+      const v = abVariantFromHash(window.location.hash)
+      setAbVariant(v)
+      if (v) setMode('calcom')
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [isCalcom])
+  // Chrome hiding is scoped off the document root; the variant styles off the preview root.
+  useEffect(() => {
+    if (abVariant) document.documentElement.dataset.abtest = abVariant
+    else delete document.documentElement.dataset.abtest
+  }, [abVariant])
+  // What the calcom preview renders with: the hash overrides the radio and the sliders.
+  const abFont = abVariant === 'a' ? 'inter' : abVariant === 'b' ? 'calsans' : null
+  const effCalcomFont = abFont ?? calcomFont
+  const effAxisValues = abVariant === 'b' ? AB_CALSANS_AXES : axisValues
   const [calcomRoles, setCalcomRoles] = useState(DEFAULT_CALCOM_ROLES)
   const [activeCalcomRole, setActiveCalcomRole] = useState(null)
 
@@ -726,7 +759,8 @@ export default function App() {
   // ── Sync URL hash with active mode ───────────────────────────────────────
   useEffect(() => {
     const hash = MODE_TO_HASH[mode]
-    if (hash) window.history.replaceState(null, null, window.location.pathname + hash)
+    // Keep the abtest fragment: it rides after the mode and is not a mode.
+    if (hash) window.history.replaceState(null, null, window.location.pathname + hash + abFragmentFromHash(window.location.hash))
   }, [mode])
 
   // ── Sync scale label text with parsed PS family name ─────────────────────
@@ -1112,6 +1146,7 @@ export default function App() {
 
   const roleStyle = (role) => {
     const r = calcomRoles[role] ?? calcomRoles.eventDesc
+    const calcomFont = effCalcomFont, axisValues = effAxisValues
     const merged = { ...axisValues, ...r.axisOverrides }
     const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     const opszAuto = merged['opsz'] === 'auto'
@@ -2263,7 +2298,12 @@ export default function App() {
         )}
 
         {mode === 'calcom' && (
-          <CalcomPreview key={calcomFont} roleStyle={roleStyle} activeRole={activeCalcomRole} onRoleClick={setActiveCalcomRole} />
+          <CalcomPreview key={effCalcomFont} roleStyle={roleStyle} activeRole={activeCalcomRole} onRoleClick={setActiveCalcomRole}
+            abVariant={abVariant}
+            abVars={abVariant && {
+              '--ab-family': abVariant === 'a' ? '"Inter", system-ui, -apple-system, sans-serif' : (fontFace ? `"${fontFace.family}"` : '"CalSans"'),
+              '--ab-fvs': abVariant === 'a' ? 'normal' : Object.entries(AB_CALSANS_AXES).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', '),
+            }} />
         )}
 
         {mode === 'coss' && (
@@ -2759,7 +2799,7 @@ export default function App() {
 }
 
 // ── Cal.com preview ───────────────────────────────────────────────────────────
-function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
+function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, abVars = null }) {
   const [selectedDate, setSelectedDate] = useState('18')
   const [clock, setClock] = useState('12h')
 
@@ -2810,7 +2850,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
   }
 
   return (
-    <div className="calcom-page">
+    <div className="calcom-page" data-abtest={abVariant ?? undefined} style={abVars ?? undefined}>
       <div className="calcom-card">
         {/* Left panel */}
         <div className="calcom-left">
