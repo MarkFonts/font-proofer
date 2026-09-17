@@ -1579,6 +1579,7 @@
   background: #fafafa;
   color: #000;
   font-family: "CalSans", sans-serif;
+  font-variation-settings: normal;  /* the cell's inline wght would otherwise win */
   font-weight: 600;
   font-size: 13px;
   line-height: 1.2;
@@ -1614,6 +1615,7 @@
   padding: 3px 4px;
   line-height: 13px;
   font-size: 10px;
+  font-variation-settings: normal;  /* see .calcom-tip */
   font-weight: 600;
   /* token-lint: allow -- cal.com's own cap tracking; this block imitates their UI */
   letter-spacing: 0.25px;
@@ -1737,6 +1739,16 @@
   color: #171717;
 }
 .calcom-page[data-abtest="a"] .calcom-day.selected.today::after { background: #171717; }
+/* A circle has no corner to pin the OCT cap to: it sits centred at the top of the disc
+   and the numeral drops to make room. */
+.calcom-page[data-abtest="a"] .calcom-month-cap {
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0;
+  line-height: 12px;
+}
+.calcom-page[data-abtest="a"] .calcom-day:has(.calcom-month-cap) { padding-top: 12px; }
 .calcom-page[data-abtest="a"] .calcom-time-btn {
   background: #262626;
   border-color: transparent;

@@ -2302,7 +2302,9 @@ export default function App() {
             abVariant={abVariant}
             abVars={abVariant && {
               '--ab-family': abVariant === 'a' ? '"Inter", system-ui, -apple-system, sans-serif' : (fontFace ? `"${fontFace.family}"` : '"CalSans"'),
-              '--ab-fvs': abVariant === 'a' ? 'normal' : Object.entries(AB_CALSANS_AXES).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', '),
+              // No wght here: weight rides font-weight so the cap, the pill and the toggle
+              // carry the same weight in both variants instead of B's being pinned.
+              '--ab-fvs': abVariant === 'a' ? 'normal' : Object.entries(AB_CALSANS_AXES).filter(([t, v]) => v !== 'auto' && t !== 'wght').map(([t, v]) => `"${t}" ${v}`).join(', '),
             }} />
         )}
 
