@@ -2791,13 +2791,19 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
   // so the difference has to go into the axis: +100 / -100 off the role's weight.
   // Cal Sans VF bottoms out at 400, so its muted days land at 400 -- the closest the
   // font can get to a 300. Inter's fvs is 'normal', where the CSS weights already apply.
+  // Set a role's weight explicitly: through the wght axis in Cal Sans mode (inline fvs
+  // beats CSS font-weight there) and through font-weight in Inter mode (fvs is 'normal').
+  const withWght = (st, w) => {
+    const fvs = st.fontVariationSettings
+    if (!fvs || fvs === 'normal') return { ...st, fontWeight: w }
+    return { ...st, fontVariationSettings: fvs.replace(/"wght" \d+/, `"wght" ${w}`) }
+  }
   const dayStyle = (avail) => {
     const st = roleStyle('calDay')
-    const fvs = st.fontVariationSettings
-    const bump = w => Math.max(400, Number(w) + (avail ? 100 : -100))
-    // Inter mode: the weight rides font-weight (no 400 floor -- Inter has a 300).
-    if (!fvs || fvs === 'normal') return { ...st, fontWeight: Number(st.fontWeight) + (avail ? 100 : -100) }
-    return { ...st, fontVariationSettings: fvs.replace(/"wght" (\d+)/, (_, w) => `"wght" ${bump(w)}`) }
+    const base = Number((st.fontVariationSettings.match(/"wght" (\d+)/) || [])[1] ?? st.fontWeight)
+    const w = base + (avail ? 100 : -100)
+    // Cal Sans VF bottoms out at 400; Inter has a 300.
+    return withWght(st, st.fontVariationSettings === 'normal' ? w : Math.max(400, w))
   }
 
   return (
@@ -2905,7 +2911,9 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
           <div className="calcom-times-wrap">
             <div className="calcom-times-head">
               <div className="calcom-time-date">
-                <span className="calcom-time-dow" style={roleStyle('calHeader')}>Fri</span>
+                {/* Title-case 16/600 on cal.com (text-emphasis font-semibold), not the
+                    uppercase tracked weekday style the column headers use. */}
+                <span className="calcom-time-dow" style={withWght({...roleStyle('calHeader'), fontSize: '16px', letterSpacing: 0, textTransform: 'none', lineHeight: 1.5}, 600)}>Fri</span>
                 <span className="calcom-time-dnum" style={{...roleStyle('calHeader'), fontSize: '14px', letterSpacing: 0, textTransform: 'none'}}>{label(selectedDate)}th</span>
               </div>
               <div className="calcom-clock-toggle">

@@ -1636,7 +1636,7 @@
   align-items: baseline;
   gap: 4px;
 }
-.calcom-time-dow { color: #fafafa; text-transform: uppercase; }
+.calcom-time-dow { color: #fafafa; }
 .calcom-time-dnum { color: #d4d4d4; }
 .calcom-clock-toggle {
   display: flex;
