@@ -2910,7 +2910,8 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick }) {
                   }}
                 >
                   {k === 'o1' && <span className="calcom-month-cap">Oct</span>}
-                  {k === 'o1' && <span className="calcom-tip">October</span>}
+                  {/* Every October cell carries the rollover, not just the one with the cap. */}
+                  {k !== null && k.startsWith('o') && <span className="calcom-tip">October</span>}
                   {label(k)}
                 </div>
               ))}
