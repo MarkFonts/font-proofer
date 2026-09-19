@@ -1886,9 +1886,9 @@ export default function App() {
             )}
           </div>
           {isFamily && (
-            <span className="instance-select-wrap">
+            <span className="wm-select-wrap">
             <select
-              className="instance-select"
+              className="wm-select"
               value={scopedWeight ?? ''}
               onChange={e => setScopedWeight(e.target.value)}
               title="Style"
@@ -1930,9 +1930,9 @@ export default function App() {
               The featureStr/paraStyles ss04/ss05 plumbing is still in place if
               a real one is ever built. */}
           {ttcFonts.length > 1 && (
-            <span className="instance-select-wrap">
+            <span className="wm-select-wrap">
             <select
-              className="instance-select"
+              className="wm-select"
               value={ttcIndex}
               onChange={e => selectTTCFont(Number(e.target.value))}
             >
@@ -1974,9 +1974,9 @@ export default function App() {
               }
             }
             return (
-              <span className="instance-select-wrap">
+              <span className="wm-select-wrap">
               <select
-                className="instance-select"
+                className="wm-select"
                 value={activeInst?.name ?? ''}
                 onChange={e => applyInstance(e.target.value)}
               >
