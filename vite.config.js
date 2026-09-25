@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync, readdirSync, existsSync } from 'fs'
 import { createRequire } from 'module'
 import routes from './src/routes.config.js'
+import AXIS_REGISTRY from './src/axisRegistry.json' with { type: 'json' }
 
 // OG/Twitter image URLs must be absolute (https://…) — scrapers drop root-relative ones.
 const SITE_ORIGIN = 'https://wordmark.nyc'
@@ -93,7 +94,8 @@ function parseFontAxesFromBuffer(ab) {
       }
       return null
     }
-    const tagLabels = { wght:'Weight', wdth:'Width', ital:'Italic', slnt:'Slant', opsz:'Optical Size', GRAD:'Grade' }
+    // Same fallback as App.jsx's detectAxes: name table, then the cached registry, then the tag.
+    const registryName = tag => AXIS_REGISTRY.axes[tag]?.name
     const axOff = data.getUint16(fvarOffset+4), axCnt = data.getUint16(fvarOffset+8)
     const axSz = data.getUint16(fvarOffset+10), instCnt = data.getUint16(fvarOffset+12), instSz = data.getUint16(fvarOffset+14)
     const tags = [], axes = []
@@ -101,7 +103,7 @@ function parseFontAxesFromBuffer(ab) {
       const o = fvarOffset+axOff+i*axSz
       const tag = String.fromCharCode(data.getUint8(o), data.getUint8(o+1), data.getUint8(o+2), data.getUint8(o+3))
       tags.push(tag)
-      axes.push({ tag, name: getStr(data.getUint16(o+18)) || tagLabels[tag] || tag, min: data.getInt32(o+4)/65536, max: data.getInt32(o+12)/65536, defaultVal: data.getInt32(o+8)/65536 })
+      axes.push({ tag, name: getStr(data.getUint16(o+18)) || registryName(tag) || tag, min: data.getInt32(o+4)/65536, max: data.getInt32(o+12)/65536, defaultVal: data.getInt32(o+8)/65536 })
     }
     const instStart = fvarOffset+axOff+axCnt*axSz, instances = []
     for (let i = 0; i < instCnt; i++) {

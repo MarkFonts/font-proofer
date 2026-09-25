@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "postinstall": "patch-package",
     "lint:tokens": "node shared/scripts/lint-tokens.mjs",
-    "font:add": "node scripts/add-font.mjs"
+    "font:add": "node scripts/add-font.mjs",
+    "registry:sync": "node scripts/sync-axis-registry.mjs"
   },
   "dependencies": {
     "@calcom/cal-sans-ui": "latest",
