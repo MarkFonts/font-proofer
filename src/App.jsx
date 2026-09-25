@@ -19,6 +19,7 @@ import {
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
 import fontAxesData from 'virtual:font-axes'
+import AXIS_REGISTRY from './axisRegistry.json'   // Google's axis registry, cached (scripts/sync-axis-registry.mjs)
 import logoGif from '/public/logo.gif'
 import logoGifDark from '/public/logo_darkmode.gif'
 import peerAvatar from '/public/peer-richelsen.png'
@@ -1046,14 +1047,16 @@ export default function App() {
         }
         return null
       }
-      const tagLabels = { wght:'Weight', wdth:'Width', ital:'Italic', slnt:'Slant', opsz:'Optical Size', GRAD:'Grade' }
+      // A row is named from the font's own name table; a bare tag falls through the cached
+      // registry (fifty-odd axes, src/axisRegistry.json) before it is shown as itself.
+      const registryName = tag => AXIS_REGISTRY.axes[tag]?.name
       const axOff=data.getUint16(fvarOffset+4), axCnt=data.getUint16(fvarOffset+8), axSz=data.getUint16(fvarOffset+10)
       const instCnt=data.getUint16(fvarOffset+12), instSz=data.getUint16(fvarOffset+14)
       const tags=[], axes=[]
       for (let i=0; i<axCnt; i++) {
         const o=fvarOffset+axOff+i*axSz, tag=String.fromCharCode(data.getUint8(o),data.getUint8(o+1),data.getUint8(o+2),data.getUint8(o+3))
         tags.push(tag)
-        axes.push({ tag, name: getStr(data.getUint16(o+18)) || tagLabels[tag] || tag, min: data.getInt32(o+4)/65536, max: data.getInt32(o+12)/65536, defaultVal: data.getInt32(o+8)/65536 })
+        axes.push({ tag, name: getStr(data.getUint16(o+18)) || registryName(tag) || tag, min: data.getInt32(o+4)/65536, max: data.getInt32(o+12)/65536, defaultVal: data.getInt32(o+8)/65536 })
       }
       const instStart=fvarOffset+axOff+axCnt*axSz, instances=[]
       for (let i=0; i<instCnt; i++) {
