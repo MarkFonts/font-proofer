@@ -1525,7 +1525,7 @@ export default function App() {
           <div className="drop-overlay-inner">
             <span className="drop-icon">↓</span>
             <span className="drop-title">Drop it like it’s Font(s)!</span>
-            <span className="drop-tip">Some variable fonts ship as paired Roman and Italic variable fonts. Drop them both in!</span>
+            <span className="drop-tip">Some variable fonts ship as paired Roman and Italic variable fonts.<br />Drop them both in!</span>
           </div>
         </div>
       )}
