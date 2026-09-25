@@ -66,7 +66,7 @@
 .drop-title {
   font-size: var(--type-title-size, 1.625rem);
   line-height: var(--type-title-lead, 1.2);
-  font-weight: var(--w-bold, 700);
+  font-weight: 700;   /* no weight token in this app or the house type roles; the literal the app's other heads use */
   color: var(--text);
 }
 .drop-tip {
