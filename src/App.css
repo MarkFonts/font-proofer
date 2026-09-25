@@ -61,14 +61,22 @@
   letter-spacing: 0;
 }
 
+/* The title role (26px, the house's text-2xl), bold; the tip at the dial label's size,
+   italic. Both on the roles, so the overlay follows the type scale, not its own numbers. */
+.drop-title {
+  font-size: var(--type-title-size, 1.625rem);
+  line-height: var(--type-title-lead, 1.2);
+  font-weight: var(--w-bold, 700);
+  color: var(--text);
+}
 .drop-tip {
   max-width: 34em;
   text-align: center;
+  font-style: italic;
   font-size: var(--type-ui-size, 0.75rem);
-  line-height: 1.5;
-  color: var(--text-dim);
+  line-height: var(--type-ui-lead, 1.4);
+  color: var(--text-muted);
 }
-.drop-tip em { font-style: normal; color: var(--text-muted); }
 .drop-icon {
   font-size: var(--type-display-size, 2.8125rem);
   animation: bounce 0.6s ease infinite alternate;
