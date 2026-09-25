@@ -560,6 +560,7 @@ export default function App() {
   const [ttcFonts, setTtcFonts] = useState([])
   const [ttcIndex, setTtcIndex] = useState(0)
   const fontObjectUrl = useRef(null)
+  const italicObjectUrl = useRef(null)   // the dropped italic companion's URL, revoked with the roman's
   const ttcBufferRef = useRef(null)
   const ttcOffsetsRef = useRef([])
   const fontFamilyRef = useRef('')
@@ -897,9 +898,15 @@ export default function App() {
 
 
   // ── Font loading ───────────────────────────────────────────────────────────
-  const loadFont = useCallback(async (file) => {
+  // `italicFile` is the italic companion dropped WITH the roman -- the Google Fonts
+  // pair, Family-VariableFont_….ttf beside Family-Italic-VariableFont_….ttf. It joins the
+  // same CSS family with style:'italic', exactly as the bundled families' italics do
+  // (loadRouteFont), so the roman/italic toggle and the italic's own stylistic sets work
+  // for a dropped pair too. Before this the drop took files[0] and the italic was lost.
+  const loadFont = useCallback(async (file, italicFile = null) => {
     try {
       if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
+      if (italicObjectUrl.current) { URL.revokeObjectURL(italicObjectUrl.current); italicObjectUrl.current = null }
 
       const buffer = await file.arrayBuffer()
       const isTTC = new DataView(buffer).getUint32(0) === 0x74746366
@@ -944,10 +951,37 @@ export default function App() {
         autoFitSize(name)
         await detectAxes(file)
       }
+
+      if (italicFile) {
+        const iurl = URL.createObjectURL(italicFile)
+        italicObjectUrl.current = iurl
+        const italicFace = new FontFace(name, `url(${iurl})`, { style: 'italic' })
+        const loadedItalic = await italicFace.load()
+        document.fonts.add(loadedItalic)
+        setItalicFontFace(loadedItalic)
+        italicFile.arrayBuffer()
+          .then(buf => setGlyphFeatures(prev => ({ ...prev, italic: gsubFeatureTags(buf) })))
+          .catch(() => {})
+      } else {
+        // A lone roman replaces whatever italic the previous font brought.
+        setItalicFontFace(null)
+        setIsItalic(false)
+        setGlyphFeatures(prev => ({ ...prev, italic: [] }))
+      }
     } catch (err) {
       console.error('Font load error', err)
     }
   }, [autoFitSize])
+
+  // Of everything dropped or picked at once: the roman is the first font file whose
+  // name does not say italic, the italic is the first that does. One italic alone is
+  // loaded as the face itself, as before.
+  const splitRomanItalic = (list) => {
+    const files = [...list].filter(f => /\.(ttf|otf|woff2?|ttc)$/i.test(f.name))
+    const italic = files.find(f => /italic|oblique/i.test(f.name))
+    const roman = files.find(f => !/italic|oblique/i.test(f.name)) ?? files[0] ?? null
+    return [roman, roman && italic && italic !== roman ? italic : null]
+  }
 
   const selectTTCFont = useCallback(async (index) => {
     try {
@@ -1038,8 +1072,8 @@ export default function App() {
     e.preventDefault()
     dragCounterRef.current = 0
     setIsDragging(false)
-    const file = e.dataTransfer.files[0]
-    if (file) loadFont(file)
+    const [roman, italic] = splitRomanItalic(e.dataTransfer.files)
+    if (roman) loadFont(roman, italic)
   }, [loadFont])
 
   const handleDragEnter = useCallback((e) => { e.preventDefault(); dragCounterRef.current++; setIsDragging(true) }, [])
@@ -1490,7 +1524,8 @@ export default function App() {
         <div className="drop-overlay">
           <div className="drop-overlay-inner">
             <span className="drop-icon">↓</span>
-            <span>Drop font file</span>
+            <span>Drop a font</span>
+            <span className="drop-tip">Or a roman and its italic together, the two variable files Google Fonts ships: <em>Family-VariableFont_…</em> and <em>Family-Italic-VariableFont_…</em></span>
           </div>
         </div>
       )}
@@ -1655,8 +1690,9 @@ export default function App() {
               ref={fileInputRef}
               type="file"
               accept=".ttf,.otf,.woff,.woff2,.ttc"
+              multiple
               style={{ display: 'none' }}
-              onChange={e => e.target.files[0] && loadFont(e.target.files[0])}
+              onChange={e => { const [roman, italic] = splitRomanItalic(e.target.files); if (roman) loadFont(roman, italic) }}
             />
             <button
               className="upload-btn"

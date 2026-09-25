@@ -61,6 +61,14 @@
   letter-spacing: 0;
 }
 
+.drop-tip {
+  max-width: 34em;
+  text-align: center;
+  font-size: var(--type-ui-size, 0.75rem);
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.drop-tip em { font-style: normal; color: var(--text-muted); }
 .drop-icon {
   font-size: var(--type-display-size, 2.8125rem);
   animation: bounce 0.6s ease infinite alternate;
