@@ -1524,8 +1524,8 @@ export default function App() {
         <div className="drop-overlay">
           <div className="drop-overlay-inner">
             <span className="drop-icon">↓</span>
-            <span>Drop a font</span>
-            <span className="drop-tip">Or a roman and its italic together, the two variable files Google Fonts ships: <em>Family-VariableFont_…</em> and <em>Family-Italic-VariableFont_…</em></span>
+            <span className="drop-title">Drop it like it’s Font(s)!</span>
+            <span className="drop-tip">Some variable fonts ship as paired Roman and Italic variable fonts. Drop them both in!</span>
           </div>
         </div>
       )}
