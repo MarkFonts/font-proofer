@@ -210,7 +210,7 @@
   text-transform: uppercase;
   color: var(--text-dim);
   font-family:  'Face', system-ui, sans-serif;
-  margin-top: 5px;
+  margin-top: 4px;
   margin-bottom: 2px;
 }
 
@@ -385,7 +385,7 @@
 /* ── Typography header (label + alignment inline) ───────────────────────── */
 .section-label-sub,
 .section-label-exit {
-  margin-left: 5px;
+  margin-left: 4px;
   font-size: var(--type-micro-size, 0.5625rem);
   letter-spacing: var(--track-caps);   /* the H1/P chip renders capitals */
   color: var(--text-muted);
@@ -736,7 +736,7 @@
 }
 
 .glyph-match-note {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   padding: var(--spacing-03, 8px) var(--spacing-04, 12px);
   border-radius: var(--radius);
   border: 1px solid var(--border-subtle);
@@ -1385,7 +1385,7 @@
 .calcom-cover {
   position: relative;
   flex-shrink: 0;
-  margin-bottom: 20px;
+  margin-bottom: 20px;   /* token-lint: allow -- cal.com's mb-5 under the cover; imitation chrome */
 }
 .calcom-cover-img-wrap {
   aspect-ratio: 3 / 1;
@@ -1430,7 +1430,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 20px;   /* token-lint: allow -- cal.com's mt-5 on the meta list; imitation chrome */
 }
 .calcom-meta-item {
   display: flex;
@@ -1463,7 +1463,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 20px;   /* token-lint: allow -- cal.com's mb-5 under the month nav; imitation chrome */
 }
 .calcom-month-label {
   display: flex;
@@ -1503,7 +1503,7 @@
 .calcom-weekday {
   text-align: center;
   padding: 0;
-  margin-bottom: 13px;
+  margin-bottom: 13px;   /* token-lint: allow -- cal.com's weekday-to-grid distance, measured; imitation chrome */
   color: #fafafa;
   text-transform: uppercase;
   cursor: pointer;
@@ -1603,7 +1603,7 @@
   align-items: center;
   justify-content: space-between;
   height: 24px;
-  margin-bottom: 22px;
+  margin-bottom: 22px;   /* token-lint: allow -- cal.com's slot-header gap, measured; imitation chrome */
 }
 .calcom-time-date {
   display: flex;
@@ -2124,7 +2124,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-03, 8px);
-  margin-bottom: 20px;
+  margin-bottom: 20px;   /* token-lint: allow -- the COSS landing imitates a client page, not house chrome */
 }
 .coss-bookings-tabs {
   display: flex;
