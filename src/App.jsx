@@ -2127,7 +2127,7 @@ export default function App() {
                     ? JSON.stringify(calcomRoles[effectiveCalcomRole].axisOverrides) !== JSON.stringify(DEFAULT_CALCOM_ROLES[effectiveCalcomRole].axisOverrides)
                     : effectiveCossRole
                     ? JSON.stringify(cossRoles[effectiveCossRole].axisOverrides) !== JSON.stringify(DEFAULT_COSS_ROLES[effectiveCossRole].axisOverrides)
-                    : variationAxes.some(a => axisValues[a.tag] !== a.defaultVal)
+                    : variationAxes.some(a => axisValues[a.tag] !== axisDefaults(variationAxes)[a.tag])
                   return (
                     <button
                       className={`align-btn ${axesDirty ? 'active' : 'reset-clean'}`}
@@ -2156,9 +2156,10 @@ export default function App() {
                             [effectiveCossRole]: { ...prev[effectiveCossRole], axisOverrides: { ...DEFAULT_COSS_ROLES[effectiveCossRole].axisOverrides } }
                           }))
                         } else {
-                          const defaults = {}
-                          variationAxes.forEach(a => { defaults[a.tag] = a.defaultVal })
-                          setAxisValues(defaults)
+                          // The same defaults the font loaded with (axisDefaults): opsz parked on
+                          // 'auto', not the font's own default. Reset used to hand back the fvar
+                          // value -- 9 for Cal Sans -- so "reset" pinned an axis the load left free.
+                          setAxisValues(axisDefaults(variationAxes))
                         }
                       }}
                     ><Icon name="settings_backup_restore" /></button>
@@ -2314,7 +2315,12 @@ export default function App() {
         )}
 
         {fontName && mode === 'ui' && (
-          <div className="preview-ui">
+          /* --ui-font is the HOST's interface face ('Face', Cal Sans) and the board's tabs,
+             toggle groups and inputs read it (UiKitBoard.css) -- which is right in ReCal,
+             where the board IS the house UI, and wrong here, where the board exists to
+             show the uploaded face doing that job. Repointed on the wrapper so every
+             word in the board is the specimen; the chrome outside keeps 'Face'. */
+          <div className="preview-ui" style={{ '--ui-font': previewStyle.fontFamily }}>
             <Suspense fallback={<div className="preview-ui-loading">Loading UI kit…</div>}>
               <UiPreview
                 /* only the font IDENTITY — NOT the proofing size/leading/tracking,
