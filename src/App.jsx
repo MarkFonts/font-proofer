@@ -459,6 +459,25 @@ function readFamilyNameFromBuffer(buffer, fontOffset = 0) {
   return null
 }
 
+/* Is this face italic, by its own account: OS/2 fsSelection bit 0, head.macStyle bit 1,
+   or a non-zero post.italicAngle. Any one says yes. The filename is not consulted --
+   a pair is a pair because the fonts say so, not because someone named them well. */
+function readItalicFlag(buffer, fontOffset = 0) {
+  try {
+    const data = new DataView(buffer)
+    const numTables = data.getUint16(fontOffset + 4)
+    const off = {}
+    for (let i = 0; i < numTables; i++) {
+      const r = fontOffset + 12 + i * 16
+      off[String.fromCharCode(data.getUint8(r), data.getUint8(r+1), data.getUint8(r+2), data.getUint8(r+3))] = data.getUint32(r + 8)
+    }
+    if (off['OS/2'] && (data.getUint16(off['OS/2'] + 62) & 1)) return true
+    if (off.head && (data.getUint16(off.head + 44) & 2)) return true
+    if (off.post && data.getInt32(off.post + 4) !== 0) return true
+  } catch {}
+  return false
+}
+
 function readVersionFromBuffer(buffer, fontOffset = 0) {
   try {
     const data = new DataView(buffer)
@@ -974,14 +993,25 @@ export default function App() {
     }
   }, [autoFitSize])
 
-  // Of everything dropped or picked at once: the roman is the first font file whose
-  // name does not say italic, the italic is the first that does. One italic alone is
-  // loaded as the face itself, as before.
-  const splitRomanItalic = (list) => {
+  // Of everything dropped or picked at once. Two files are a PAIR when the fonts say so:
+  // the same family (name ID 16, else 1) and exactly one of them flagged italic (OS/2,
+  // head or post -- readItalicFlag). Then the roman is the face and the italic its
+  // companion, whatever either file is called. Anything else -- two unrelated fonts,
+  // two romans, two italics, three files -- is not a pair, and the LAST file dropped is
+  // loaded alone, the same as dropping it by itself. One file is one file.
+  const pairFiles = async (list) => {
     const files = [...list].filter(f => /\.(ttf|otf|woff2?|ttc)$/i.test(f.name))
-    const italic = files.find(f => /italic|oblique/i.test(f.name))
-    const roman = files.find(f => !/italic|oblique/i.test(f.name)) ?? files[0] ?? null
-    return [roman, roman && italic && italic !== roman ? italic : null]
+    if (files.length < 2) return [files[0] ?? null, null]
+    const last = files[files.length - 1]
+    if (files.length > 2) return [last, null]
+    const [a, b] = await Promise.all(files.map(async f => {
+      const buf = await f.arrayBuffer()
+      return { f, family: (readFamilyNameFromBuffer(buf) ?? '').replace(/\s+/g, ' ').trim().toLowerCase(), italic: readItalicFlag(buf) }
+    }))
+    const related = a.family && a.family === b.family
+    if (related && a.italic !== b.italic) return a.italic ? [b.f, a.f] : [a.f, b.f]
+    console.info(`font-proofer: ${a.f.name} and ${b.f.name} are not a roman/italic pair (${related ? 'same family, but ' + (a.italic ? 'both italic' : 'neither italic') : 'different families'}); loading ${last.name} alone`)
+    return [last, null]
   }
 
   const selectTTCFont = useCallback(async (index) => {
@@ -1075,8 +1105,7 @@ export default function App() {
     e.preventDefault()
     dragCounterRef.current = 0
     setIsDragging(false)
-    const [roman, italic] = splitRomanItalic(e.dataTransfer.files)
-    if (roman) loadFont(roman, italic)
+    pairFiles(e.dataTransfer.files).then(([roman, italic]) => { if (roman) loadFont(roman, italic) })
   }, [loadFont])
 
   const handleDragEnter = useCallback((e) => { e.preventDefault(); dragCounterRef.current++; setIsDragging(true) }, [])
@@ -1695,7 +1724,7 @@ export default function App() {
               accept=".ttf,.otf,.woff,.woff2,.ttc"
               multiple
               style={{ display: 'none' }}
-              onChange={e => { const [roman, italic] = splitRomanItalic(e.target.files); if (roman) loadFont(roman, italic) }}
+              onChange={e => pairFiles(e.target.files).then(([roman, italic]) => { if (roman) loadFont(roman, italic) })}
             />
             <button
               className="upload-btn"
