@@ -319,7 +319,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: var(--spacing-03, 8px) var(--spacing-03, 8px);
+  /* The field grammar -- 1px edge + 12px -- so the label lands on the rail's inset (29)
+     with the text in every field; sides only, so the height is unchanged. */
+  padding: var(--spacing-03, 8px) 12px;
+  border: 0;
+  border-inline: 1px solid transparent;
   border-radius: var(--radius);
   font-size: var(--type-ui-size, 0.75rem);
   font-family:  'Face', system-ui, sans-serif;
