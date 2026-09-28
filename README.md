@@ -137,6 +137,11 @@ npm run dev
   <img alt="Variable Morph 2" src="src/testvgs/VariableMorph2.svg">
 </picture>
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="src/testvgs/Interoperable-dark.svg">
+  <img alt="Interoperable" src="src/testvgs/Interoperable.svg">
+</picture>
+
 ---
 
 ## Adding or updating a bundled font
