@@ -986,34 +986,12 @@
   position: fixed;
   top: 16px;
   left: calc(var(--sidebar-width) + 20px);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
   z-index: 50;
 }
 
-.preview-preset-btn {
-  padding: var(--spacing-01, 4px) var(--spacing-04, 12px);
-  border-radius: 20px;
-  font-size: var(--type-ui-size, 0.75rem);
-  font-family: 'Face', system-ui, sans-serif;
-  color: var(--text-dim);
-  background: transparent;
-  border: 1px solid transparent;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background var(--dur-fast, 140ms), color var(--dur-fast, 140ms), border-color var(--dur-fast, 140ms);
-}
-
-.preview-preset-btn:hover {
-  color: var(--text-muted);
-}
-
-.preview-preset-btn.active {
-  color: var(--text-muted);
-  background: var(--bg-elevated);
-  border-color: var(--border);
-}
+/* The presets are the house chip (shared/src/chip.css): every option outlined, the chosen
+   one filled, so which text is up reads at rest. It used to be bare words with a faint box
+   on the chosen one -- the state only showed when you went looking. */
 
 /* ── Mobile tabs / sub-bar (hidden on desktop) ───────────────────────────── */
 .mobile-tabs {

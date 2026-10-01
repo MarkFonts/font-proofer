@@ -2338,14 +2338,16 @@ export default function App() {
 
       {/* Desktop preset bar — top-left of preview, paragraph mode only */}
       {fontName && mode === 'paragraph' && (
-        <div className="preview-preset-bar">
+        <div className="preview-preset-bar wm-chip-row">
           {Object.keys(TEXT_PRESETS).map(k => (
             <button
               key={k}
-              className={`preview-preset-btn ${activeTextPreset === k ? 'active' : ''}`}
+              className={`wm-chip${activeTextPreset === k ? ' on' : ''}`}
+              data-label={k}
+              aria-pressed={activeTextPreset === k}
               onClick={() => selectPreset(k)}
             >
-              {k}
+              <span>{k}</span>
             </button>
           ))}
         </div>
