@@ -17,6 +17,7 @@ import '../shared/src/color.css'    // the ramp, as DEFAULTS (wm-primitives). La
 import '../shared/src/type.css'
 import '../shared/src/motion.css'
 import '../shared/src/button.css'   // .wm-btn, the boxed button (CHROME.md)
+import '../shared/src/chip.css'     // .wm-chip, one of a set (the preset bar)
 import '../shared/src/select.css'   // .wm-select, a native select wearing the house chevron   // --dur-* (wm-primitives)
 import '../shared/src/corners.css'
 import '../shared/src/space.css'
