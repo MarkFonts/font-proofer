@@ -14,5 +14,11 @@
     "--logo-height",
     "--ab-family",
     "--ab-fvs"
-  ]
+  ],
+  "lines": [
+    "src/App.css",
+    "src/index.css"
+  ],
+  "_lines": "On the house grid (wm-primitives GRID.md): the app's chrome, src/App.css and src/index.css, since #root is .wm-lines. linesSkip names the stages, data-nosnap in the page because their type is the user's font at the user's size and leading: the Big Word, the paragraph proof and its blocks, the type scale rows and pairs, the glyph grid, the UI board, the style panel's specimen previews, and the two cal.com mock-ups (calcom-*, coss-*), which copy cal.com's own spacing.",
+  "linesSkip": "\\.calcom-|\\.coss-|\\.para-block|\\.preview-(?:big|paragraph|scale|glyphs|ui)\\b|\\.glyph|\\.scale-row|\\.scale-pair|\\.para-styles-preview|\\.editable-big"
 }

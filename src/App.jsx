@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, lazy, Suspense } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, lazy, Suspense, Children } from 'react'
 import { createPortal } from 'react-dom'
 import './App.css'
+import { snapGrid } from './snapGrid.js'
 import {
   StyleScopeList, InlineEmphasisBubble,
   placeCaretAtStart as placeCursorAtStart,
@@ -545,7 +546,10 @@ function extractFontFromTTC(buffer, fontOffset) {
 function ModeBtn({ active, onClick, children }) {
   return (
     <button className={`mode-btn ${active ? 'active' : ''}`} onClick={onClick}>
-      {children}
+      {/* The words in a span: the button is a flex box, and the grid's snapper measures a
+          baseline with an inline probe that a flex box would turn into a flex item of its
+          own (src/snapGrid.js). */}
+      {Children.map(children, c => typeof c === 'string' && c.trim() ? <span>{c.trim()}</span> : c)}
     </button>
   )
 }
@@ -756,6 +760,9 @@ export default function App() {
   const dragCounterRef = useRef(0)
   const fileInputRef = useRef(null)
   const previewAreaRef = useRef(null)
+  // The chrome re-lays-out when the mode, the font or a sidebar changes: put its text back
+  // on the 3px line (snapGrid.js).
+  useEffect(() => { snapGrid() }, [mode, fontName, desktopSidebarOpen, mobileSidebarOpen])
   const bigEditorRef = useRef(null)
   const blockRefs = useRef({})
   // Which paragraph block is being edited. Focused → contentEditable owns the raw
@@ -1547,7 +1554,7 @@ export default function App() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div
+    <main
       className={`layout ${isDragging ? 'dragging' : ''}`}
     >
       <ThemeSwitch look="marks" id="theme-toggle" />
@@ -1564,13 +1571,13 @@ export default function App() {
 
       {/* Mobile tab bar */}
       <nav className="mobile-tabs">
-        {isCalcom && <button className={`mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><Icon name="calendar_month" /> cal.com/peer</button>}
-        {isCalcom && <button className={`mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><Icon name="calendar_month" /> booking events</button>}
-        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><Icon name="insert_text" /> Big Word</button>
-        <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><Icon name="format_paragraph" /> Paragraph</button>
-        <button className={`mobile-tab ${mode === 'ui' ? 'active' : ''}`} onClick={() => setMode('ui')}><Icon name="calendar_month" /> UI</button>
-        <button className={`mobile-tab ${mode === 'scale' ? 'active' : ''}`} onClick={() => setMode('scale')}><Icon name="text_fields" /> Type Scale</button>
-        <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><Icon name="grid_view" /> Glyphs</button>
+        {isCalcom && <button className={`mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><Icon name="calendar_month" /><span>cal.com/peer</span></button>}
+        {isCalcom && <button className={`mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><Icon name="calendar_month" /><span>booking events</span></button>}
+        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><Icon name="insert_text" /><span>Big Word</span></button>
+        <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><Icon name="format_paragraph" /><span>Paragraph</span></button>
+        <button className={`mobile-tab ${mode === 'ui' ? 'active' : ''}`} onClick={() => setMode('ui')}><Icon name="calendar_month" /><span>UI</span></button>
+        <button className={`mobile-tab ${mode === 'scale' ? 'active' : ''}`} onClick={() => setMode('scale')}><Icon name="text_fields" /><span>Type Scale</span></button>
+        <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><Icon name="grid_view" /><span>Glyphs</span></button>
       </nav>
 
       {/* Mobile sub-bar: context-sensitive chips */}
@@ -2361,7 +2368,7 @@ export default function App() {
         boldLabelStyle={inlineStyle('p', 'bold')}
       />
 
-      <main className="preview-area" ref={previewAreaRef}>
+      <section className="preview-area" ref={previewAreaRef}>
         {!fontName && (
           <div className="empty-state">
             <img src={logoGif} alt="Logo" className="empty-logo" />
@@ -2390,7 +2397,7 @@ export default function App() {
              where the board IS the house UI, and wrong here, where the board exists to
              show the uploaded face doing that job. Repointed on the wrapper so every
              word in the board is the specimen; the chrome outside keeps 'Face'. */
-          <div className="preview-ui" style={{ '--ui-font': previewStyle.fontFamily }}>
+          <div className="preview-ui" data-nosnap="" style={{ '--ui-font': previewStyle.fontFamily }}>
             <Suspense fallback={<div className="preview-ui-loading">Loading UI kit…</div>}>
               <UiPreview
                 /* only the font IDENTITY — NOT the proofing size/leading/tracking,
@@ -2412,7 +2419,7 @@ export default function App() {
         )}
 
         {fontName && mode === 'big' && (
-          <div className="preview-big">
+          <div className="preview-big" data-nosnap="">
             <div
               ref={bigEditorCallback}
               contentEditable
@@ -2426,7 +2433,7 @@ export default function App() {
         )}
 
         {fontName && mode === 'paragraph' && (
-          <div className="preview-paragraph" style={{ maxWidth: `${measure}px` }}>
+          <div className="preview-paragraph" data-nosnap="" style={{ maxWidth: `${measure}px` }}>
               {blocks.map((block, i) => (
                 /* The rail is a SIBLING of the editable element, not a child: anything
                    inside a contentEditable is counted by the caret helpers and is
@@ -2487,7 +2494,7 @@ export default function App() {
 
         {fontName && mode === 'scale' && (() => {
           return (
-            <div className="preview-scale" style={{ maxWidth: `${measure}px` }}>
+            <div className="preview-scale" data-nosnap="" style={{ maxWidth: `${measure}px` }}>
               {visibleScaleSteps.map(step => (
                 <div
                   key={step.key}
@@ -2566,7 +2573,7 @@ export default function App() {
         })()}
 
         {fontName && mode === 'glyphs' && (
-          <div className="preview-glyphs">
+          <div className="preview-glyphs" data-nosnap="">
             {glyphMatchUnavailable && (
               <div className="glyph-match-note">
                 Showing every glyph in the set. To trim this to the characters this font actually contains, import an uncompressed <strong>.ttf</strong> or <strong>.otf</strong>.
@@ -2595,7 +2602,7 @@ export default function App() {
             />
           </div>
         )}
-      </main>
+      </section>
 
       {/* Cal.com roles popover */}
       {calcomPanelOpen && mode === 'calcom' && (() => {
@@ -2873,7 +2880,7 @@ export default function App() {
           </div>
         )
       })()}
-    </div>
+    </main>
   )
 }
 
@@ -2929,7 +2936,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, a
   }
 
   return (
-    <div className="calcom-page" data-abtest={abVariant ?? undefined} style={abVars ?? undefined}>
+    <div className="calcom-page" data-nosnap="" data-abtest={abVariant ?? undefined} style={abVars ?? undefined}>
       <div className="calcom-card">
         {/* Left panel */}
         <div className="calcom-left">
@@ -3137,7 +3144,7 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
   ]
 
   return (
-    <div className="coss-shell">
+    <div className="coss-shell" data-nosnap="">
       {/* Mobile top bar */}
       <div className="coss-mobile-bar">
         <span className="coss-mobile-wordmark">Cal.com</span>

@@ -15,6 +15,11 @@ import '../shared/src/color.css'    // the ramp, as DEFAULTS (wm-primitives). La
                                     // what a token resolves to when the app has not set it,
                                     // which used to be "inherit whatever you are sitting in".
 import '../shared/src/type.css'
+/* THE HOUSE GRID: the columns, the margin and the 3px line (#root is .wm-lines in index.html),
+   and gridSnap.js, which puts what CSS cannot place onto it (src/snapGrid.js says why it is
+   loaded as a script tag and not imported). */
+import '../shared/src/grid.css'
+import { loadGridSnap } from './snapGrid.js'
 import '../shared/src/motion.css'
 import '../shared/src/button.css'   // .wm-btn, the boxed button (CHROME.md)
 import '../shared/src/chip.css'     // .wm-chip, one of a set (the preset bar)
@@ -24,6 +29,8 @@ import '../shared/src/space.css'
 import '../shared/src/editRail.css' // canonical edit-rail affordance (wm-primitives)
 import '../shared/src/scrollbar.css' // house 6px scrollbar (wm-primitives)
 import '../shared/src/toggleGroup.css' // house Toggle Group (wm-primitives)
+
+loadGridSnap()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

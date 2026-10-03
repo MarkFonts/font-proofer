@@ -24,7 +24,9 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- wm-lines: the app is the page's grid root (wm-primitives grid.css + gridSnap.js, wired in
+         main.jsx): its chrome text sits on the 3px line, its proofs are stages (data-nosnap). -->
+    <div id="root" class="wm-lines"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

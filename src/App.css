@@ -7,32 +7,81 @@
 #theme-toggle {
   position: fixed;
   top: 20px;
-  right: 20px;
+  right: var(--grid-margin);   /* the page margin, the proof's right edge */
   z-index: 100;
   display: flex;
   align-items: center;
   gap: var(--spacing-01, 4px);
 }
 
+/* A MARK IS NOT A LINE OF TEXT. A Material symbol is a ligature, so the grid's snapper
+   (gridSnap.js) would take an icon-only button's mark for a word and nudge it up to 3px off
+   the centre its box gives it. `relative` is how a page tells the snapper "placed for its
+   own reasons": it measures the words beside a mark, never the mark. */
+.wm-icon { position: relative; }
+
 /* ── Layout ──────────────────────────────────────────────────────────────── */
+/* THE APP IS ON THE HOUSE GRID (wm-primitives grid.css): the 24 columns (12 below 1024)
+   with the house margin and gutter. The sidebar spans --rail-span of them (the ONE RAIL
+   block below), the proof takes what is left; collapsing the sidebar gives the proof all
+   of them. Below 768 the sidebar is a tray under the proof (the mobile block), each part
+   inset by the margin. */
 .layout {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr));
+  column-gap: var(--grid-gutter);
+  padding-inline: var(--grid-margin);
   height: 100vh;
   overflow: hidden;
   position: relative;
 }
+.layout:has(> .sidebar.desktop-collapsed) { --rail-span: 0; }
+
+/* ── ONE RAIL (identical in ReCal shell.css and font-proofer App.css; change both) ──
+   The two apps drew the same dial at two sizes: ReCal's rail 264px with a 105px name
+   column, font-proofer's 260px with 125px; ReCal's play rail a 14px track and a 9px thumb,
+   font-proofer's 24 and 14; track rows 32px tall in both, which is off the 3px line, so a
+   column of them drifted a pixel a row. Mark (2026-10-03): one rail, and not too small --
+   so every number is the LARGER host's, rounded UP onto the 3px unit, never down:
+     name column  126  font-proofer's 125, up to the unit
+     track row     33  the primitive's 32, up to the unit (11 lines)
+     default rail  24  font-proofer's --dial-track-h, which is DIAL.md's own default
+     thumb         14  font-proofer's, which is the primitive's own default (15 would put
+                       its centre on a half pixel over the 2px track: (2 - 15) / 2)
+     row gap       12  ReCal's (font-proofer's was 6)
+     track inset   16  font-proofer's: the visible thumb clears the ends of a default rail
+   The rail's WIDTH is its columns: 6 of 24 from 1280, 8 of 24 from 1024, 5 of 12 below --
+   never under the 231px of row ReCal had. tests/render/rows.spec.ts asserts these numbers
+   are equal in both hosts. */
+:root {
+  --axis-label-w: 126px;
+  --dial-track-h: 24px;
+  --dial-thumb: 14px;
+  --rail-gap: 12px;
+  --rail-span: 6;
+}
+@media (max-width: 1279px) { :root { --rail-span: 8; } }
+@media (max-width: 1023px) { :root { --rail-span: 5; } }
+/* Fine pointers only: on touch the row is the primitive's 48 (16 lines) and its bar grows
+   from 32 to 48 when engaged -- an unlayered 33 here would pin it and stop the growth. */
+@media (pointer: fine) { .slider-row--track .slider-label { min-height: 33px; } }
+.slider-row:not(.slider-row--track) .slider-track-wrap { padding: 0 16px; }
+/* A dial row is a component: it moves whole, by its first line, so the words stay on
+   their bar (grid.css, --snap-unit). */
+.slider-row { --snap-unit: 1; }
+
 
 /* ── Sidebar footer ──────────────────────────────────────────────────────── */
 .sidebar-footer {
   margin-top: auto;
-  padding: 16px;
+  padding: var(--spacing-05, 16px) var(--spacing-05, 16px) var(--spacing-05, 16px) 0;
   font-size: var(--type-micro-size, 0.5625rem);
-  line-height: 1.5;
+  line-height: var(--lead-micro, 12px);
   color: var(--text-dim);
   font-family: 'Face', system-ui, sans-serif;
 }
 .font-version {
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   opacity: 0.7;
 }
 
@@ -52,7 +101,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: round(down, var(--spacing-05, 16px), var(--bl, 3px));   /* stacked lines: the 16 step, onto the 3px line */
   border: 1.5px dashed var(--text-muted);
   border-radius: 16px;
   padding: var(--spacing-09, 64px);
@@ -65,7 +114,7 @@
    italic. Both on the roles, so the overlay follows the type scale, not its own numbers. */
 .drop-title {
   font-size: var(--type-title-size, 1.625rem);
-  line-height: var(--type-title-lead, 30px);
+  line-height: var(--lead-title, 30px);
   font-weight: 700;   /* no weight token in this app or the house type roles; the literal the app's other heads use */
   color: var(--text);
 }
@@ -74,7 +123,7 @@
   text-align: center;
   font-style: italic;
   font-size: var(--type-ui-size, 0.75rem);
-  line-height: var(--type-ui-lead, 15px);
+  line-height: var(--lead-ui, 15px);
   color: var(--text-muted);
 }
 .drop-icon {
@@ -88,8 +137,8 @@
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 .sidebar {
-  width: var(--sidebar-width);
-  min-width: var(--sidebar-width);
+  grid-column: 1 / span var(--rail-span);
+  min-width: 0;
   height: 100vh;
   background: var(--bg);
   border-right: 1px solid var(--border-subtle);
@@ -98,16 +147,9 @@
   overflow-y: auto;
   overflow-x: hidden;
   flex-shrink: 0;
-  transition: width var(--dur-layout, 300ms) cubic-bezier(0.4, 0, 0.2, 1),
-              min-width var(--dur-layout, 300ms) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sidebar.desktop-collapsed {
-  width: 0;
-  min-width: 0;
-  overflow: hidden;
-  border-right: none;
-}
+.sidebar.desktop-collapsed { display: none; }
 
 .sidebar-bumpout {
   position: fixed;
@@ -141,9 +183,9 @@
   height: 90px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;   /* the mark starts on the margin, with every other line of the rail */
   justify-content: center;
-  padding: var(--spacing-05, 16px) var(--spacing-05, 16px) var(--spacing-05, 16px);
+  padding: var(--spacing-05, 16px) var(--spacing-05, 16px) var(--spacing-05, 16px) 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -155,7 +197,7 @@
   display: block;
   /* margin, not padding: box-sizing is border-box globally, so padding here
      would come out of the 20px rather than sit around it. */
-  margin: var(--spacing-03, 8px) var(--spacing-04, 12px);
+  margin: var(--spacing-03, 8px) var(--spacing-04, 12px) var(--spacing-03, 8px) 0;
 }
 .logo-gif--light { display: none; }
 .logo-gif--dark  { display: block; }
@@ -169,7 +211,7 @@
 .client-label {
   font-size: var(--type-title-size, 1.625rem);
   color: #777;
-  margin-top: 8px;
+  margin-top: round(up, var(--spacing-03, 8px), var(--bl, 3px));
   font-family: 'Cal Sans', sans-serif;
   font-weight: 400;
   font-style: normal;
@@ -198,10 +240,11 @@
 
 
 .sidebar-section {
-  padding: 8px 16px;
+  /* left 0: the rail's text starts on the page margin, the column line */
+  padding: var(--spacing-03, 8px) var(--spacing-05, 16px) var(--spacing-03, 8px) 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--rail-gap, 12px);
   /* One label column for the whole rail, so every axis tag lands on the same x. The
      primitive defaults to 105px, which fits the longest bare name; the opsz row also
      carries the `auto` pill, and a component cannot measure its siblings, so the rail
@@ -210,8 +253,9 @@
      125px is the ceiling, not a preference: the row is 227px, and the widest tag (GEOM,
      28px) plus the gaps and the 64px field leave exactly this much. It also clears the
      widest left side -- "Optical Size" 66 + gap + the auto pill = 110. Go past it and
-     every tag slides under the value field. */
-  --axis-label-w: 125px;
+     every tag slides under the value field.
+     (125 then; 126 now, one number for both apps, set once in the ONE RAIL block above,
+     where the row is the rail's columns wide and never under 231px.) */
 }
 
 .sidebar-divider {
@@ -226,15 +270,15 @@
   text-transform: uppercase;
   color: var(--text-dim);
   font-family:  'Face', system-ui, sans-serif;
-  margin-top: 4px;
-  margin-bottom: 2px;
+  margin-top: var(--tick, 3px);   /* 4 and 2 were off the 3px line: 3 above, 0 below */
+  margin-bottom: 0;
 }
 
 /* ── Upload button ───────────────────────────────────────────────────────── */
 .upload-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-03, 8px);
   width: 100%;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -279,7 +323,7 @@
 .mode-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--tick, 3px);   /* the buttons are 36px (8 + 20 + 8): a row every 39, every one on the line */
 }
 
 /* THE ROW IS THE BAR. The panel toggle used to be a sibling sitting beside the mode
@@ -318,7 +362,7 @@
 .mode-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-03, 8px);
   /* The field grammar -- 1px edge + 12px -- so the label lands on the rail's inset (29)
      with the text in every field; sides only, so the height is unchanged. */
   padding: var(--spacing-03, 8px) 12px;
@@ -353,7 +397,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  margin-bottom: 8px;
+  margin-bottom: round(up, var(--spacing-03, 8px), var(--bl, 3px));
 }
 .roman-italic-btn {
   flex: 1;
@@ -384,7 +428,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  margin-bottom: 8px;
+  margin-bottom: round(up, var(--spacing-03, 8px), var(--bl, 3px));
 }
 .feature-toggles .roman-italic-btn:disabled {
   opacity: 0.35;
@@ -412,7 +456,7 @@
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 3px;
-  padding: 1px 4px;
+  padding: var(--hair, 1px) var(--spacing-01, 4px);
   text-transform: uppercase;
   vertical-align: middle;
 }
@@ -429,7 +473,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 2px;
+  margin-bottom: var(--tick, 3px);
 }
 
 /* ── Alignment buttons ───────────────────────────────────────────────────── */
@@ -496,7 +540,7 @@
 
 /* ── Preview area ────────────────────────────────────────────────────────── */
 .preview-area {
-  flex: 1;
+  grid-column: calc(var(--rail-span) + 1) / -1;
   min-width: 0;
   height: 100vh;
   overflow-y: auto;
@@ -621,7 +665,7 @@
 .para-styles-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-05, 16px);
   padding: var(--spacing-02, 6px) var(--spacing-04, 12px);
   cursor: pointer;
   border: none;
@@ -985,7 +1029,7 @@
 .preview-preset-bar {
   position: fixed;
   top: 16px;
-  left: calc(var(--sidebar-width) + 20px);
+  left: calc(var(--sidebar-width) + var(--grid-gutter));   /* the proof's first column line */
   z-index: 50;
 }
 
@@ -1009,10 +1053,15 @@
   }
 
   .layout {
+    display: flex;
     flex-direction: column;
+    padding-inline: 0;
     height: 100dvh;
     overflow: hidden;
   }
+  /* Full-bleed strips and the tray, each inset by the page margin instead. */
+  .mobile-tabs { padding-inline: calc(var(--grid-margin) - var(--spacing-04, 12px)); }
+  .sidebar-section, .sidebar-footer { padding-inline: var(--grid-margin); }
 
   .mobile-tabs {
     display: flex;
@@ -1059,7 +1108,7 @@
     overflow-y: hidden;
     scrollbar-width: none;
     gap: 6px;
-    padding: 8px 16px;
+    padding: var(--spacing-03, 8px) var(--grid-margin);
     border-bottom: 1px solid var(--border-subtle);
     background: var(--bg);
   }
@@ -1163,14 +1212,14 @@
     align-self: stretch;
     background: var(--border);
     flex-shrink: 0;
-    margin: 2px 2px;
+    margin: var(--nudge, 2px) var(--nudge, 2px);
   }
 
   #theme-toggle {
     position: static;
     order: 3;
     align-self: flex-end;
-    margin: 6px 12px;
+    margin: 6px var(--grid-margin);
     opacity: 1;
     z-index: auto;
     flex-shrink: 0;
