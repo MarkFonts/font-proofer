@@ -7,8 +7,11 @@
 #theme-toggle {
   position: fixed;
   top: 20px;
-  right: var(--grid-margin);   /* the page margin, the proof's right edge */
+  right: var(--grid-gutter);   /* no margin in a tool: one gutter from the window's edge */
   z-index: 100;
+  /* a child of the bleed grid (main), so grid.css would pad it as if it sat on the columns;
+     it floats, and its marks carry their own boxes */
+  padding-inline: 0;
   display: flex;
   align-items: center;
   gap: var(--spacing-01, 4px);
@@ -21,21 +24,34 @@
 .wm-icon { position: relative; }
 
 /* ── Layout ──────────────────────────────────────────────────────────────── */
-/* THE APP IS ON THE HOUSE GRID (wm-primitives grid.css): the 24 columns (12 below 1024)
-   with the house margin and gutter. The sidebar spans --rail-span of them (the ONE RAIL
-   block below), the proof takes what is left; collapsing the sidebar gives the proof all
-   of them. Below 768 the sidebar is a tray under the proof (the mobile block), each part
-   inset by the margin. */
+/* THE APP IS ON THE HOUSE GRID (wm-primitives grid.css), AS A TOOL: main is
+   .wm-grid.wm-grid--bleed (App.jsx), so the 24 columns (12 below 1024) run edge to edge
+   with the gutter and no margin -- Mark, 2026-10-04: a tool fills the window, no margin,
+   ever. The sidebar spans --rail-span of them (the ONE RAIL block below), the proof takes
+   what is left; collapsing the sidebar gives the proof all of them. Text never sits flush
+   against the window: grid.css pads a box that touches an edge by one gutter, worked out
+   from its --start / --span, so each edge box states them (.sidebar, .preview-area). Below
+   768 the sidebar is a tray under the proof (the mobile block), each part inset by the
+   gutter. */
 .layout {
-  display: grid;
-  grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr));
-  column-gap: var(--grid-gutter);
-  padding-inline: var(--grid-margin);
   height: 100vh;
   overflow: hidden;
   position: relative;
+  /* .wm-grid makes main a size container (for --grid-col's cqw), which would also make it
+     the containing block of the fixed theme marks, bumpout and preset bar. Nothing here
+     measures in cqw, and without a container cqw is the viewport -- main's width. */
+  container-type: normal;
 }
 .layout:has(> .sidebar.desktop-collapsed) { --rail-span: 0; }
+/* The sidebar's right edge -- its rule, in the middle of the gutter after its last column
+   (.sidebar) -- from the bleed grid: --rail-span columns, the gutters between them, and
+   half a gutter. The bumpout hangs off it, the preset bar starts half a gutter past it, on
+   the proof's first column line. On .layout, not :root: var() resolves where it is
+   declared, and only main is margin-free (.wm-grid--bleed); main is the viewport's width. */
+.layout {
+  --grid-col-w: calc((100vw - (var(--grid-cols) - 1) * var(--grid-gutter)) / var(--grid-cols));
+  --sidebar-width: calc(var(--rail-span) * var(--grid-col-w) + (var(--rail-span) - 0.5) * var(--grid-gutter));
+}
 
 /* ── ONE RAIL (identical in ReCal shell.css and font-proofer App.css; change both) ──
    The two apps drew the same dial at two sizes: ReCal's rail 264px with a 105px name
@@ -50,17 +66,27 @@
                        its centre on a half pixel over the 2px track: (2 - 15) / 2)
      row gap       12  ReCal's (font-proofer's was 6)
      track inset   16  font-proofer's: the visible thumb clears the ends of a default rail
-   The rail's WIDTH is its columns: 6 of 24 from 1280, 8 of 24 from 1024, 5 of 12 below --
-   never under the 231px of row ReCal had. tests/render/rows.spec.ts asserts these numbers
+   The rail's WIDTH is its columns, on the bleed grid (no margin: Mark 2026-10-04, "no
+   margins ever" for the two tools): 5 of 24 at Mark's 1440 (281px), and never under the
+   264px ReCal's rail was live, so the span widens as the columns narrow --
+     5 of 24 from 1360   281 at 1440, 264 at 1360
+     6 of 24 from 1128   302 at 1280, 264 at 1128
+     7 of 24 from 1024   282 at 1024
+     5 of 12 below       320 at 800
+   (5 of 24 at 1280 would be 248.) A row is the rail's columns less the one-gutter pad on
+   the window side: 257 at 1440, never under the 231 of row ReCal had. Its rule sits in
+   the middle of the gutter, so Reset and the rows end ON the rail's last column line and
+   the stage's text starts on its first. tests/render/rows.spec.ts asserts these numbers
    are equal in both hosts. */
 :root {
   --axis-label-w: 126px;
   --dial-track-h: 24px;
   --dial-thumb: 14px;
   --rail-gap: 12px;
-  --rail-span: 6;
+  --rail-span: 5;
 }
-@media (max-width: 1279px) { :root { --rail-span: 8; } }
+@media (max-width: 1359px) { :root { --rail-span: 6; } }
+@media (max-width: 1127px) { :root { --rail-span: 7; } }
 @media (max-width: 1023px) { :root { --rail-span: 5; } }
 /* Fine pointers only: on touch the row is the primitive's 48 (16 lines) and its bar grows
    from 32 to 48 when engaged -- an unlayered 33 here would pin it and stop the growth. */
@@ -74,7 +100,7 @@
 /* ── Sidebar footer ──────────────────────────────────────────────────────── */
 .sidebar-footer {
   margin-top: auto;
-  padding: var(--spacing-05, 16px) var(--spacing-05, 16px) var(--spacing-05, 16px) 0;
+  padding: var(--spacing-05, 16px) 0;   /* inline 0: the sidebar's own padding is the rail's edges */
   font-size: var(--type-micro-size, 0.5625rem);
   line-height: var(--lead-micro, 12px);
   color: var(--text-dim);
@@ -138,6 +164,15 @@
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 .sidebar {
   grid-column: 1 / span var(--rail-span);
+  /* On the window's left edge: column 1, its columns. grid.css pads it one gutter on that
+     side from these (the rail's text starts 24px in, never flush). */
+  --start: 1; --span: var(--rail-span); --start-md: 1; --span-md: var(--rail-span);
+  /* Its rule runs half the gutter past its last column, so it sits in the middle of the
+     gutter: every row ends ON the rail's last column line and the proof's chips start on
+     its first, 12px either side of the rule. Inline-end padding: that half gutter, less
+     the rule's own 1px. (No inline-start padding here: that is grid.css's pad.) */
+  margin-inline-end: calc(var(--grid-gutter) / -2);
+  padding-inline-end: calc(var(--grid-gutter) / 2 - 1px);
   min-width: 0;
   height: 100vh;
   background: var(--bg);
@@ -185,7 +220,7 @@
   flex-direction: column;
   align-items: flex-start;   /* the mark starts on the margin, with every other line of the rail */
   justify-content: center;
-  padding: var(--spacing-05, 16px) var(--spacing-05, 16px) var(--spacing-05, 16px) 0;
+  padding: var(--spacing-05, 16px) 0;   /* inline 0: the sidebar's own padding is the rail's edges */
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -240,8 +275,9 @@
 
 
 .sidebar-section {
-  /* left 0: the rail's text starts on the page margin, the column line */
-  padding: var(--spacing-03, 8px) var(--spacing-05, 16px) var(--spacing-03, 8px) 0;
+  /* inline 0: the sidebar pads the rail's edges (one gutter at the window, half a gutter
+     to the rule), so a row runs from the text line to the rail's last column line */
+  padding: var(--spacing-03, 8px) 0;
   display: flex;
   flex-direction: column;
   gap: var(--rail-gap, 12px);
@@ -541,6 +577,13 @@
 /* ── Preview area ────────────────────────────────────────────────────────── */
 .preview-area {
   grid-column: calc(var(--rail-span) + 1) / -1;
+  /* On the window's right edge (and its left, with the sidebar collapsed): from the column
+     after the rail to the last. It is the proof's room -- every proof in it is a stage
+     (data-nosnap) with its own inset -- so its scroller runs to the window's edges and
+     grid.css's pad, which these would compute, is not applied: padding-inline 0. */
+  --start: calc(var(--rail-span) + 1); --span: calc(var(--grid-cols) - var(--rail-span));
+  --start-md: calc(var(--rail-span) + 1); --span-md: calc(var(--grid-cols) - var(--rail-span));
+  padding-inline: 0;
   min-width: 0;
   height: 100vh;
   overflow-y: auto;
@@ -1029,7 +1072,8 @@
 .preview-preset-bar {
   position: fixed;
   top: 16px;
-  left: calc(var(--sidebar-width) + var(--grid-gutter));   /* the proof's first column line */
+  /* the proof's first column line; one gutter from the window with the sidebar collapsed */
+  left: max(var(--grid-gutter), var(--sidebar-width) + var(--grid-gutter) / 2);
   z-index: 50;
 }
 
@@ -1060,8 +1104,11 @@
     overflow: hidden;
   }
   /* Full-bleed strips and the tray, each inset by the page margin instead. */
-  .mobile-tabs { padding-inline: calc(var(--grid-margin) - var(--spacing-04, 12px)); }
-  .sidebar-section, .sidebar-footer { padding-inline: var(--grid-margin); }
+  /* Full-bleed strips and the tray, each inset by one gutter (no margin in a tool); the
+     tray itself, a column of the flex layout here, takes none of the desktop rail's. */
+  .mobile-tabs { padding-inline: max(0px, var(--grid-gutter) - var(--spacing-04, 12px)); }
+  .sidebar { padding-inline: 0; margin-inline: 0; }
+  .sidebar-section, .sidebar-footer { padding-inline: var(--grid-gutter); }
 
   .mobile-tabs {
     display: flex;
@@ -1108,7 +1155,7 @@
     overflow-y: hidden;
     scrollbar-width: none;
     gap: 6px;
-    padding: var(--spacing-03, 8px) var(--grid-margin);
+    padding: var(--spacing-03, 8px) var(--grid-gutter);
     border-bottom: 1px solid var(--border-subtle);
     background: var(--bg);
   }
@@ -1219,7 +1266,7 @@
     position: static;
     order: 3;
     align-self: flex-end;
-    margin: 6px var(--grid-margin);
+    margin: 6px var(--grid-gutter);
     opacity: 1;
     z-index: auto;
     flex-shrink: 0;

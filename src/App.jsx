@@ -1554,8 +1554,10 @@ export default function App() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
+    // .wm-grid.wm-grid--bleed: the house columns with no margin -- a tool fills the window
+    // (wm-primitives GRID.md, "Pages and tools"); App.css says what each edge box pads.
     <main
-      className={`layout ${isDragging ? 'dragging' : ''}`}
+      className={`layout wm-grid wm-grid--bleed ${isDragging ? 'dragging' : ''}`}
     >
       <ThemeSwitch look="marks" id="theme-toggle" />
       {/* Drop overlay */}
