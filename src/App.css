@@ -71,9 +71,15 @@
    264px ReCal's rail was live, so the span widens as the columns narrow --
      5 of 24 from 1360   281 at 1440, 264 at 1360
      6 of 24 from 1128   302 at 1280, 264 at 1128
-     7 of 24 from 1024   282 at 1024
+     7 of 24 from 964    282 at 1024, 275 at 1000, 264 at 964
+     4 of 12 from 840    305 at 963, 264 at 840
      5 of 12 below       320 at 800
-   (5 of 24 at 1280 would be 248.) A row is the rail's columns less the one-gutter pad on
+   (5 of 24 at 1280 would be 248.) The house folds to 12 columns below 1024, where the
+   rail would have jumped from 282 (7 of 24) to 415 (5 of 12) a pixel narrower; so these
+   two tools keep 24 columns down to 964, where 7 of 24 still clears 264, and fold there.
+   Set on :root, not main, so ?grid draws the columns the app is using. (A step is left
+   at 964, 264 to 305, and at 840, 264 to 336: no span on 12 columns meets 7 of 24.)
+   A row is the rail's columns less the one-gutter pad on
    the window side: 257 at 1440, never under the 231 of row ReCal had. Its rule sits in
    the middle of the gutter, so Reset and the rows end ON the rail's last column line and
    the stage's text starts on its first. tests/render/rows.spec.ts asserts these numbers
@@ -87,7 +93,9 @@
 }
 @media (max-width: 1359px) { :root { --rail-span: 6; } }
 @media (max-width: 1127px) { :root { --rail-span: 7; } }
-@media (max-width: 1023px) { :root { --rail-span: 5; } }
+@media (min-width: 964px) and (max-width: 1023px) { :root { --grid-cols: 24; } }
+@media (max-width: 963px) { :root { --rail-span: 4; } }
+@media (max-width: 839px) { :root { --rail-span: 5; } }
 /* Fine pointers only: on touch the row is the primitive's 48 (16 lines) and its bar grows
    from 32 to 48 when engaged -- an unlayered 33 here would pin it and stop the growth. */
 @media (pointer: fine) { .slider-row--track .slider-label { min-height: 33px; } }
@@ -201,6 +209,10 @@
   justify-content: center;
   cursor: pointer;
   z-index: 150;
+  /* A child of the bleed grid (main), so grid.css pads it one gutter each side as if it sat
+     on the columns: on a 30px button that squeezed the chevron out and left an empty
+     rounded box. It floats; its chevron is centred by the flex box. */
+  padding-inline: 0;
   color: var(--text-dim);
   transition: left var(--dur-layout, 300ms) cubic-bezier(0.4, 0, 0.2, 1), background var(--dur-fast, 140ms), box-shadow var(--dur-fast, 140ms);
 }
@@ -1075,6 +1087,8 @@
   /* the proof's first column line; one gutter from the window with the sidebar collapsed */
   left: max(var(--grid-gutter), var(--sidebar-width) + var(--grid-gutter) / 2);
   z-index: 50;
+  /* a fixed child of the bleed grid: no grid pad, or the first chip starts a gutter late */
+  padding-inline: 0;
 }
 
 /* The presets are the house chip (shared/src/chip.css): every option outlined, the chosen
