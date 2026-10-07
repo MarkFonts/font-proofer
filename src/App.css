@@ -139,6 +139,10 @@
 .sidebar-logo {
   position: relative;
   height: 90px;
+  /* The sidebar is a flex column that scrolls. Without this the logo was the item that
+     gave when the column overflowed -- 69px with six axis rows on screen, 90 with none --
+     so switching to a face with fewer controls moved the whole rail down 21px. */
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
