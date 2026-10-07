@@ -89,11 +89,11 @@ The proofer does not adopt the wm-primitives grid: no `.wm-lines` root, no gridS
 3px line is the chrome: the palette (this work) and the side rail's controls (chips, buttons,
 selects at 27px, vertical space in units). Nothing else. Decided 2026-10-07.
 
-### Two looks, undecided until ship
+### Two looks, both ship, by context
 
 The tiny strip (27px "Rag" tiles in a row) and the panel (220×129 tiles stacked, display
-"Rag" over the family name) are both built; `?palette=panel` on the URL shows the panel,
-the strip is the default. Neither is deleted until ship. The active face's pill is ink on
+"Rag" over the family name) both ship: the route's `palette` picks the look per preview,
+the strip is the default, `?palette=panel|strip` overrides (see "Look by context" below). The active face's pill is ink on
 page in both themes; in dark its ground is the HDR swatch (icon.css's swatch and gate).
 
 ## Dragging a face onto a block (step 3b)
@@ -128,6 +128,11 @@ back once it breaks -- the word warps out and leaves a copy behind. And the pill
 ground with PAGE letters in both themes: black/white in light, white/dark in dark. In dark
 the pill's ground is the HDR swatch, so the whole pill glows; that replaces the HDR
 letters, which were borderline at 18px.
+
+Over a PREVIEW role (cal.com/peer, booking events) the halo follows the previewed section's
+own ground, not the page theme: the card is dark whatever the page is, so the halo is light
+there with dark words. Read from the preview root's own colours, never hard-coded, since the
+previews may get a light mode (Mark, 2026-10-07). Stage blocks and chrome keep the page rule.
 
 The look is GOOEY. The coin stretches off its tile with a neck that breaks, and within reach
 of a target the two edges bridge and round into each other -- the metaball bridge IS the
