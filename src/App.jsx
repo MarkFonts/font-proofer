@@ -478,6 +478,61 @@ function readItalicFlag(buffer, fontOffset = 0) {
   return false
 }
 
+// The sfnt table directory as {tag: offset}. woff/woff2 compress it, so they read as empty:
+// a woff2 has no family, no fvar and no weight here, and so is its own static face.
+function fontTableOffsets(buffer, fontOffset = 0) {
+  const off = {}
+  try {
+    const data = new DataView(buffer)
+    const numTables = data.getUint16(fontOffset + 4)
+    for (let i = 0; i < numTables; i++) {
+      const r = fontOffset + 12 + i * 16
+      off[String.fromCharCode(data.getUint8(r), data.getUint8(r+1), data.getUint8(r+2), data.getUint8(r+3))] = data.getUint32(r + 8)
+    }
+  } catch {}
+  return off
+}
+
+const WEIGHT_CLASS_OF_WORD = { thin: 100, extralight: 200, ultralight: 200, light: 300, book: 400, regular: 400, normal: 400, medium: 500, semibold: 600, demibold: 600, bold: 700, extrabold: 800, heavy: 800, black: 900 }
+const WEIGHT_WORD_OF_CLASS = { 100: 'Thin', 200: 'ExtraLight', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black' }
+
+/* usWeightClass from OS/2; when a font has no OS/2 (or a nonsense value), the weight word
+   in its style name (ID 17, else 2) through the same word list the bundled families use. */
+function readWeightClass(buffer, fontOffset = 0) {
+  try {
+    const data = new DataView(buffer)
+    const os2 = fontTableOffsets(buffer, fontOffset)['OS/2']
+    if (os2) {
+      const w = data.getUint16(os2 + 4)
+      if (w >= 1 && w <= 1000) return w
+    }
+    const name = readNameString(buffer, [17, 2], fontOffset)
+    if (name) return WEIGHT_CLASS_OF_WORD[parseWeightSlant(name.replace(/\s+/g, '')).weight.toLowerCase()] ?? 400
+  } catch {}
+  return 400
+}
+
+function readNameString(buffer, ids, fontOffset = 0) {
+  try {
+    const data = new DataView(buffer)
+    const nameOff = fontTableOffsets(buffer, fontOffset).name
+    if (!nameOff) return null
+    const count = data.getUint16(nameOff + 2)
+    const base = nameOff + data.getUint16(nameOff + 4)
+    for (const id of ids) {
+      for (let i = 0; i < count; i++) {
+        const r = nameOff + 6 + i * 12
+        if (data.getUint16(r + 6) !== id) continue
+        if (data.getUint16(r) === 3 && data.getUint16(r + 2) === 1) {
+          const len = data.getUint16(r + 8), off = data.getUint16(r + 10)
+          return Array.from({ length: len / 2 }, (_, j) => String.fromCharCode(data.getUint16(base + off + j * 2))).join('')
+        }
+      }
+    }
+  } catch {}
+  return null
+}
+
 function readVersionFromBuffer(buffer, fontOffset = 0) {
   try {
     const data = new DataView(buffer)
@@ -550,6 +605,201 @@ function ModeBtn({ active, onClick, children }) {
   )
 }
 
+// ── Faces ────────────────────────────────────────────────────────────────────
+// What loading a font reads out of it, with nothing set: the virtual module's answer
+// first (it covers every format, woff2 included), else a parse of the TTF/OTF inline.
+// A woff/woff2 upload has no axes here and blocks glyph matching.
+const parseAxes = async (file) => {
+  let chars = null
+  // Try virtual module first (covers all font formats including woff2)
+  const known = fontAxesData[file.name]
+  if (known) return { axes: known.axes, instances: known.instances, chars: known.chars ?? null, glyphMatchUnavailable: false }
+  // Fallback: parse TTF/OTF inline (woff2 will return empty)
+  try {
+    const buffer = await file.arrayBuffer()
+    const data = new DataView(buffer)
+    const sig = data.getUint32(0)
+    if (sig === 0x774F4646 || sig === 0x774F4632) return { axes: [], instances: [], chars: null, glyphMatchUnavailable: true }
+    chars = parseCmapRanges(buffer)
+    const numTables = data.getUint16(4)
+    let fvarOffset = 0, nameOffset = 0
+    for (let i = 0; i < numTables; i++) {
+      const t = String.fromCharCode(data.getUint8(12+i*16), data.getUint8(13+i*16), data.getUint8(14+i*16), data.getUint8(15+i*16))
+      if (t === 'fvar') fvarOffset = data.getUint32(12+i*16+8)
+      if (t === 'name') nameOffset = data.getUint32(12+i*16+8)
+    }
+    if (!fvarOffset) return { axes: [], instances: [], chars, glyphMatchUnavailable: false }
+    const getStr = (id) => {
+      if (!nameOffset) return null
+      const count = data.getUint16(nameOffset+2), base = nameOffset+data.getUint16(nameOffset+4)
+      for (let i = 0; i < count; i++) {
+        const r = nameOffset+6+i*12
+        if (data.getUint16(r+6) !== id) continue
+        if (data.getUint16(r) === 3 && data.getUint16(r+2) === 1) {
+          const len = data.getUint16(r+8), off = data.getUint16(r+10)
+          return Array.from({length:len/2}, (_,j) => String.fromCharCode(data.getUint16(base+off+j*2))).join('')
+        }
+      }
+      return null
+    }
+    // A row is named from the font's own name table; a bare tag falls through the cached
+    // registry (fifty-odd axes, src/axisRegistry.json) before it is shown as itself.
+    const registryName = tag => AXIS_REGISTRY.axes[tag]?.name
+    const axOff=data.getUint16(fvarOffset+4), axCnt=data.getUint16(fvarOffset+8), axSz=data.getUint16(fvarOffset+10)
+    const instCnt=data.getUint16(fvarOffset+12), instSz=data.getUint16(fvarOffset+14)
+    const tags=[], axes=[]
+    for (let i=0; i<axCnt; i++) {
+      const o=fvarOffset+axOff+i*axSz, tag=String.fromCharCode(data.getUint8(o),data.getUint8(o+1),data.getUint8(o+2),data.getUint8(o+3))
+      tags.push(tag)
+      axes.push({ tag, name: getStr(data.getUint16(o+18)) || registryName(tag) || tag, min: data.getInt32(o+4)/65536, max: data.getInt32(o+12)/65536, defaultVal: data.getInt32(o+8)/65536 })
+    }
+    const instStart=fvarOffset+axOff+axCnt*axSz, instances=[]
+    for (let i=0; i<instCnt; i++) {
+      const o=instStart+i*instSz, name=getStr(data.getUint16(o))
+      if (!name) continue
+      const coords={}; tags.forEach((t,j) => { coords[t]=data.getInt32(o+4+j*4)/65536 })
+      instances.push({ name, coordinates: coords })
+    }
+    return { axes, instances, chars, glyphMatchUnavailable: false }
+  } catch { return { axes: [], instances: [], chars, glyphMatchUnavailable: false } }
+}
+
+/* A FACE is one family as the proofer holds it: a variable font (its axes, one style, an
+   italic companion if there is one) or a static family (no axes, a style per weight, each
+   with its italic). Everything dropped at once is sorted into faces by groupFiles, and
+   buildFace turns one group into a record without touching any state:
+     { id, label, familyLabel, version, cssFamily, fontFace, italicFontFace, axes,
+       namedInstances, supportedRanges, glyphMatchUnavailable, glyphFeatures, kind,
+       styles, weightFamilies, ttc, objectUrls, file, italicFile }
+   A group is { family, styles: [{ key, label, weightClass, roman, italic }] }; a source
+   is a File, or {url, filename} for a bundled font (the route path fetches instead of
+   reads). The face's own FontFace/italicFontFace are its default style's. cssFamily is
+   unique per face so two faces from one filename never collide in document.fonts. */
+let faceSeq = 0
+const NO_STYLES = []   // a stable empty list for "no active face / not a family"
+async function buildFace(group, { baseName: baseOverride } = {}) {
+  const seq = ++faceSeq
+  const objectUrls = []
+  const open = async (src, allowTTC) => {
+    const filename = src instanceof File ? src.name : src.filename
+    const buffer = src instanceof File ? await src.arrayBuffer() : await fetch(src.url).then(r => r.arrayBuffer())
+    if (allowTTC && new DataView(buffer).getUint32(0) === 0x74746366) {
+      const offsets = parseTTCOffsets(buffer)
+      const names = offsets.map((off, i) => getFontNameInTTC(buffer, off) || `Font ${i + 1}`)
+      const extracted = extractFontFromTTC(buffer, offsets[0])
+      const url = URL.createObjectURL(new Blob([extracted], { type: 'font/ttf' }))
+      objectUrls.push(url)
+      return { src, filename, buffer, offset: offsets[0], fontBuffer: extracted, axesFile: new File([extracted], 'extracted.ttf'), url, ttc: { buffer, offsets, names } }
+    }
+    let url = src.url
+    if (src instanceof File) { url = URL.createObjectURL(src); objectUrls.push(url) }
+    return { src, filename, buffer, offset: 0, fontBuffer: buffer, axesFile: src instanceof File ? src : new File([buffer], filename), url, ttc: null }
+  }
+  try {
+    const multi = group.styles.length >= 2
+    const defKey = defaultStyleKey(group.styles)
+    const defStyle = group.styles.find(s => s.key === defKey)
+    const defSrc = defStyle.roman ?? defStyle.italic
+    const baseName = baseOverride ?? (multi && group.family ? group.family
+      : (defSrc instanceof File ? defSrc.name : defSrc.filename).replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim())
+    const cssFamily = `${baseName.replace(/[^a-zA-Z0-9]/g, '')}Preview${seq}` // alphanumeric only: any space/dot/dash makes FontFace.family serialize quoted, which then double-quotes in CSS and gets dropped (e.g. "GeistSerifV0.2-Regular")
+    const styles = []
+    let def = null   // the default style's reads: what the face's own fields are made from
+    for (const st of group.styles) {
+      // A style with no roman draws its italic file as its normal face, as a bundled one does.
+      const primary = await open(st.roman ?? st.italic, !multi)
+      const italicOpen = st.italic ? (st.roman ? await open(st.italic, false) : primary) : null
+      const familyName = multi ? `${cssFamily}_${st.key}` : cssFamily
+      const fontFace = await new FontFace(familyName, `url(${primary.url})`).load()
+      document.fonts.add(fontFace)
+      let italicFontFace = null
+      if (italicOpen) {
+        italicFontFace = await new FontFace(familyName, `url(${italicOpen.url})`, { style: 'italic' }).load()
+        document.fonts.add(italicFontFace)
+      }
+      const style = {
+        key: st.key, label: st.label, weightClass: st.weightClass,
+        roman: st.roman ? { url: primary.url, file: primary.src instanceof File ? primary.src : null, filename: primary.filename } : null,
+        italic: italicOpen ? { url: italicOpen.url, file: italicOpen.src instanceof File ? italicOpen.src : null, filename: italicOpen.filename } : null,
+        fontFace, italicFontFace,
+        fontName: primary.filename.replace(/\.[^/.]+$/, ''),   // what the header shows for this style
+        version: readVersionFromBuffer(primary.buffer, primary.offset),
+        familyName,
+      }
+      styles.push(style)
+      if (st.key === defKey) def = { style, primary, italicOpen }
+    }
+    const { style: ds, primary, italicOpen } = def
+    const { axes, instances, chars, glyphMatchUnavailable } = await parseAxes(primary.axesFile)
+    // The family each style is registered under, for the per-level weight picker.
+    const weightFamilies = multi ? Object.fromEntries(styles.map(s => [s.key, s.familyName])) : {}
+    return {
+      id: `face${seq}`,
+      label: ds.fontName,
+      familyLabel: readFamilyNameFromBuffer(primary.buffer, primary.offset) ?? baseName,
+      version: ds.version,
+      cssFamily,
+      fontFace: ds.fontFace,
+      italicFontFace: ds.italicFontFace,
+      axes, namedInstances: instances,
+      supportedRanges: chars, glyphMatchUnavailable,
+      glyphFeatures: {
+        roman: gsubFeatureTags(primary.fontBuffer),
+        italic: italicOpen ? gsubFeatureTags(italicOpen.fontBuffer) : [],
+      },
+      kind: axes.length ? 'variable' : 'static',
+      styles, weightFamilies,
+      ttc: primary.ttc,
+      objectUrls,
+      file: primary.src instanceof File ? primary.src : null,
+      italicFile: italicOpen && italicOpen.src instanceof File ? italicOpen.src : null,
+    }
+  } catch (err) {
+    objectUrls.forEach(u => URL.revokeObjectURL(u))
+    throw err
+  }
+}
+
+/* Of everything dropped or picked at once: one FACE per family, in the order each family
+   first appears. A family is read from the fonts themselves (name ID 16, else 1), never
+   from filenames; inside it a style is a weight (OS/2 usWeightClass) with its italic
+   paired to its roman by readItalicFlag. So a roman/italic pair is just a family with one
+   weight, and 64 statics are one face with a weight picker. A variable font is a face of
+   its own even beside statics of the same family (it has axes, they do not), and a file
+   with no readable family -- a woff2, a ttc -- is a face by itself. Two files of the same
+   family, weight and slant are one slot: the later wins, and it says so. */
+const groupFiles = async (list) => {
+  const files = [...list].filter(f => /\.(ttf|otf|woff2?|ttc)$/i.test(f.name))
+  const infos = await Promise.all(files.map(async f => {
+    const buf = await f.arrayBuffer()
+    return {
+      f,
+      family: (readFamilyNameFromBuffer(buf) ?? '').replace(/\s+/g, ' ').trim(),
+      italic: readItalicFlag(buf),
+      variable: 'fvar' in fontTableOffsets(buf),
+      weightClass: readWeightClass(buf),
+    }
+  }))
+  const groups = new Map()
+  infos.forEach((info, i) => {
+    const bucket = info.family ? `${info.family.toLowerCase()}|${info.variable ? 'v' : 's'}` : `#${i}`
+    if (!groups.has(bucket)) groups.set(bucket, { family: info.family, slots: new Map() })
+    const { slots } = groups.get(bucket)
+    const slotKey = info.variable ? 'vf' : info.weightClass
+    if (!slots.has(slotKey)) slots.set(slotKey, { weightClass: info.weightClass, roman: null, italic: null })
+    const slot = slots.get(slotKey), side = info.italic ? 'italic' : 'roman'
+    if (slot[side]) console.info(`font-proofer: ${slot[side].name} and ${info.f.name} are the same family, weight and slant; loading ${info.f.name}`)
+    slot[side] = info.f
+  })
+  return [...groups.values()].map(({ family, slots }) => ({
+    family,
+    styles: [...slots.values()].sort((a, b) => a.weightClass - b.weightClass).map(sl => {
+      const label = WEIGHT_WORD_OF_CLASS[sl.weightClass] ?? String(sl.weightClass)
+      return { key: label.toLowerCase(), label, weightClass: sl.weightClass, roman: sl.roman, italic: sl.italic }
+    }),
+  }))
+}
+
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const { clientSlug, fontSlug } = parseRoute()
@@ -579,8 +829,13 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [ttcFonts, setTtcFonts] = useState([])
   const [ttcIndex, setTtcIndex] = useState(0)
-  const fontObjectUrl = useRef(null)
-  const italicObjectUrl = useRef(null)   // the dropped italic companion's URL, revoked with the roman's
+  // The set of faces (see buildFace) and which one is live. The single-font state above
+  // and below -- fontFace, variationAxes, familyStyles and the rest -- is the ACTIVE face's
+  // projection, written by activateFace; every reader of it stays as it was.
+  const [faces, setFaces] = useState([])
+  const [activeFaceId, setActiveFaceId] = useState(null)
+  const facesRef = useRef([])   // the same set, for the drop handler's append-or-replace
+  const fontObjectUrl = useRef(null)   // the active TTC member's URL, which selectTTCFont swaps and revokes
   const ttcBufferRef = useRef(null)
   const ttcOffsetsRef = useRef([])
   const fontFamilyRef = useRef('')
@@ -808,43 +1063,34 @@ export default function App() {
     setFontSize(Math.min(400, Math.max(20, Math.floor(100 * availWidth / w))))
   }, [])
 
-  // Static-family weight list for the current route (empty for single/variable fonts)
-  const familyStyles = useMemo(
-    () => (fontSlug && !matchSpecial(fontSlug)) ? getFamilyStyles(fontSlug) : [],
-    [fontSlug]
-  )
+  // Static-family weight list: the active face's styles (empty for single/variable fonts).
+  // Bundled static families and dropped ones are the same thing once they are a face.
+  const familyStyles = faces.find(f => f.id === activeFaceId)?.styles ?? NO_STYLES
   const isFamily = familyStyles.length >= 2
   const currentStyleKey = isFamily ? (activeStyleKey ?? defaultStyleKey(familyStyles)) : null
 
-  // Per-block weight support: load every family weight under its own font-family
-  // (roman + italic), so different paragraph blocks can show different weights.
+  // Per-block weight support: every family weight is registered under its own font-family
+  // (roman + italic) by buildFace, so different paragraph blocks can show different weights.
+  // activateFace hands the active face's map over.
   const [weightFamilies, setWeightFamilies] = useState({}) // { weightKey: cssFamilyName }
+
+  // Picking a weight re-points the global font at that style's own faces and header.
   useEffect(() => {
-    if (!isFamily) { setWeightFamilies({}); return }
-    let cancelled = false
-    const nameBase = fontSlug.replace(/\s+/g, '')
-    ;(async () => {
-      const fams = {}
-      for (const st of familyStyles) {
-        const famName = `${nameBase}_${st.key}Preview`
-        try {
-          if (st.roman) { const f = new FontFace(famName, `url(${st.roman.url})`); await f.load(); document.fonts.add(f) }
-          if (st.italic) { const f = new FontFace(famName, `url(${st.italic.url})`, { style: 'italic' }); await f.load(); document.fonts.add(f) }
-          fams[st.key] = famName
-        } catch { /* skip a weight that fails to load */ }
-      }
-      if (!cancelled) setWeightFamilies(fams)
-    })()
-    return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fontSlug, isFamily])
+    if (!isFamily) return
+    const st = familyStyles.find(s => s.key === currentStyleKey) ?? familyStyles[0]
+    setFontFace(st.fontFace)
+    setFontName(st.fontName)
+    setFontVersion(st.version)
+    setItalicFontFace(st.italicFontFace)
+    if (!st.italicFontFace) setIsItalic(false)
+  }, [familyStyles, currentStyleKey, isFamily])
 
   // ── Auto-load font from URL route ──────────────────────────────────────────
   useEffect(() => {
     if (!fontSlug) return
 
     const special = matchSpecial(fontSlug)
-    let matched, italicMatch, resolvedSlug
+    let matched, italicMatch, routeStyles = []
     if (special?.file) {
       // A `url` on the entry wins: that face is imported directly (see calSansUrl) and
       // so is not in the src/fonts glob at all.
@@ -852,167 +1098,90 @@ export default function App() {
       matched = special.url ? { url: special.url, filename: special.file }
               : entry ? { url: entry[1], filename: special.file } : null
       italicMatch = null
-      resolvedSlug = fontSlug
-    } else if (isFamily) {
-      // Static family: pick the roman + italic files for the selected weight.
-      const st = familyStyles.find(s => s.key === currentStyleKey) ?? familyStyles[0]
-      matched = st.roman ?? st.italic
-      italicMatch = st.italic
-      resolvedSlug = fontSlug
     } else {
-      resolvedSlug = special ? 'calsans' : fontSlug
-      matched = matchFont(resolvedSlug)
-      italicMatch = matchItalicFont(resolvedSlug)
+      // Static family: every weight is a style of one face (a family has two or more).
+      const styles = getFamilyStyles(fontSlug)
+      if (styles.length >= 2) routeStyles = styles
+      matched = matchFont(fontSlug)
+      italicMatch = matchItalicFont(fontSlug)
     }
-    if (!matched) return
+    if (!matched && !routeStyles.length) return
 
     const loadRouteFont = async () => {
-      // Families keep a constant family name across weights, so switching style
-      // just re-points the same CSS font-family.
-      const baseName = special ? special.name
-        : isFamily ? fontSlug
-        : matched.filename.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
-      const name = `${baseName.replace(/[^a-zA-Z0-9]/g, '')}Preview` // alphanumeric only: any space/dot/dash makes FontFace.family serialize quoted, which then double-quotes in CSS and gets dropped (e.g. "GeistSerifV0.2-Regular")
-
-      // Load roman face
-      const face = new FontFace(name, `url(${matched.url})`)
-      const loaded = await face.load()
-      document.fonts.add(loaded)
-      setFontFace(loaded)
-      setFontName(matched.filename.replace(/\.[^/.]+$/, ''))
-      autoFitSize(name)
-
-      // Parse PS family name, version, and GSUB stylistic-set tags (roman)
-      fetch(matched.url).then(r => r.arrayBuffer()).then(buf => {
-        setFontFamilyLabel(readFamilyNameFromBuffer(buf) ?? special?.name ?? baseName)
-        setFontVersion(readVersionFromBuffer(buf))
-        setGlyphFeatures(prev => ({ ...prev, roman: gsubFeatureTags(buf) }))
-      }).catch(() => { setFontFamilyLabel(special?.name ?? baseName); setFontVersion(null) })
-
-      // Load italic companion (registers under same family with style:'italic')
-      if (italicMatch) {
-        const italicFace = new FontFace(name, `url(${italicMatch.url})`, { style: 'italic' })
-        const loadedItalic = await italicFace.load()
-        document.fonts.add(loadedItalic)
-        setItalicFontFace(loadedItalic)
-        // Detect the italic's stylistic sets for the glyph tabs
-        fetch(italicMatch.url).then(r => r.arrayBuffer())
-          .then(buf => setGlyphFeatures(prev => ({ ...prev, italic: gsubFeatureTags(buf) })))
-          .catch(() => {})
-      } else {
-        setItalicFontFace(null)
-        setIsItalic(false)
-        setGlyphFeatures(prev => ({ ...prev, italic: [] }))
-      }
-
-      // Axes + instances from virtual module (covers TTF and woff2)
-      const { axes, instances, chars } = fontAxesData[matched.filename] ?? { axes: [], instances: [] }
-      setVariationAxes(axes)
-      setNamedInstances(instances)
-      setSupportedRanges(chars ?? null)
-      setGlyphMatchUnavailable(false)
-      setAxisValues(axisDefaults(axes))
+      // The route's font is built as a face like a dropped one, and replaces the set.
+      // Families keep one face across weights: switching style re-points the font
+      // (see the style effect above) instead of loading again.
+      const group = routeStyles.length
+        ? { family: fontSlug, styles: routeStyles.map(st => ({ key: st.key, label: st.label, weightClass: WEIGHT_CLASS_OF_WORD[st.key] ?? 400, roman: st.roman, italic: st.italic })) }
+        : { family: null, styles: [{ key: 'regular', label: 'Regular', weightClass: 400, roman: matched, italic: italicMatch }] }
+      const face = await buildFace(group, { baseName: special ? special.name : routeStyles.length ? fontSlug : undefined })
+      replaceFaces([face])
+      activateFace(face)
     }
     loadRouteFont().catch(console.error)
-  }, [fontSlug, currentStyleKey])
+  }, [fontSlug])
 
 
   // ── Font loading ───────────────────────────────────────────────────────────
-  // `italicFile` is the italic companion dropped WITH the roman -- the Google Fonts
-  // pair, Family-VariableFont_….ttf beside Family-Italic-VariableFont_….ttf. It joins the
-  // same CSS family with style:'italic', exactly as the bundled families' italics do
-  // (loadRouteFont), so the roman/italic toggle and the italic's own stylistic sets work
-  // for a dropped pair too. Before this the drop took files[0] and the italic was lost.
-  const loadFont = useCallback(async (file, italicFile = null) => {
-    try {
-      if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
-      if (italicObjectUrl.current) { URL.revokeObjectURL(italicObjectUrl.current); italicObjectUrl.current = null }
-
-      const buffer = await file.arrayBuffer()
-      const isTTC = new DataView(buffer).getUint32(0) === 0x74746366
-
-      const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/\s*[\[(].*$/g, '').trim()
-      const name = `${baseName.replace(/[^a-zA-Z0-9]/g, '')}Preview` // alphanumeric only: any space/dot/dash makes FontFace.family serialize quoted, which then double-quotes in CSS and gets dropped (e.g. "GeistSerifV0.2-Regular")
-      fontFamilyRef.current = name
-
-      if (isTTC) {
-        const offsets = parseTTCOffsets(buffer)
-        const fonts = offsets.map((off, i) => getFontNameInTTC(buffer, off) || `Font ${i + 1}`)
-        ttcBufferRef.current = buffer
-        ttcOffsetsRef.current = offsets
-        setTtcFonts(fonts)
-        setTtcIndex(0)
-        const extracted = extractFontFromTTC(buffer, offsets[0])
-        const url = URL.createObjectURL(new Blob([extracted], { type: 'font/ttf' }))
-        fontObjectUrl.current = url
-        const face = new FontFace(name, `url(${url})`)
-        const loaded = await face.load()
-        document.fonts.add(loaded)
-        setFontFace(loaded)
-        setFontName(file.name.replace(/\.[^/.]+$/, ''))
-        setFontFamilyLabel(readFamilyNameFromBuffer(buffer, offsets[0]) ?? baseName)
-        setFontVersion(readVersionFromBuffer(buffer, offsets[0]))
-        autoFitSize(name)
-        await detectAxes(new File([extracted], 'extracted.ttf'))
-      } else {
-        ttcBufferRef.current = null
-        ttcOffsetsRef.current = []
-        setTtcFonts([])
-        setTtcIndex(0)
-        const url = URL.createObjectURL(file)
-        fontObjectUrl.current = url
-        const face = new FontFace(name, `url(${url})`)
-        const loaded = await face.load()
-        document.fonts.add(loaded)
-        setFontFace(loaded)
-        setFontName(file.name.replace(/\.[^/.]+$/, ''))
-        setFontFamilyLabel(readFamilyNameFromBuffer(buffer) ?? baseName)
-        setFontVersion(readVersionFromBuffer(buffer))
-        autoFitSize(name)
-        await detectAxes(file)
-      }
-
-      if (italicFile) {
-        const iurl = URL.createObjectURL(italicFile)
-        italicObjectUrl.current = iurl
-        const italicFace = new FontFace(name, `url(${iurl})`, { style: 'italic' })
-        const loadedItalic = await italicFace.load()
-        document.fonts.add(loadedItalic)
-        setItalicFontFace(loadedItalic)
-        italicFile.arrayBuffer()
-          .then(buf => setGlyphFeatures(prev => ({ ...prev, italic: gsubFeatureTags(buf) })))
-          .catch(() => {})
-      } else {
-        // A lone roman replaces whatever italic the previous font brought.
-        setItalicFontFace(null)
-        setIsItalic(false)
-        setGlyphFeatures(prev => ({ ...prev, italic: [] }))
-      }
-    } catch (err) {
-      console.error('Font load error', err)
-    }
+  // Loading a font and showing it are two steps. buildFace (module level) makes the face
+  // record and sets nothing; activateFace is the only thing that pushes one into the
+  // single-font state, so that state IS the active face. `italicFile` of old is now a
+  // style's italic: the Google Fonts pair, Family-VariableFont_….ttf beside
+  // Family-Italic-VariableFont_….ttf, joins its roman inside one face (groupFiles), with
+  // style:'italic' on the same CSS family as the bundled families' italics.
+  const activateFace = useCallback((face) => {
+    setActiveFaceId(face.id)
+    fontFamilyRef.current = face.cssFamily
+    // A TTC is one face whose member can be switched; selectTTCFont writes the single-font
+    // state directly rather than through the set, so re-activating a TTC face restarts at member 0.
+    ttcBufferRef.current = face.ttc?.buffer ?? null
+    ttcOffsetsRef.current = face.ttc?.offsets ?? []
+    fontObjectUrl.current = face.ttc ? face.objectUrls[0] : null
+    setTtcFonts(face.ttc?.names ?? [])
+    setTtcIndex(0)
+    setFontFace(face.fontFace)
+    setItalicFontFace(face.italicFontFace)
+    setFontName(face.label)
+    setFontFamilyLabel(face.familyLabel)
+    setFontVersion(face.version)
+    setVariationAxes(face.axes)
+    setNamedInstances(face.namedInstances)
+    setSupportedRanges(face.supportedRanges)
+    setGlyphMatchUnavailable(face.glyphMatchUnavailable)
+    setAxisValues(axisDefaults(face.axes))
+    setGlyphFeatures(face.glyphFeatures)
+    setWeightFamilies(face.weightFamilies)
+    setActiveStyleKey(null)
+    setIsItalic(false)
+    // A family's own cssFamily is only a prefix; the default style's family is the one drawn.
+    autoFitSize(face.fontFace.family)
   }, [autoFitSize])
 
-  // Of everything dropped or picked at once. Two files are a PAIR when the fonts say so:
-  // the same family (name ID 16, else 1) and exactly one of them flagged italic (OS/2,
-  // head or post -- readItalicFlag). Then the roman is the face and the italic its
-  // companion, whatever either file is called. Anything else -- two unrelated fonts,
-  // two romans, two italics, three files -- is not a pair, and the LAST file dropped is
-  // loaded alone, the same as dropping it by itself. One file is one file.
-  const pairFiles = async (list) => {
-    const files = [...list].filter(f => /\.(ttf|otf|woff2?|ttc)$/i.test(f.name))
-    if (files.length < 2) return [files[0] ?? null, null]
-    const last = files[files.length - 1]
-    if (files.length > 2) return [last, null]
-    const [a, b] = await Promise.all(files.map(async f => {
-      const buf = await f.arrayBuffer()
-      return { f, family: (readFamilyNameFromBuffer(buf) ?? '').replace(/\s+/g, ' ').trim().toLowerCase(), italic: readItalicFlag(buf) }
-    }))
-    const related = a.family && a.family === b.family
-    if (related && a.italic !== b.italic) return a.italic ? [b.f, a.f] : [a.f, b.f]
-    console.info(`font-proofer: ${a.f.name} and ${b.f.name} are not a roman/italic pair (${related ? 'same family, but ' + (a.italic ? 'both italic' : 'neither italic') : 'different families'}); loading ${last.name} alone`)
-    return [last, null]
+  const setFaceSet = (next) => { facesRef.current = next; setFaces(next) }
+  // A new set: the faces that leave it give back their object URLs.
+  const replaceFaces = (next) => {
+    const gone = facesRef.current
+    setFaceSet(next)
+    gone.forEach(f => f.objectUrls.forEach(u => URL.revokeObjectURL(u)))
+    if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
   }
+  // Adds are silent: the faces join the set and the active face stays as it is.
+  const addFaces = (faceList) => setFaceSet([...facesRef.current, ...faceList])
+
+  // Every group of a drop (or pick) becomes a face, in order. The set is replaced and the
+  // first face activated -- unless `add` (⌥ held) and a face is already loaded, when they
+  // are appended silently. A group that fails to load is logged and skipped.
+  const loadFonts = useCallback(async (groups, add = false) => {
+    const built = []
+    for (const g of groups) {
+      try { built.push(await buildFace(g)) } catch (err) { console.error('Font load error', err) }
+    }
+    if (!built.length) return
+    if (add && facesRef.current.length) { addFaces(built); return }
+    replaceFaces(built)
+    activateFace(built[0])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activateFace])
 
   const selectTTCFont = useCallback(async (index) => {
     try {
@@ -1031,82 +1200,24 @@ export default function App() {
       const familyName = readFamilyNameFromBuffer(buffer, offsets[index])
       if (familyName) setFontFamilyLabel(familyName)
       setFontVersion(readVersionFromBuffer(buffer, offsets[index]))
-      await detectAxes(new File([extracted], 'extracted.ttf'))
+      const { axes, instances, chars, glyphMatchUnavailable } = await parseAxes(new File([extracted], 'extracted.ttf'))
+      setVariationAxes(axes)
+      setNamedInstances(instances)
+      setSupportedRanges(chars)
+      setGlyphMatchUnavailable(glyphMatchUnavailable)
+      setAxisValues(axisDefaults(axes))
     } catch (err) {
       console.error('TTC font switch error', err)
     }
   }, [])
-
-  const detectAxes = async (file) => {
-    setSupportedRanges(null)
-    setGlyphMatchUnavailable(false)
-    // Try virtual module first (covers all font formats including woff2)
-    const known = fontAxesData[file.name]
-    if (known) {
-      setVariationAxes(known.axes)
-      setNamedInstances(known.instances)
-      setSupportedRanges(known.chars ?? null)
-      setAxisValues(axisDefaults(known.axes))
-      return
-    }
-    // Fallback: parse TTF/OTF inline (woff2 will return empty)
-    try {
-      const buffer = await file.arrayBuffer()
-      const data = new DataView(buffer)
-      const sig = data.getUint32(0)
-      if (sig === 0x774F4646 || sig === 0x774F4632) { setVariationAxes([]); setNamedInstances([]); setAxisValues({}); setGlyphMatchUnavailable(true); return }
-      setSupportedRanges(parseCmapRanges(buffer))
-      const numTables = data.getUint16(4)
-      let fvarOffset = 0, nameOffset = 0
-      for (let i = 0; i < numTables; i++) {
-        const t = String.fromCharCode(data.getUint8(12+i*16), data.getUint8(13+i*16), data.getUint8(14+i*16), data.getUint8(15+i*16))
-        if (t === 'fvar') fvarOffset = data.getUint32(12+i*16+8)
-        if (t === 'name') nameOffset = data.getUint32(12+i*16+8)
-      }
-      if (!fvarOffset) { setVariationAxes([]); setNamedInstances([]); setAxisValues({}); return }
-      const getStr = (id) => {
-        if (!nameOffset) return null
-        const count = data.getUint16(nameOffset+2), base = nameOffset+data.getUint16(nameOffset+4)
-        for (let i = 0; i < count; i++) {
-          const r = nameOffset+6+i*12
-          if (data.getUint16(r+6) !== id) continue
-          if (data.getUint16(r) === 3 && data.getUint16(r+2) === 1) {
-            const len = data.getUint16(r+8), off = data.getUint16(r+10)
-            return Array.from({length:len/2}, (_,j) => String.fromCharCode(data.getUint16(base+off+j*2))).join('')
-          }
-        }
-        return null
-      }
-      // A row is named from the font's own name table; a bare tag falls through the cached
-      // registry (fifty-odd axes, src/axisRegistry.json) before it is shown as itself.
-      const registryName = tag => AXIS_REGISTRY.axes[tag]?.name
-      const axOff=data.getUint16(fvarOffset+4), axCnt=data.getUint16(fvarOffset+8), axSz=data.getUint16(fvarOffset+10)
-      const instCnt=data.getUint16(fvarOffset+12), instSz=data.getUint16(fvarOffset+14)
-      const tags=[], axes=[]
-      for (let i=0; i<axCnt; i++) {
-        const o=fvarOffset+axOff+i*axSz, tag=String.fromCharCode(data.getUint8(o),data.getUint8(o+1),data.getUint8(o+2),data.getUint8(o+3))
-        tags.push(tag)
-        axes.push({ tag, name: getStr(data.getUint16(o+18)) || registryName(tag) || tag, min: data.getInt32(o+4)/65536, max: data.getInt32(o+12)/65536, defaultVal: data.getInt32(o+8)/65536 })
-      }
-      const instStart=fvarOffset+axOff+axCnt*axSz, instances=[]
-      for (let i=0; i<instCnt; i++) {
-        const o=instStart+i*instSz, name=getStr(data.getUint16(o))
-        if (!name) continue
-        const coords={}; tags.forEach((t,j) => { coords[t]=data.getInt32(o+4+j*4)/65536 })
-        instances.push({ name, coordinates: coords })
-      }
-      setVariationAxes(axes); setNamedInstances(instances)
-      setAxisValues(axisDefaults(axes))
-    } catch { setVariationAxes([]); setNamedInstances([]); setAxisValues({}) }
-  }
 
   // ── Drop zone ──────────────────────────────────────────────────────────────
   const handleDrop = useCallback((e) => {
     e.preventDefault()
     dragCounterRef.current = 0
     setIsDragging(false)
-    pairFiles(e.dataTransfer.files).then(([roman, italic]) => { if (roman) loadFont(roman, italic) })
-  }, [loadFont])
+    groupFiles(e.dataTransfer.files).then(g => loadFonts(g, e.altKey))
+  }, [loadFonts])
 
   const handleDragEnter = useCallback((e) => { e.preventDefault(); dragCounterRef.current++; setIsDragging(true) }, [])
   const handleDragOver  = useCallback((e) => { e.preventDefault() }, [])
@@ -1724,7 +1835,7 @@ export default function App() {
               accept=".ttf,.otf,.woff,.woff2,.ttc"
               multiple
               style={{ display: 'none' }}
-              onChange={e => pairFiles(e.target.files).then(([roman, italic]) => { if (roman) loadFont(roman, italic) })}
+              onChange={e => groupFiles(e.target.files).then(loadFonts)}
             />
             <button
               className="upload-btn"

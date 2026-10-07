@@ -9,19 +9,25 @@ variable, Inter beside Cal Sans) and a way to say which face each style draws wi
 - One font dropped: nothing new appears. Sidebar, drop overlay and dropdowns are unchanged.
 - A roman/italic pair still pairs, inside the set.
 - Nothing on the rail advertises the feature. It is discovered, told, or preloaded by Mark.
+  The one place that tells is the drop overlay, which only exists while someone is already
+  dragging: "Drop your font. Or two. Or the whole family." with the tip "Roman and italic
+  pair up. A folder of weights becomes one family. Different families get their own tile."
+  Nine fonts at once is fine.
 
 ## Building a set (three ways, all of them drops)
 
-1. Drop several files at once. Each becomes a face. (Today only the last file loads.)
+1. Drop several files at once. Each family becomes a face. (Today only the last file loads.)
 2. Hold ⌥ while dropping onto a loaded font: the file is added instead of replacing.
+   The same by click: the palette's "+" tile, or ⌥-click on the rail's ↺ button.
 3. In ¶ view with H1, H2 or H3 selected: the drop is added *and* assigned to that level.
 
-Overlays, two plus three: "Drop your font. Or two." (replace) · "Add to the set" (⌥) ·
-"Drop → H1 / H2 / H3".
+A plain drop always replaces. ⌥ means "add" everywhere: ⌥-drop, ⌥-click. Overlays, two
+plus three: "Drop your font. Or two. Or the whole family." (replace) · "Add to the set"
+(⌥) · "Drop → H1 / H2 / H3".
 
 ### Adds are silent
 
-Adding a face and using it are two different acts. A multi-file drop or an ⌥-drop puts a
+Adding a face and using it are two different acts. A multi-file drop, an ⌥-drop, "+" or ⌥-click puts a
 tile in the palette and nothing on screen moves — P being the default scope in ¶ view does
 not count as asking for the new face there. Using a face is always a tile click. The one
 exception is the drop that names its effect before you let go: H1–H3 selected, overlay
@@ -29,16 +35,36 @@ says "Drop → H2", and the face is assigned there. A new set (a multi-file drop
 what was loaded) still gets default levels; that is a new set, not an add.
 
 ⌥ is unused everywhere in the app and in wm-primitives (only Shift, ×10 nudges), so it is
-free. Drag events carry `altKey`, so ⌥ works mid-drag from Finder.
+free. Drag events carry `altKey`, so ⌥ works mid-drag from Finder (confirm in Chrome and
+Safari on the first build that has it).
+
+## A face is a family
+
+Dump in 64 static files and the palette shows four tiles, one per family, with the weights
+inside each on the weight dropdown that bundled static families already use. Grouping is
+by the font's own name table (family ID 16, else 1), then by weight (OS/2 usWeightClass,
+labelled from the style name), with the italic paired to its roman per weight. A
+roman/italic pair is a family with one weight. A variable font is a family whose single
+entry carries axes. The bundled-route family code and the dropped-family code are one path.
+
+An italic is an attribute of its face, never a tile: the Roman/Italic toggle keeps scoping
+per level, and inline *italic* emphasis resolves through the face's own italic. A lone
+italic file with no roman is its own face. A tile whose face has an italic sets its second
+letter in italic, "A*a*" — that is all the UI it needs.
 
 ## The palette (bottom right)
 
 A tile per face, set in that face as "Aa", plus a dim "+" tile. Bottom right of the stage.
 
+- One face loaded: hidden. Hold ⌥ and it appears, one tile and the "+". You still have
+  to hold ⌥ to find it; the drop overlay tells you it exists, ⌥ is how you reach it.
 - Two or more faces: persistent.
-- One face: hidden. Holding ⌥ shows it (lone tile plus "+") — the discovery path.
-- Removing a face: ⌥ is down when the palette shows, so click a tile's corner. A plain
-  drop still resets everything.
+- The "+" opens the file picker; what is picked is ADDED, never a replacement. So does
+  ⌥-click on the rail's ↺ upload button. A plain click on ↺ still replaces, and its
+  picker takes many files, so picking a folder's worth there builds a set the same as a
+  drop does.
+- Removing a face: hold ⌥ and the tiles show a corner mark; click it. A plain drop still
+  resets everything.
 
 ### Clicking a tile is "pick a face"; what that means depends on what is scoped
 
@@ -74,7 +100,7 @@ A tile per face, set in that face as "Aa", plus a dim "+" tile. Bottom right of 
 2. Palette: tiles + "+", persistent at two faces, ⌥ reveals at one.
 3. Scoped assignment: face per ¶ level in the StyleScopeDropdown rows; default levels.
 4. Axis panel follows the scoped face.
-5. The three drop overlays and ⌥-drop.
+5. The overlay copy, the "Add to the set" and "Drop → H1/H2/H3" overlays, ⌥-drop, ⌥-click on ↺.
 6. Scale tiers, Cal.com and booking roles; retire the CalSans/Inter radio.
 7. Route-declared sets.
 
