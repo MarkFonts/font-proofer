@@ -812,7 +812,13 @@ const groupFiles = async (list) => {
    paragraph), not a reach for the palette, so that hides it again.
    The "+" picker has its own input, mounted whether or not the tiles are: with one face
    the palette vanishes the moment ⌥ comes up -- which is when the picker opens -- and an
-   input that unmounted with it would never hear what was picked. */
+   input that unmounted with it would never hear what was picked.
+   TWO LOOKS, ON TRIAL. `?palette=panel` swaps the strip of small "Aa"s for a column of
+   large tiles, each an "Aa" at display size over the face's name, with a "+" tile of the
+   same size under them. Same placement, same visibility, same handlers -- only the look
+   changes, so the two can be judged side by side. One of them goes once Mark has chosen.
+   Read once, here, like the route: it is a look, not state. */
+const PALETTE_PANEL = new URLSearchParams(window.location.search).get('palette') === 'panel'
 function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove }) {
   const [alt, setAlt] = useState(false)
   const inputRef = useRef(null)
@@ -842,7 +848,7 @@ function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove }) {
         onChange={e => { const files = [...e.target.files]; e.target.value = ''; onAdd(files) }}
       />
       {shown && (
-        <div className="face-palette" role="toolbar" aria-label="Faces">
+        <div className={`face-palette${PALETTE_PANEL ? ' face-palette--panel' : ''}`} role="toolbar" aria-label="Faces">
           {faces.map(face => {
             const active = face.id === activeFaceId
             return (
@@ -857,6 +863,7 @@ function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove }) {
                   <span className="face-tile-aa" data-nosnap style={{ fontFamily: `"${face.fontFace.family}"` }}>
                     A{face.italicFontFace ? <i>a</i> : 'a'}
                   </span>
+                  {PALETTE_PANEL && <span className="face-tile-name">{face.familyLabel}</span>}
                 </button>
                 {removable && (
                   <button className="face-tile-remove wm-icon-btn" aria-label={`Remove ${face.familyLabel}`} title={`Remove ${face.familyLabel}`} onClick={() => onRemove(face)}>
@@ -867,7 +874,7 @@ function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove }) {
             )
           })}
           <button className="face-tile face-tile--add wm-icon-btn" title="Add fonts to the set" onClick={() => inputRef.current?.click()}>
-            <Icon name="add" size={18} />
+            <Icon name="add" size={PALETTE_PANEL ? 48 : 18} />
           </button>
         </div>
       )}
@@ -1111,8 +1118,9 @@ export default function App() {
   // ── Sync URL hash with active mode ───────────────────────────────────────
   useEffect(() => {
     const hash = MODE_TO_HASH[mode]
-    // Keep the abtest fragment: it rides after the mode and is not a mode.
-    if (hash) window.history.replaceState(null, null, window.location.pathname + hash + abFragmentFromHash(window.location.hash))
+    // Keep the abtest fragment: it rides after the mode and is not a mode. Keep the query
+    // too (?palette=panel), or a reload would quietly drop the look it asked for.
+    if (hash) window.history.replaceState(null, null, window.location.pathname + window.location.search + hash + abFragmentFromHash(window.location.hash))
   }, [mode])
 
   // ── Sync scale label text with parsed PS family name ─────────────────────

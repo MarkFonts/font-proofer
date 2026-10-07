@@ -579,6 +579,126 @@
   corner-shape: round;
 }
 
+/* THE ACTIVE FACE'S LETTERS LEAVE SDR, in dark. The same light the icon ladder's top rung
+   wears (shared/src/icon.css, "ACTIVE IS THE ONLY STATE THAT LEAVES SDR"): one pixel of
+   PQ white, 1216 nits, the field's own peak, masked to the glyphs with background-clip:
+   text and let past SDR white by dynamic-range-limit. The same inlined swatch, byte for
+   byte (shared/assets/hdr-white.avif).
+   Under it, a layer of plain full ink: that is what shows if the AVIF never decodes, so
+   the letters cannot go transparent. On an SDR screen the swatch itself reads as white,
+   which in dark IS full ink, so nothing changes there or in a screenshot.
+   The background box is grown by a pad that a matching negative margin gives straight
+   back: background-clip paints only inside the box, and an italic a's overhang runs past
+   its advance -- without the pad its right edge would be cut off clean.
+   SIZE DECIDES WHETHER IT SHOWS. Measured on the poster: strong at display sizes, gone by
+   about 10px, where antialiased edge pixels composite the headroom away. The 18px strip is
+   on the margin; the panel's display-size "Aa" is where it was built to land. */
+.face-tile.active .face-tile-aa {
+  padding: var(--spacing-02, 6px);
+  margin: calc(-1 * var(--spacing-02, 6px));
+  color: transparent;
+  background-image:
+    url('data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAE1pUHJhdmlmbWlhZm1pZjEAAAFebWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAAAAAAAkZGluZgAAABxkcmVmAAAAAAAAAAEAAAAMdXJsIAAAAAEAAAAOcGl0bQAAAAAAAQAAADhpaW5mAAAAAAACAAAAFWluZmUCAAAAAAEAAGF2MDEAAAAAFWluZmUCAAABAAIAAEV4aWYAAAAAGmlyZWYAAAAAAAAADmNkc2MAAgABAAEAAACBaXBycAAAAGBpcGNvAAAAE2NvbHJuY2x4AAkAEAABgAAAAAxjbGxpA+gAQAAAABRpc3BlAAAAAAAAAGQAAABkAAAACWlyb3QAAAAAEHBpeGkAAAAAAwoKCgAAAAxhdjFDgQBMAAAAABlpcG1hAAAAAAAAAAEAAQaBAgMFhoQAAAAsaWxvYwAAAABEAAACAAEAAAABAAAB0AAAADcAAgAAAAEAAAGOAAAAQgAAAAFtZGF0AAAAAAAAAIkAAAAGRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAZKADAAQAAAABAAAAZAAAAAASAAoNAAAAAzY8Z//ChIgAwjIkEAGEgAYYYYi0VMregO56Wg+x6xnwsfoJWaYWX85G+ibLVJ6A'),
+    linear-gradient(
+      rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1)),
+      rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1)));
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  dynamic-range-limit: no-limit;
+}
+/* LIGHT GROUND TAKES NO HDR -- physics, as icon.css says: the boost is only for pixels
+   brighter than SDR white, and a chosen mark on a light ground has to go darker. Unwound
+   back to coloured text that inherits the tile's ink (full ink in the strip, the stage
+   colour on the panel's inverted tile). Stated twice, as icon.css does: the media query
+   cannot reach someone who has chosen light against an OS set to dark. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .face-tile.active .face-tile-aa {
+    color: inherit;
+    background-image: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+    dynamic-range-limit: standard;
+  }
+}
+:root[data-theme="light"] .face-tile.active .face-tile-aa {
+  color: inherit;
+  background-image: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  dynamic-range-limit: standard;
+}
+
+/* ── Face palette, variant B: the panel (?palette=panel) ──────────────────── */
+/* Mark's sketch, at the size he drew it: a column of tiles about 220 wide, each a dark
+   ground with a big "Aa", and a grey tile of the same size with a big "+" under them.
+   Same anchor, padding and ground as the strip -- only the tiles change.
+   ON THE LINE: a tile is 129px, 43 units, and its insides fill it exactly: 30 above, the
+   "Aa" on a display line (51, 17 units), a tick, the name on a label line (15, 5 units),
+   30 below. 30 + 51 + 3 + 15 + 30 = 129, which is what centring a 69px column in a
+   129px tile gives anyway. Tiles stand 6px apart (two units). Width is the free axis.
+   GROUNDS. At rest a tile sits one step up from the stage, on the surface the side rail's
+   chips and selects use; under the pointer it rises the next step, as theirs do.
+   ACTIVE is inverted in light: the ink becomes the ground and the letters take the stage
+   colour, the loudest thing on the page and the only dark block on it. In dark it keeps
+   the surface and the letters carry the HDR white above -- on an HDR screen the chosen
+   "Aa" is the brightest thing on the page; on SDR it reads as full ink against faint. */
+.face-palette--panel {
+  flex-direction: column;
+  align-items: stretch;
+  row-gap: var(--spacing-02, 6px);
+}
+.face-palette--panel .face-tile {
+  flex-direction: column;
+  row-gap: var(--tick, 3px);
+  width: 220px;
+  height: 129px;
+  padding: 0 var(--spacing-04, 12px);
+  color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62));
+  background: var(--surface, var(--bg-elevated, #2e2e2e));
+  transition: color var(--dur-fast, 140ms) ease, background-color var(--dur-fast, 140ms) ease;
+}
+.face-palette--panel .face-tile-aa {
+  font-size: var(--type-display-size, 2.8125rem);
+  line-height: var(--lead-display, var(--type-display-lead, 51px));
+}
+/* The name is chrome, so it is the UI face, never the proofed one, at the label role --
+   and it is cut with an ellipsis rather than allowed to widen the tile. */
+.face-tile-name {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ui-font, system-ui, sans-serif);
+  font-size: var(--type-label-size, 0.75rem);
+  line-height: var(--type-label-lead, 15px);
+  color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-faint, .38));
+  transition: color var(--dur-fast, 140ms) ease;
+}
+.face-palette--panel .face-tile:not(.active):is(:hover, :focus-visible) {
+  color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1));
+  background: var(--surface-hi, var(--bg-hover, #383838));
+}
+.face-palette--panel .face-tile:not(.active):is(:hover, :focus-visible) .face-tile-name,
+.face-palette--panel .face-tile.active .face-tile-name { color: inherit; }
+.face-palette--panel .face-tile.active { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1)); }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .face-palette--panel .face-tile.active {
+    color: var(--bg, #f5faff);
+    background: var(--text, #111111);
+  }
+}
+:root[data-theme="light"] .face-palette--panel .face-tile.active {
+  color: var(--bg, #f5faff);
+  background: var(--text, #111111);
+}
+/* The "+" tile: the same box and ground, the mark at 48 (the icon font's largest optical
+   size) and centred. Its ink is the strip's -- faint, quiet under the pointer. */
+.face-palette--panel .face-tile--add { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-faint, .38)); }
+.face-palette--panel .face-tile--add:not(.active):is(:hover, :focus-visible) { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62)); }
+
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
   display: flex;
