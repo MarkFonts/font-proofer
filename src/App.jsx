@@ -1171,6 +1171,8 @@ export default function App() {
   const [faces, setFaces] = useState([])
   const [activeFaceId, setActiveFaceId] = useState(null)
   const facesRef = useRef([])   // the same set, for the drop handler's append-or-replace
+  const activeFaceIdRef = useRef(null)   // written by activateFace; the history's snapshots read it
+  const faceHistoryRef = useRef({ undo: [], redo: [] })
   const fontObjectUrl = useRef(null)   // the active TTC member's URL, which selectTTCFont swaps and revokes
   const ttcBufferRef = useRef(null)
   const ttcOffsetsRef = useRef([])
@@ -1470,6 +1472,7 @@ export default function App() {
   // style:'italic' on the same CSS family as the bundled families' italics.
   const activateFace = useCallback((face) => {
     setActiveFaceId(face.id)
+    activeFaceIdRef.current = face.id
     fontFamilyRef.current = face.cssFamily
     // A TTC is one face whose member can be switched; selectTTCFont writes the single-font
     // state directly rather than through the set, so re-activating a TTC face restarts at member 0.
@@ -1497,11 +1500,72 @@ export default function App() {
   }, [autoFitSize])
 
   const setFaceSet = (next) => { facesRef.current = next; setFaces(next) }
-  // A new set: the faces that leave it give back their object URLs.
+
+  // Undo for the face actions, one history: a level assignment (tile click in ¶, a coin on a
+  // block or a panel row), a global pick (the activate and the nulling of every level are one
+  // entry), an add (⌥-drop, "+", ⌥-click, "Drop → H2" with its assignment) and a remove. An
+  // entry is a snapshot taken BEFORE the action: the set, the active face, each level's face.
+  // A REPLACE (plain drop, plain ↺ pick) is a boundary and clears the history, because the faces
+  // that left had their object URLs revoked and cannot come back. For the same reason a removed
+  // face keeps its URLs until nothing in the history can bring it back (releaseFaces).
+  const paraStylesRef = useRef(paraStyles)
+  paraStylesRef.current = paraStyles
+  const FACE_HISTORY_CAP = 50
+  const faceSnapshot = () => ({
+    faces: facesRef.current,
+    activeFaceId: activeFaceIdRef.current,
+    levelFaces: Object.fromEntries(Object.entries(paraStylesRef.current).map(([t, st]) => [t, st.face])),
+  })
+  // Give back the URLs of any of these faces that neither the set nor an entry can reach.
+  const releaseFaces = (list) => {
+    const h = faceHistoryRef.current
+    const live = new Set([...facesRef.current, ...[...h.undo, ...h.redo].flatMap(e => e.faces)])
+    new Set(list.filter(f => !live.has(f))).forEach(f => f.objectUrls.forEach(u => URL.revokeObjectURL(u)))
+  }
+  const pushFaceHistory = () => {
+    const h = faceHistoryRef.current
+    const dropped = [...h.redo.flatMap(e => e.faces)]
+    h.redo = []
+    h.undo.push(faceSnapshot())
+    if (h.undo.length > FACE_HISTORY_CAP) dropped.push(...h.undo.shift().faces)
+    releaseFaces(dropped)
+  }
+  const stepFaceHistory = (from, to) => {
+    const h = faceHistoryRef.current
+    const snap = h[from].pop()
+    if (!snap) return
+    h[to].push(faceSnapshot())
+    setFaceSet(snap.faces)
+    setLevelFaces(snap.levelFaces)
+    if (snap.activeFaceId !== activeFaceIdRef.current) activateFace(snap.faces.find(f => f.id === snap.activeFaceId))
+  }
+  // ⌘Z / ⌃Z undoes, ⇧⌘Z / ⌃Y / ⌃⇧Z redoes. A focused field (the paragraph blocks, sliders,
+  // selects) keeps its own undo, and a key someone else handled is left alone.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.defaultPrevented || !(e.metaKey || e.ctrlKey) || e.altKey) return
+      const el = document.activeElement
+      if (el && (el.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName))) return
+      const k = e.key.toLowerCase()
+      const redo = (k === 'z' && e.shiftKey) || (k === 'y' && e.ctrlKey && !e.shiftKey)
+      if (!redo && !(k === 'z' && !e.shiftKey)) return
+      const [from, to] = redo ? ['redo', 'undo'] : ['undo', 'redo']
+      if (!faceHistoryRef.current[from].length) return
+      e.preventDefault()
+      stepFaceHistory(from, to)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
+  // A new set: the faces that leave it give back their object URLs, and with them the
+  // history's (see above).
   const replaceFaces = (next) => {
-    const gone = facesRef.current
+    const h = faceHistoryRef.current
+    const gone = [...facesRef.current, ...[...h.undo, ...h.redo].flatMap(e => e.faces)]
+    h.undo = []; h.redo = []
     setFaceSet(next)
-    gone.forEach(f => f.objectUrls.forEach(u => URL.revokeObjectURL(u)))
+    new Set(gone).forEach(f => f.objectUrls.forEach(u => URL.revokeObjectURL(u)))
     if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
   }
   // Every level's face at once: a map of level -> face id, or nothing to null them all.
@@ -1509,20 +1573,20 @@ export default function App() {
   const setLevelFaces = (ids = {}) =>
     setParaStyles(prev => Object.fromEntries(Object.entries(prev).map(([t, st]) => [t, { ...st, face: ids[t] ?? null }])))
   // Adds are silent: the faces join the set and the active face stays as it is.
-  const addFaces = (faceList) => setFaceSet([...facesRef.current, ...faceList])
-  // One face leaves the set and gives back its object URLs (its FontFaces stay registered,
-  // as a replaced set's do). If it was the active one, the first that remains takes over --
-  // and a TTC member switched in by selectTTCFont has a URL of its own to give back too.
+  const addFaces = (faceList) => { pushFaceHistory(); setFaceSet([...facesRef.current, ...faceList]) }
+  // One face leaves the set. Its object URLs stay until the history can no longer restore it;
+  // only a TTC member's own URL, which selectTTCFont swapped in, goes now. If it was the
+  // active face, the first that remains takes over.
   // The last face is never removed: the palette offers no mark on a lone tile.
   const removeFace = (face) => {
     const rest = facesRef.current.filter(f => f !== face)
     if (!rest.length) return
+    pushFaceHistory()
     setFaceSet(rest)
-    face.objectUrls.forEach(u => URL.revokeObjectURL(u))
     // A level that drew in this face goes back to inheriting the active one.
     setParaStyles(prev => Object.fromEntries(Object.entries(prev).map(([t, st]) => [t, st.face === face.id ? { ...st, face: null } : st])))
     if (face.id === activeFaceId) {
-      if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
+      if (fontObjectUrl.current && !face.objectUrls.includes(fontObjectUrl.current)) URL.revokeObjectURL(fontObjectUrl.current)
       activateFace(rest[0])
     }
   }
@@ -1689,6 +1753,7 @@ export default function App() {
   // not the header, not the sliders, not the active tile. Anywhere else nothing is scoped,
   // so the face becomes THE font and every earlier assignment is cleared with it.
   const pickFace = (face) => {
+    pushFaceHistory()
     if (mode === 'paragraph') { setScopedField('face', face.id); return }
     activateFace(face)
     setLevelFaces()
@@ -2892,7 +2957,7 @@ export default function App() {
           onPick={pickFace}
           onAdd={files => groupFiles(files).then(g => loadFonts(g, true))}
           onRemove={removeFace}
-          onDropFace={(face, level) => setParaStyles(prev => ({ ...prev, [level]: { ...prev[level], face: face.id } }))}
+          onDropFace={(face, level) => { pushFaceHistory(); setParaStyles(prev => ({ ...prev, [level]: { ...prev[level], face: face.id } })) }}
           onSpring={() => setParaStylesPanelOpen(true)}
         />
         {!fontName && (
