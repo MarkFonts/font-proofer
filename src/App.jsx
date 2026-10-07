@@ -162,6 +162,10 @@ function resolveInitialMode(isCalcom) {
    bump-font.yml only fires on that path. */
 import calSansUrl from '../shared/fonts/CalSansVF.ttf?url'
 import calSansFlexUrl from '../shared/fonts/CalSansFlexVF.ttf?url'
+// Inter is the calcom route's second face (cal.com sets its UI in it), from the same files
+// index.css declares as "Inter".
+import interUrl from './fonts/InterVariable.woff2?url'
+import interItalicUrl from './fonts/InterVariable-Italic.woff2?url'
 
 const fontModules = import.meta.glob('/src/fonts/*.{ttf,otf,woff,woff2}', { eager: true, query: '?url', import: 'default' })
 
@@ -273,15 +277,16 @@ const CALCOM_ROLE_LABELS = {
 // Sizes, weights and tracking are cal.com/peer's computed values (Sept 2026 capture in
 // references/), not approximations: host 14/600, title 20/600, desc 16/400, meta 14/500,
 // weekday 12/500 at 1.2px tracking, day 14, slot 14/500. Desc is 14, not 16: the
-// first pass measured its wrapper.
+// first pass measured its wrapper. `face` is a ¶ level's rule: null draws in the active
+// face, a face id in that one (the booking roles below too).
 const DEFAULT_CALCOM_ROLES = {
-  eventHost:  { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: { wght: 600 } },
-  eventTitle: { size: 20, tracking: 0,      leading: 1.4,  axisOverrides: { wght: 600, opsz: 'auto', GEOM: 50 } },
-  eventDesc:  { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: {} },
-  eventMeta:  { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: { wght: 500 } },
-  calHeader:  { size: 12, tracking: 0.1,    leading: 1.33, axisOverrides: { wght: 500 } },
-  calDay:     { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: {} },
-  timeSlot:   { size: 14, tracking: 0,      leading: 1,    axisOverrides: { wght: 500 } },
+  eventHost:  { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: { wght: 600 }, face: null },
+  eventTitle: { size: 20, tracking: 0,      leading: 1.4,  axisOverrides: { wght: 600, opsz: 'auto', GEOM: 50 }, face: null },
+  eventDesc:  { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: {}, face: null },
+  eventMeta:  { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: { wght: 500 }, face: null },
+  calHeader:  { size: 12, tracking: 0.1,    leading: 1.33, axisOverrides: { wght: 500 }, face: null },
+  calDay:     { size: 14, tracking: 0,      leading: 1.4286, axisOverrides: {}, face: null },
+  timeSlot:   { size: 14, tracking: 0,      leading: 1,    axisOverrides: { wght: 500 }, face: null },
 }
 
 // ── Coss (booking events) type role model ────────────────────────────────────
@@ -290,12 +295,12 @@ const COSS_ROLE_LABELS = {
   cardSlug: 'Slug', cardDesc: 'Desc', badge: 'Badge',
 }
 const DEFAULT_COSS_ROLES = {
-  navLabel:  { size: 14, tracking: 0,      leading: 1.4, axisOverrides: {} },
-  pageTitle: { size: 20, tracking: -0.01,  leading: 1.2, axisOverrides: { wght: 700, opsz: 'auto', GEOM: 50 } },
-  cardTitle: { size: 14, tracking: 0,      leading: 1.3, axisOverrides: { wght: 500 } },
-  cardSlug:  { size: 12, tracking: 0,      leading: 1.4, axisOverrides: {} },
-  cardDesc:  { size: 13, tracking: 0,      leading: 1.5, axisOverrides: {} },
-  badge:     { size: 11, tracking: 0,      leading: 1,   axisOverrides: {} },
+  navLabel:  { size: 14, tracking: 0,      leading: 1.4, axisOverrides: {}, face: null },
+  pageTitle: { size: 20, tracking: -0.01,  leading: 1.2, axisOverrides: { wght: 700, opsz: 'auto', GEOM: 50 }, face: null },
+  cardTitle: { size: 14, tracking: 0,      leading: 1.3, axisOverrides: { wght: 500 }, face: null },
+  cardSlug:  { size: 12, tracking: 0,      leading: 1.4, axisOverrides: {}, face: null },
+  cardDesc:  { size: 13, tracking: 0,      leading: 1.5, axisOverrides: {}, face: null },
+  badge:     { size: 11, tracking: 0,      leading: 1,   axisOverrides: {}, face: null },
 }
 
 // ── Paragraph style model ────────────────────────────────────────────────────
@@ -865,10 +870,10 @@ function defaultLevels(faces) {
    The "+" picker has its own input, mounted whether or not the tiles are: with one face
    the palette vanishes the moment ⌥ comes up -- which is when the picker opens -- and an
    input that unmounted with it would never hear what was picked.
-   TWO MARKS ON A TILE. The pill is the font (the active face, the header's). In ¶ view a tile
-   click assigns the scoped level and the pill stays put, so the tile the scoped level draws
-   in carries a dot under it, the dock's "running" mark: the dot = this level's face.
-   A tile can be both. Nothing is dotted outside ¶.
+   TWO MARKS ON A TILE. The pill is the font (the active face, the header's). With a scope --
+   a ¶ level, a selected scale step or Cal.com / booking role -- a tile click assigns it and
+   the pill stays put, so the tile the scope draws in carries a dot under it, the dock's
+   "running" mark: the dot = this scope's face. A tile can be both. Nothing scoped, no dot.
    TWO LOOKS, ON TRIAL. `?palette=panel` swaps the strip of small "Rag"s for a column of
    large tiles, each a "Rag" at display size over the face's name, with a "+" tile of the
    same size under them. Same placement, same visibility, same handlers -- only the look
@@ -888,10 +893,12 @@ function defaultLevels(faces) {
    breaks (once per flight) -- the word warps out and leaves a copy behind. Reduced motion
    has no neck, so no stretch. Within COIN_REACH of a ¶ block a halo of the same ground appears behind it, the
    block's words invert on it as the picked tile's do, and the goo bridges coin and halo:
-   that bridge is the "you will land here". The chrome takes the coin too, told with dotted outlines instead of goo: the ¶
+   that bridge is the "you will land here"; a Cal.com or booking role in reach is a block the
+   same way. The chrome takes the coin too, told with dotted outlines instead of goo: a Type
+   Scale row under the coin takes it whole, and the ¶
    styles button springs its panel open after COIN_SPRING_MS under the coin, and each of the
    panel's rows takes a drop on its "Rag" (inside the row, nearest wins). Released on a
-   block or a row, that level is assigned the face and the coin shrinks into it; anywhere
+   block, a role or a row, that scope is assigned the face and the coin shrinks into it; anywhere
    else it travels back and merges into its tile, and nothing changed.
    POINTER EVENTS, NEVER AN HTML5 DRAG: the window listens for dragenter/drop to take FILE
    drops, and a native drag would wake that overlay. use-gesture's filterTaps keeps a click
@@ -924,8 +931,10 @@ const playCoin = (at, onUpdate, onDone) => {
   return { stop: () => cancelAnimationFrame(id) }
 }
 // What the coin at (x, y) would land on, read off the page as it is: an open styles panel's
-// row first (it floats over the stage), then the ¶ styles button, then the nearest ¶ block
-// within reach -- never a block under the panel. { el, level } | { el, spring } | null.
+// row first (it floats over the stage), then the ¶ styles button, then the Type Scale row
+// under it (chrome: inside the row), then the nearest ¶ block or Cal.com / booking role
+// within reach (stage: the halo) -- never anything under an open panel.
+// { el, level } | { el, step } | { el, role } | { el, spring } | null.
 function coinTarget(x, y) {
   for (const el of document.querySelectorAll('.para-styles-panel [data-level]')) {
     const row = el.closest('.ssd-row')
@@ -935,12 +944,16 @@ function coinTarget(x, y) {
   if (btn && insideRect(btn.getBoundingClientRect(), x, y)) return { el: btn, spring: true }
   const panel = document.querySelector('.para-styles-panel')
   if (panel && insideRect(panel.getBoundingClientRect(), x, y)) return null
+  for (const el of document.querySelectorAll('.preview-scale .scale-row[data-step]')) {
+    if (insideRect(el.getBoundingClientRect(), x, y)) return { el, step: el.dataset.step }
+  }
   let best = null
-  for (const el of document.querySelectorAll('.preview-paragraph .para-block')) {
+  for (const el of document.querySelectorAll('.preview-paragraph .para-block, .preview-area [data-role]')) {
     const r = el.getBoundingClientRect()
     const d = rectDistance(r, x, y)
     const level = el.className.match(/\bpara-block--(h1|h2|h3|p)\b/)?.[1]
-    if (level && d <= COIN_REACH && (!best || d < best.d)) best = { el, level, d, halo: coinRect(r) }
+    const scope = level ? { level } : el.dataset.role ? { role: el.dataset.role } : null
+    if (scope && d <= COIN_REACH && (!best || d < best.d)) best = { el, ...scope, d, halo: coinRect(r) }
   }
   return best
 }
@@ -993,10 +1006,11 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd
   const release = () => {
     const c = coinRef.current
     clearTimeout(springRef.current); springRef.current = null
-    const level = c.target?.level
-    if (level) onDropFace(c.face, level)
+    // A target that names a scope (a level, a step, a role) takes the face; the button only springs.
+    const drop = c.target && !c.target.spring ? c.target : null
+    if (drop) onDropFace(c.face, drop)
     if (c.reduced) { update(null); return }
-    if (level) {
+    if (drop) {
       // Landed: the coin (and a block's halo with it) shrinks into the target.
       update({ phase: 'land' })
       animRef.current = playCoin(ms => ({ value: 1 - Math.min(1, ms / 180) ** 2, done: ms >= 180 }), s => update({ scale: s }), settle)
@@ -1163,8 +1177,6 @@ export default function App() {
   const { clientSlug, fontSlug } = parseRoute()
   const clientLabel = clientSlug ? toDisplayName(clientSlug) : null
   const isCalcom = clientSlug?.toLowerCase() === 'calcom'
-  const calcomFontPrimary = 'calsans'
-  const calcomFontPrimaryLabel = 'CalSans'
 
   // Font loading
   const [fontName, setFontName] = useState(null)
@@ -1197,6 +1209,7 @@ export default function App() {
   const activeFaceIdRef = useRef(null)   // written by activateFace; the history's snapshots read it
   const faceHistoryRef = useRef({ undo: [], redo: [] })
   const lastPickRef = useRef(null)   // { face, entry } the last tile click pushed (pickAll folds into it)
+  const calcomFacesRef = useRef(null)   // { font, inter }: the calcom route's two faces, for the A/B hash
   const fontObjectUrl = useRef(null)   // the active TTC member's URL, which selectTTCFont swaps and revokes
   const ttcBufferRef = useRef(null)
   const ttcOffsetsRef = useRef([])
@@ -1226,8 +1239,8 @@ export default function App() {
   }, [mode])
 
   // Cal.com preview state
-  const [calcomFont, setCalcomFont] = useState(calcomFontPrimary)
-  // A/B screenshot mode. Derived from the hash alone; re-evaluated on hashchange.
+  // A/B screenshot mode. Derived from the hash alone; re-evaluated on hashchange. The hash
+  // sets the face itself (applyAbVariant): A is the Inter face, B the route's font.
   const [abVariant, setAbVariant] = useState(() => isCalcom ? abVariantFromHash(window.location.hash) : null)
   useEffect(() => {
     if (!isCalcom) return
@@ -1235,6 +1248,7 @@ export default function App() {
       const v = abVariantFromHash(window.location.hash)
       setAbVariant(v)
       if (v) setMode('calcom')
+      applyAbVariant(v)
     }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
@@ -1244,10 +1258,6 @@ export default function App() {
     if (abVariant) document.documentElement.dataset.abtest = abVariant
     else delete document.documentElement.dataset.abtest
   }, [abVariant])
-  // What the calcom preview renders with: the hash overrides the radio and the sliders.
-  const abFont = abVariant === 'a' ? 'inter' : abVariant === 'b' ? 'calsans' : null
-  const effCalcomFont = abFont ?? calcomFont
-  const effAxisValues = abVariant === 'b' ? AB_CALSANS_AXES : axisValues
   const [calcomRoles, setCalcomRoles] = useState(DEFAULT_CALCOM_ROLES)
   const [activeCalcomRole, setActiveCalcomRole] = useState(null)
 
@@ -1364,6 +1374,9 @@ export default function App() {
   const [scaleLabelText, setScaleLabelText] = useState('')
   const [scalePairText, setScalePairText] = useState(SCALE_PAIR_TEXT)
   const [scaleAxisOverrides, setScaleAxisOverrides] = useState(() => ({ ...DEFAULT_SCALE_AXIS_OVERRIDES }))
+  // A step's face, by step key: absent or null = the active face, the ¶ levels' rule. Not a
+  // field of the overrides above, whose every key is read as an axis tag.
+  const [scaleFaces, setScaleFaces] = useState({})
   const [activeScaleStep, setActiveScaleStep] = useState(null)
   const [scaleStepRangeEnd, setScaleStepRangeEnd] = useState(null)
   const [extraScaleSteps, setExtraScaleSteps] = useState(new Set())
@@ -1480,8 +1493,17 @@ export default function App() {
         ? { family: fontSlug, styles: routeStyles.map(st => ({ key: st.key, label: st.label, weightClass: WEIGHT_CLASS_OF_WORD[st.key] ?? 400, roman: st.roman, italic: st.italic })) }
         : { family: null, styles: [{ key: 'regular', label: 'Regular', weightClass: 400, roman: matched, italic: italicMatch }] }
       const face = await buildFace(group, { baseName: special ? special.name : routeStyles.length ? fontSlug : undefined })
-      replaceFaces([face])
+      // The calcom route's set is two faces: its font, then Inter, which cal.com sets its UI
+      // in. Inter waits in the palette, which is the switcher there (the radio was); the A/B
+      // hash picks between the two itself.
+      const inter = isCalcom ? await buildFace({ family: null, styles: [{ key: 'regular', label: 'Regular', weightClass: 400,
+        roman: { url: interUrl, filename: 'InterVariable.woff2' }, italic: { url: interItalicUrl, filename: 'InterVariable-Italic.woff2' } }] }, { baseName: 'Inter' }) : null
+      replaceFaces(inter ? [face, inter] : [face])
       activateFace(face)
+      if (inter) {
+        calcomFacesRef.current = { font: face, inter }
+        applyAbVariant(abVariantFromHash(window.location.hash))
+      }
     }
     loadRouteFont().catch(console.error)
   }, [fontSlug])
@@ -1525,20 +1547,27 @@ export default function App() {
 
   const setFaceSet = (next) => { facesRef.current = next; setFaces(next) }
 
-  // Undo for the face actions, one history: a level assignment (tile click in ¶, a coin on a
-  // block or a panel row), a global pick (the activate and the nulling of every level are one
-  // entry), an add (⌥-drop, "+", ⌥-click, "Drop → H2" with its assignment) and a remove. An
-  // entry is a snapshot taken BEFORE the action: the set, the active face, each level's face.
+  // Undo for the face actions, one history: a scoped assignment (tile click in ¶ or on a
+  // selected step or role, a coin on a block, a panel row, a scale row or a role), a global
+  // pick (the activate and the nulling of every scope are one entry), an add (⌥-drop, "+",
+  // ⌥-click, "Drop → H2" with its assignment) and a remove. An entry is a snapshot taken
+  // BEFORE the action: the set, the active face, each level's, step's and role's face.
   // A REPLACE (plain drop, plain ↺ pick) is a boundary and clears the history, because the faces
   // that left had their object URLs revoked and cannot come back. For the same reason a removed
   // face keeps its URLs until nothing in the history can bring it back (releaseFaces).
   const paraStylesRef = useRef(paraStyles)
   paraStylesRef.current = paraStyles
+  const scopesRef = useRef(null)   // the steps' and roles' faces, read the same way
+  scopesRef.current = { scaleFaces, calcomRoles, cossRoles }
   const FACE_HISTORY_CAP = 50
+  const facesOf = (styles) => Object.fromEntries(Object.entries(styles).map(([k, st]) => [k, st.face]))
   const faceSnapshot = () => ({
     faces: facesRef.current,
     activeFaceId: activeFaceIdRef.current,
-    levelFaces: Object.fromEntries(Object.entries(paraStylesRef.current).map(([t, st]) => [t, st.face])),
+    levelFaces: facesOf(paraStylesRef.current),
+    stepFaces: scopesRef.current.scaleFaces,
+    calcomFaces: facesOf(scopesRef.current.calcomRoles),
+    cossFaces: facesOf(scopesRef.current.cossRoles),
   })
   // Give back the URLs of any of these faces that neither the set nor an entry can reach.
   const releaseFaces = (list) => {
@@ -1560,7 +1589,7 @@ export default function App() {
     if (!snap) return
     h[to].push(faceSnapshot())
     setFaceSet(snap.faces)
-    setLevelFaces(snap.levelFaces)
+    setScopeFaces(snap)
     if (snap.activeFaceId !== activeFaceIdRef.current) activateFace(snap.faces.find(f => f.id === snap.activeFaceId))
   }
   // ⌘Z / ⌃Z undoes, ⇧⌘Z / ⌃Y / ⌃⇧Z redoes. A focused field (the paragraph blocks, sliders,
@@ -1592,10 +1621,26 @@ export default function App() {
     new Set(gone).forEach(f => f.objectUrls.forEach(u => URL.revokeObjectURL(u)))
     if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
   }
-  // Every level's face at once: a map of level -> face id, or nothing to null them all.
-  // A global pick and a new set both start from here; only a scoped pick builds on it.
-  const setLevelFaces = (ids = {}) =>
-    setParaStyles(prev => Object.fromEntries(Object.entries(prev).map(([t, st]) => [t, { ...st, face: ids[t] ?? null }])))
+  // Every scope's face at once -- the levels', the steps', the roles' -- from maps of key ->
+  // face id (a snapshot's), or nothing to null them all. A global pick and a new set both
+  // start from here; only a scoped pick builds on it.
+  const withFaces = (ids = {}) => prev => Object.fromEntries(Object.entries(prev).map(([k, st]) => [k, { ...st, face: ids[k] ?? null }]))
+  const setScopeFaces = ({ levelFaces, stepFaces, calcomFaces, cossFaces } = {}) => {
+    setParaStyles(withFaces(levelFaces))
+    setScaleFaces(stepFaces ?? {})
+    setCalcomRoles(withFaces(calcomFaces))
+    setCossRoles(withFaces(cossFaces))
+  }
+  // The A/B hash on the calcom route: A is Inter, B the route's font at AB_CALSANS_AXES,
+  // each a global pick (no undo entry: the hash is not an edit). Set on load and on
+  // hashchange only, so a tile picked while a variant is up still takes.
+  const applyAbVariant = (v) => {
+    const set = calcomFacesRef.current
+    if (!v || !set) return
+    activateFace(v === 'a' ? set.inter : set.font)
+    setScopeFaces()
+    if (v === 'b') setAxisValues(AB_CALSANS_AXES)
+  }
   // Adds are silent: the faces join the set and the active face stays as it is.
   const addFaces = (faceList) => { pushFaceHistory(); setFaceSet([...facesRef.current, ...faceList]) }
   // One face leaves the set. Its object URLs stay until the history can no longer restore it;
@@ -1607,8 +1652,12 @@ export default function App() {
     if (!rest.length) return
     pushFaceHistory()
     setFaceSet(rest)
-    // A level that drew in this face goes back to inheriting the active one.
-    setParaStyles(prev => Object.fromEntries(Object.entries(prev).map(([t, st]) => [t, st.face === face.id ? { ...st, face: null } : st])))
+    // A level, step or role that drew in this face goes back to inheriting the active one.
+    const release = prev => Object.fromEntries(Object.entries(prev).map(([k, st]) => [k, st.face === face.id ? { ...st, face: null } : st]))
+    setParaStyles(release)
+    setCalcomRoles(release)
+    setCossRoles(release)
+    setScaleFaces(prev => Object.fromEntries(Object.entries(prev).filter(([, id]) => id !== face.id)))
     if (face.id === activeFaceId) {
       if (fontObjectUrl.current && !face.objectUrls.includes(fontObjectUrl.current)) URL.revokeObjectURL(fontObjectUrl.current)
       activateFace(rest[0])
@@ -1628,7 +1677,7 @@ export default function App() {
     replaceFaces(built)
     activateFace(built[0])
     // A new set starts with no assignments but the guess, if there is one (never for an add).
-    setLevelFaces(built.length >= 2 ? defaultLevels(built) ?? undefined : undefined)
+    setScopeFaces({ levelFaces: built.length >= 2 ? defaultLevels(built) ?? undefined : undefined })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activateFace])
 
@@ -1768,30 +1817,51 @@ export default function App() {
   const scopedWeight = !styleScope ? currentStyleKey
     : scopedFace === activeFace ? (paraStyles[styleScope].weight ?? currentStyleKey)
     : (scopedStyles.find(st => st.key === paraStyles[styleScope].weight)?.key ?? defaultStyleKey(scopedStyles))
+  // ── Active role for calcom mode ───────────────────────────────────────────
+  const effectiveCalcomRole = mode === 'calcom' ? activeCalcomRole : null
+  const effectiveCossRole = mode === 'coss' ? activeCossRole : null
+  const effectiveScaleStep = mode === 'scale' ? activeScaleStep : null
+  // The face the selected scope names: a ¶ level's, a selected scale step's, a selected
+  // Cal.com or booking role's. Null when it inherits, or when nothing is selected.
+  const scopeFaceId = mode === 'paragraph' ? paraStyles[styleScope].face
+    : effectiveScaleStep ? (scaleFaces[effectiveScaleStep] ?? null)
+    : effectiveCalcomRole ? calcomRoles[effectiveCalcomRole].face
+    : effectiveCossRole ? cossRoles[effectiveCossRole].face
+    : null
   // The axis sliders, named instances and Roman/Italic follow the scope's face the same way
   // (FACES.md: the sliders show the axes of whichever face the scope uses). `otherFace` is
   // that face only when it is not the active one: its sliders read the face's own defaults
-  // under the level's overrides and write the overrides alone -- axisValues are the active
+  // under the scope's overrides and write the overrides alone -- axisValues are the active
   // face's and never take another face's numbers. Inherited, everything reads as before.
-  const otherFace = scopedFace && scopedFace !== activeFace ? scopedFace : null
+  // A step or a role has axes of its own and nothing else, so there only the Variable Axes
+  // follow it; Roman/Italic and the instances stay a ¶ level's (`levelFace`).
+  const otherFace = (f => f && f !== activeFace ? f : null)(faces.find(f => f.id === scopeFaceId))
+  const levelFace = mode === 'paragraph' ? otherFace : null
   const controlAxes = otherFace ? otherFace.axes : variationAxes
-  const controlInstances = otherFace ? otherFace.namedInstances : namedInstances
-  const controlItalicFace = otherFace ? otherFace.italicFontFace : italicFontFace
   const controlBase = otherFace ? axisDefaults(otherFace.axes) : axisValues
+  const levelAxes = levelFace ? levelFace.axes : variationAxes
+  const controlInstances = levelFace ? levelFace.namedInstances : namedInstances
+  const controlItalicFace = levelFace ? levelFace.italicFontFace : italicFontFace
   const scopedItalic = styleScope ? (paraStyles[styleScope].italic ?? isItalic) : isItalic
   const setScopedField = (field, value) =>
     setParaStyles(prev => ({ ...prev, [styleScope]: { ...prev[styleScope], [field]: value } }))
   const setScopedWeight = (v) => styleScope ? setScopedField('weight', v) : setActiveStyleKey(v)
   // A tile is "pick a face", and what that means is the scope's call. In ¶ the scope is
-  // always a level (P by default), so the face is assigned to it and nothing else moves:
-  // not the header, not the sliders, not the active tile. Anywhere else nothing is scoped,
-  // so the face becomes THE font and every earlier assignment is cleared with it.
+  // always a level (P by default); in Type Scale it is a selected step (every selected step,
+  // as the axes go), in cal.com/peer and booking events a selected role. The face is assigned
+  // to it and nothing else moves: not the header, not the sliders, not the active tile. With
+  // nothing scoped the face becomes THE font and every earlier assignment -- levels, steps,
+  // roles -- is cleared with it.
+  const setRoleFace = (setRoles, role, id) => setRoles(prev => ({ ...prev, [role]: { ...prev[role], face: id } }))
   const pickFace = (face) => {
     pushFaceHistory()
     lastPickRef.current = { face, entry: faceHistoryRef.current.undo.at(-1) }
     if (mode === 'paragraph') { setScopedField('face', face.id); return }
+    if (effectiveScaleStep) { setScaleFaces(prev => ({ ...prev, ...Object.fromEntries(selectedScaleSteps.map(k => [k, face.id])) })); return }
+    if (effectiveCalcomRole) { setRoleFace(setCalcomRoles, effectiveCalcomRole, face.id); return }
+    if (effectiveCossRole) { setRoleFace(setCossRoles, effectiveCossRole, face.id); return }
     activateFace(face)
-    setLevelFaces()
+    setScopeFaces()
   }
   // A double-click is "everything to this": the global pick from any view, ¶ included, where
   // a single click only reaches the scoped level. Its first click has already pushed an entry
@@ -1800,14 +1870,10 @@ export default function App() {
     const click = lastPickRef.current
     if (!(click?.face === face && faceHistoryRef.current.undo.at(-1) === click.entry)) pushFaceHistory()
     activateFace(face)
-    setLevelFaces()
+    setScopeFaces()
   }
   const setScopedItalic = (v) => styleScope ? setScopedField('italic', v) : setIsItalic(v)
 
-  // ── Active role for calcom mode ───────────────────────────────────────────
-  const effectiveCalcomRole = mode === 'calcom' ? activeCalcomRole : null
-  const effectiveCossRole = mode === 'coss' ? activeCossRole : null
-  const effectiveScaleStep = mode === 'scale' ? activeScaleStep : null
   const selectedScaleSteps = useMemo(() => {
     if (!effectiveScaleStep) return []
     const keys = TAILWIND_SCALE.map(s => s.key)
@@ -1820,65 +1886,33 @@ export default function App() {
     return keys.filter(k => all.has(k))
   }, [effectiveScaleStep, scaleStepRangeEnd, extraScaleSteps])
 
+  // A role reads its face as a ¶ level does (faceReads, faceFontStyle): its own, or the
+  // active one -- the route's font, Inter, or whatever was dropped. The title used to be
+  // forced into CalSansBold, after an older cal.com that set the heading in fontHeading;
+  // Peer's page now sets "Meeting" in Inter (font-sans), so it follows its face like every
+  // other role. Inter runs opsz auto on cal.com (measured: no rule pins it), and so does
+  // every face here until a role pins it.
   const roleStyle = (role) => {
     const r = calcomRoles[role] ?? calcomRoles.eventDesc
-    const calcomFont = effCalcomFont, axisValues = effAxisValues
-    const merged = { ...axisValues, ...r.axisOverrides }
-    const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-    const opszAuto = merged['opsz'] === 'auto'
-    // The title used to be forced into CalSansBold even in Inter mode, after an older
-    // cal.com that set the heading in fontHeading. Peer's page now sets "Meeting" in
-    // Inter (font-sans), so the title follows the chosen font like every other role.
-    const family = calcomFont === 'calsans'
-      ? (fontFace ? `"${fontFace.family}"` : '"Inter", system-ui, sans-serif')
-      : calcomFont === 'calsans'
-        ? '"CalSans"'
-        : '"Inter", system-ui, -apple-system, sans-serif'
     return {
-      fontFamily: family,
+      ...faceFontStyle(faceReads(r)),
       fontSize: `${r.size}px`,
       letterSpacing: `${r.tracking}em`,
       lineHeight: r.leading,
-      fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
-      // In Inter mode fvs is 'normal', so the role's weight has to ride font-weight or
-      // every role renders at 400 -- the title, host, meta and slots are 500-600 on cal.com.
-      ...(calcomFont === 'calsans' ? {} : { fontWeight: merged.wght }),
-      // Inter runs opsz auto on cal.com (measured: no rule pins it), so it does here too.
-      fontOpticalSizing: (calcomFont !== 'calsans' || opszAuto) ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
     }
   }
 
+  // The booking page's title was CalSansBold whenever the radio said Inter. It follows its
+  // face now; assigning the route's font to the Title role is that look.
   const cossRoleStyle = (role) => {
     const r = cossRoles[role] ?? cossRoles.cardDesc
-    const merged = { ...axisValues, ...r.axisOverrides }
-    const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-    const opszAuto = merged['opsz'] === 'auto'
-    if (role === 'pageTitle' && calcomFont !== 'calsans') {
-      return {
-        fontFamily: "'CalSansBold', sans-serif",
-        fontSize: `${r.size}px`,
-        letterSpacing: `${r.tracking}em`,
-        lineHeight: r.leading,
-        fontVariationSettings: 'normal',
-        fontOpticalSizing: 'none',
-        fontSynthesis: 'none',
-        fontFeatureSettings: 'normal',
-      }
-    }
-    const family = calcomFont === 'calsans'
-      ? (fontFace ? `"${fontFace.family}"` : '"Inter", system-ui, sans-serif')
-      : calcomFont === 'calsans'
-        ? '"CalSans"'
-        : '"Inter", system-ui, -apple-system, sans-serif'
     return {
-      fontFamily: family,
+      ...faceFontStyle(faceReads(r)),
       fontSize: `${r.size}px`,
       letterSpacing: `${r.tracking}em`,
       lineHeight: r.leading,
-      fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
-      fontOpticalSizing: (calcomFont === 'calsans') && opszAuto ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: '"calt" 0, "liga" 0, "ss20" 0',
     }
@@ -1934,42 +1968,58 @@ export default function App() {
   const scaleBaseClampPx = useMemo(() => Math.max(8, measure / 24), [measure])
 
   // ── Per-block style (paragraph mode) ─────────────────────────────────────
-  // What a level reads its font from. The sliders (axisValues, weightFamilies, fontFace)
-  // are the active face's, so a level assigned to another face reads that face's record
-  // instead: its own axis defaults under the level's overrides, minus any tag the face
-  // lacks; the sliders write those overrides when the level is scoped (otherFace).
-  // Inherited, or assigned to the active face itself, it is all as it was.
+  // What a level reads its font from -- and a scale step, a Cal.com role, a booking role:
+  // anything with a `face` and `axisOverrides`. The sliders (axisValues, weightFamilies,
+  // fontFace) are the active face's, so a scope assigned to another face reads that face's
+  // record instead: its own axis defaults under the scope's overrides. Either way a tag the
+  // face lacks is dropped (a role's GEOM on Inter); `wght` keeps the scope's weight for a
+  // face with no wght axis to take as font-weight (faceFontStyle). The sliders write those
+  // overrides when the scope is selected (otherFace). Inherited, or assigned to the active
+  // face itself, it is all as it was.
   const faceReads = (s) => {
     const other = s.face && s.face !== activeFaceId ? faces.find(f => f.id === s.face) : null
-    if (!other) return { axes: variationAxes, weightFamilies, fontFace, hasItalic: isFamily || !!italicFontFace, weight: currentStyleKey, axisValues: { ...axisValues, ...s.axisOverrides } }
-    const tags = other.axes.map(a => a.tag)
+    const axes = other ? other.axes : variationAxes
+    const merged = { ...(other ? axisDefaults(other.axes) : axisValues), ...s.axisOverrides }
+    const own = Object.fromEntries(Object.entries(merged).filter(([t]) => axes.some(a => a.tag === t)))
+    if (!other) return { axes, weightFamilies, fontFace, hasItalic: isFamily || !!italicFontFace, weight: currentStyleKey, axisValues: own, wght: merged.wght }
     return {
-      axes: other.axes, weightFamilies: other.weightFamilies, fontFace: other.fontFace,
+      axes, weightFamilies: other.weightFamilies, fontFace: other.fontFace,
       hasItalic: other.styles.some(st => st.italicFontFace),
       weight: null,
-      axisValues: Object.fromEntries(Object.entries({ ...axisDefaults(other.axes), ...s.axisOverrides }).filter(([t]) => tags.includes(t))),
+      axisValues: own, wght: merged.wght,
     }
   }
+  // The face half of a scope's style, from faceReads: the family (a static family's weight
+  // when there is one), the variation string -- numbers only, 'auto' is the browser's -- and
+  // opsz pinned only where the face has the axis and the scope set a number. A face with no
+  // wght axis takes the scope's wght as font-weight instead: the Inter roles rode that when
+  // Inter was a radio, and a static face asks the same.
+  const faceFontStyle = (r, merged = r.axisValues, weight = r.weight) => {
+    const has = tag => r.axes.some(a => a.tag === tag)
+    return {
+      fontFamily: (weight && r.weightFamilies[weight]) ? `"${r.weightFamilies[weight]}"` : (r.fontFace ? `"${r.fontFace.family}"` : 'serif'),
+      fontVariationSettings: Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal',
+      fontOpticalSizing: has('opsz') && merged.opsz !== 'auto' ? 'none' : 'auto',
+      ...(!has('wght') && r.wght != null ? { fontWeight: r.wght } : {}),
+    }
+  }
+  // A scope's own face when it is not the active one (its panel row's chip says so).
+  const ownFace = (id) => id && id !== activeFaceId ? faces.find(f => f.id === id) ?? null : null
 
   const blockStyle = (type) => {
     const s = paraStyles[type] ?? paraStyles.p
     const r = faceReads(s)
-    const merged = r.axisValues
-    const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     // Per-block weight/italic/ss resolve to the block's override, or the global control.
     const weight = s.weight ?? r.weight
     const italic = s.italic ?? isItalic
     const s04 = s.ss04 ?? ss04
     const s05 = s.ss05 ?? ss05
-    const family = (weight && r.weightFamilies[weight]) ? `"${r.weightFamilies[weight]}"` : (r.fontFace ? `"${r.fontFace.family}"` : 'serif')
     return {
-      fontFamily: family,
+      ...faceFontStyle(r, r.axisValues, weight),
       fontStyle: (italic && r.hasItalic) ? 'italic' : 'normal',
       fontSize: `${s.size}px`,
       letterSpacing: `${s.tracking}em`,
       lineHeight: s.leading,
-      fontVariationSettings: fvs,
-      fontOpticalSizing: merged['opsz'] === 'auto' ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: featureStr(italic, s04, s05),
       textAlign: s.align,
@@ -2024,18 +2074,15 @@ export default function App() {
   }
 
   // ── Scale mode helpers ────────────────────────────────────────────────────
+  // A step reads its face as a ¶ level does: its own (scaleFaces), or the active one.
   const scaleStepStyle = (step, effectivePxSize) => {
-    const overrides = scaleAxisOverrides[step.key] ?? { opsz: 'auto' }
-    const merged = { opsz: 'auto', ...axisValues, ...overrides }
-    const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+    const r = faceReads({ face: scaleFaces[step.key], axisOverrides: scaleAxisOverrides[step.key] ?? { opsz: 'auto' } })
     return {
-      fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
-      fontStyle,
+      ...faceFontStyle(r),
+      fontStyle: (isItalic && r.hasItalic) ? 'italic' : 'normal',
       fontSize: `${effectivePxSize ?? step.pxSize}px`,
       lineHeight: step.lh,
       letterSpacing: 0,
-      fontVariationSettings: fvs,
-      fontOpticalSizing: merged.opsz === 'auto' ? 'auto' : 'none',
       fontSynthesis: 'none',
       fontFeatureSettings: proofFeatureSettings,
       color: 'var(--text)',
@@ -2505,24 +2552,6 @@ export default function App() {
 
         <div className="sidebar-divider" />
 
-        {/* Cal.com font radio */}
-        {mode === 'calcom' && (
-          <>
-            <div className="sidebar-divider" />
-            <div className="sidebar-section">
-              <div className="section-label">Font</div>
-              <label className="calcom-radio-label">
-                <input type="radio" name="calcom-font" value={calcomFontPrimary} checked={calcomFont === calcomFontPrimary} onChange={() => setCalcomFont(calcomFontPrimary)} />
-                {calcomFontPrimaryLabel}
-              </label>
-              <label className="calcom-radio-label">
-                <input type="radio" name="calcom-font" value="inter" checked={calcomFont === 'inter'} onChange={() => setCalcomFont('inter')} />
-                Inter 4.1
-              </label>
-            </div>
-          </>
-        )}
-
         {/* Typography controls */}
         {mode !== 'calcom' && (
         <div className="sidebar-section">
@@ -2604,10 +2633,10 @@ export default function App() {
   <Chevron dir={-1} width={12} height={7} />
             </span>
           )}
-          {(controlItalicFace || controlAxes.some(a => a.tag === 'ital')) && (() => {
-            const italAxis = controlAxes.find(a => a.tag === 'ital')
+          {(controlItalicFace || levelAxes.some(a => a.tag === 'ital')) && (() => {
+            const italAxis = levelAxes.find(a => a.tag === 'ital')
             // Another face's ital is the level's, like the rest of its axes.
-            const setItal = v => otherFace
+            const setItal = v => levelFace
               ? setParaStyles(prev => ({ ...prev, [styleScope]: { ...prev[styleScope], axisOverrides: { ...prev[styleScope].axisOverrides, ital: v } } }))
               : setAxisValues(prev => ({ ...prev, ital: v }))
             return (
@@ -2658,7 +2687,7 @@ export default function App() {
               ? { ...controlBase, ...paraStyles[effectiveParaStyle].axisOverrides }
               : axisValues
             const activeInst = controlInstances.find(inst =>
-              controlAxes.every(a => (currentCoords[a.tag] ?? a.defaultVal) === inst.coordinates[a.tag])
+              levelAxes.every(a => (currentCoords[a.tag] ?? a.defaultVal) === inst.coordinates[a.tag])
             )
             const applyInstance = (name) => {
               const inst = controlInstances.find(i => i.name === name)
@@ -2831,8 +2860,8 @@ export default function App() {
                 {(() => {
                   const axesDirty = effectiveScaleStep
                     ? JSON.stringify(scaleAxisOverrides[effectiveScaleStep]) !== JSON.stringify(DEFAULT_SCALE_AXIS_OVERRIDES[effectiveScaleStep])
-                    : otherFace
-                    ? otherFace.axes.some(a => (paraStyles[effectiveParaStyle].axisOverrides[a.tag] ?? controlBase[a.tag]) !== controlBase[a.tag])
+                    : levelFace
+                    ? levelFace.axes.some(a => (paraStyles[effectiveParaStyle].axisOverrides[a.tag] ?? controlBase[a.tag]) !== controlBase[a.tag])
                     : effectiveParaStyle
                     ? JSON.stringify(paraStyles[effectiveParaStyle].axisOverrides) !== JSON.stringify(DEFAULT_PARA_STYLES[effectiveParaStyle].axisOverrides)
                     : effectiveCalcomRole
@@ -2852,7 +2881,7 @@ export default function App() {
                             selectedScaleSteps.forEach(k => { next[k] = { ...DEFAULT_SCALE_AXIS_OVERRIDES[k] } })
                             return next
                           })
-                        } else if (otherFace) {
+                        } else if (levelFace) {
                           // Another face's level starts from that face's defaults: nothing over them.
                           setParaStyles(prev => ({ ...prev, [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: {} } }))
                         } else if (effectiveParaStyle) {
@@ -2883,13 +2912,13 @@ export default function App() {
               </div>
               {controlAxes.map(axis => {
                 const val = effectiveScaleStep
-                  ? (scaleAxisOverrides[effectiveScaleStep]?.[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
+                  ? (scaleAxisOverrides[effectiveScaleStep]?.[axis.tag] ?? controlBase[axis.tag] ?? axis.defaultVal)
                   : effectiveParaStyle
                   ? (paraStyles[effectiveParaStyle].axisOverrides[axis.tag] ?? controlBase[axis.tag] ?? axis.defaultVal)
                   : effectiveCalcomRole
-                  ? (calcomRoles[effectiveCalcomRole].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
+                  ? (calcomRoles[effectiveCalcomRole].axisOverrides[axis.tag] ?? controlBase[axis.tag] ?? axis.defaultVal)
                   : effectiveCossRole
-                  ? (cossRoles[effectiveCossRole].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
+                  ? (cossRoles[effectiveCossRole].axisOverrides[axis.tag] ?? controlBase[axis.tag] ?? axis.defaultVal)
                   : (mode === 'scale' && axis.tag === 'opsz')
                   ? (() => { const v = scaleAxisOverrides[TAILWIND_SCALE[0].key]?.opsz ?? 'auto'; return TAILWIND_SCALE.every(s => (scaleAxisOverrides[s.key]?.opsz ?? 'auto') === v) ? v : 'auto' })()
                   : (axisValues[axis.tag] ?? axis.defaultVal)
@@ -3010,17 +3039,23 @@ export default function App() {
 
       <main className="preview-area" ref={previewAreaRef}>
         {/* A tile is "pick a face"; the scope decides what that does (pickFace). A coin
-            dragged off a tile names its level itself: the same write as pickFace's in ¶,
-            to the level it was dropped on. The ¶ styles button opens under it. */}
+            dragged off a tile names its scope itself -- a level, a scale step, a role: the
+            same write as pickFace's, to the one it was dropped on. The ¶ styles button
+            opens under it. */}
         <FacePalette
           faces={faces}
           activeFaceId={activeFaceId}
-          assignedId={mode === 'paragraph' ? paraStyles[effectiveParaStyle].face : null}
+          assignedId={scopeFaceId}
           onPick={pickFace}
           onPickAll={pickAll}
           onAdd={files => groupFiles(files).then(g => loadFonts(g, true))}
           onRemove={removeFace}
-          onDropFace={(face, level) => { pushFaceHistory(); setParaStyles(prev => ({ ...prev, [level]: { ...prev[level], face: face.id } })) }}
+          onDropFace={(face, { level, step, role }) => {
+            pushFaceHistory()
+            if (level) setParaStyles(prev => ({ ...prev, [level]: { ...prev[level], face: face.id } }))
+            else if (step) setScaleFaces(prev => ({ ...prev, [step]: face.id }))
+            else setRoleFace(mode === 'coss' ? setCossRoles : setCalcomRoles, role, face.id)
+          }}
           onSpring={() => setParaStylesPanelOpen(true)}
         />
         {!fontName && (
@@ -3031,10 +3066,11 @@ export default function App() {
         )}
 
         {mode === 'calcom' && (
-          <CalcomPreview key={effCalcomFont} roleStyle={roleStyle} activeRole={activeCalcomRole} onRoleClick={setActiveCalcomRole}
+          <CalcomPreview key={activeFaceId} roleStyle={roleStyle} activeRole={activeCalcomRole} onRoleClick={setActiveCalcomRole}
             abVariant={abVariant}
             abVars={abVariant && {
-              '--ab-family': abVariant === 'a' ? '"Inter", system-ui, -apple-system, sans-serif' : (fontFace ? `"${fontFace.family}"` : '"CalSans"'),
+              // The variant's face is the active one (applyAbVariant): Inter for A, the route's font for B.
+              '--ab-family': fontFace ? `"${fontFace.family}"` : 'sans-serif',
               // No wght here: weight rides font-weight so the cap, the pill and the toggle
               // carry the same weight in both variants instead of B's being pinned.
               '--ab-fvs': abVariant === 'a' ? 'normal' : Object.entries(AB_CALSANS_AXES).filter(([t, v]) => v !== 'auto' && t !== 'wght').map(([t, v]) => `"${t}" ${v}`).join(', '),
@@ -3042,7 +3078,7 @@ export default function App() {
         )}
 
         {mode === 'coss' && (
-          <CossPreview key={calcomFont} roleStyle={cossRoleStyle} activeRole={activeCossRole} onRoleClick={setActiveCossRole} />
+          <CossPreview key={activeFaceId} roleStyle={cossRoleStyle} activeRole={activeCossRole} onRoleClick={setActiveCossRole} />
         )}
 
         {fontName && mode === 'ui' && (
@@ -3152,6 +3188,7 @@ export default function App() {
               {visibleScaleSteps.map(step => (
                 <div
                   key={step.key}
+                  data-step={step.key}
                   className={`scale-row${selectedScaleSteps.includes(step.key) || activeScaleStep === step.key ? ' scale-row--selected' : ''}`}
                   onClick={() => {
                     setActiveScaleStep(k => k === step.key ? null : step.key)
@@ -3282,35 +3319,31 @@ export default function App() {
               onSelect={key => { setActiveCalcomRole(prev => prev === key ? null : key); setCalcomPanelOpen(false) }}
               rows={Object.entries(CALCOM_ROLE_LABELS).map(([key, label]) => {
                 const r = calcomRoles[key]
-                const merged = { ...axisValues, ...r.axisOverrides }
-                const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-                const family = calcomFont === 'inter'
-                  ? '"Inter", system-ui, sans-serif'
-                  : calcomFont === 'calsans'
-                    ? '"CalSans"'
-                    : fontFace ? `"${fontFace.family}"` : 'serif'
+                // The row is set in the role's face, and names it first when it is not the font.
+                const rd = faceReads(r)
+                const own = ownFace(r.face)
                 return {
                   id: key,
                   label,
                   labelStyle: {
-                    fontFamily: family,
+                    ...faceFontStyle(rd),
                     fontSize: `${Math.min(r.size, 22)}px`,
-                    fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
                     fontOpticalSizing: 'none',
                     fontSynthesis: 'none',
                     lineHeight: 1.3,
                   },
                   chips: [
+                    ...(own ? [{ text: own.familyLabel, kind: 'local' }] : []),
                     { text: `${r.size}px`, kind: 'size' },
                     { text: nbMinus(r.tracking < 0 ? r.tracking.toFixed(2) : r.tracking.toFixed(3)), kind: 'size' }, // negative: real minus + drop a trailing zero so the char count stays equal
-                    ...(calcomFont !== 'inter' ? variationAxes.map(axis => {
-                      const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
+                    ...rd.axes.map(axis => {
+                      const val = rd.axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
                       return {
-                        text: `${axis.tag} ${val === 'auto' ? 'A ' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
+                        text: `${axis.tag} ${val === 'auto' ? 'A ' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
                         kind: isLocal ? 'local' : 'axis',
                       }
-                    }) : []),
+                    }),
                   ],
                   selected: activeCalcomRole === key,
                 }
@@ -3342,35 +3375,31 @@ export default function App() {
               onSelect={key => { setActiveCossRole(prev => prev === key ? null : key); setCossPanelOpen(false) }}
               rows={Object.entries(COSS_ROLE_LABELS).map(([key, label]) => {
                 const r = cossRoles[key]
-                const merged = { ...axisValues, ...r.axisOverrides }
-                const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
-                const family = calcomFont === 'inter'
-                  ? '"Inter", system-ui, sans-serif'
-                  : calcomFont === 'calsans'
-                    ? '"CalSans"'
-                    : fontFace ? `"${fontFace.family}"` : 'serif'
+                // The row is set in the role's face, and names it first when it is not the font.
+                const rd = faceReads(r)
+                const own = ownFace(r.face)
                 return {
                   id: key,
                   label,
                   labelStyle: {
-                    fontFamily: family,
+                    ...faceFontStyle(rd),
                     fontSize: `${Math.min(r.size, 22)}px`,
-                    fontVariationSettings: (calcomFont === 'calsans') ? fvs : 'normal',
                     fontOpticalSizing: 'none',
                     fontSynthesis: 'none',
                     lineHeight: 1.3,
                   },
                   chips: [
+                    ...(own ? [{ text: own.familyLabel, kind: 'local' }] : []),
                     { text: `${r.size}px`, kind: 'size' },
                     { text: nbMinus(r.tracking < 0 ? r.tracking.toFixed(2) : r.tracking.toFixed(3)), kind: 'size' }, // negative: real minus + drop a trailing zero so the char count stays equal
-                    ...(calcomFont !== 'inter' ? variationAxes.map(axis => {
-                      const val = r.axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal
+                    ...rd.axes.map(axis => {
+                      const val = rd.axisValues[axis.tag] ?? axis.defaultVal
                       const isLocal = axis.tag in r.axisOverrides
                       return {
-                        text: `${axis.tag} ${val === 'auto' ? 'A ' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
+                        text: `${axis.tag} ${val === 'auto' ? 'A ' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
                         kind: isLocal ? 'local' : 'axis',
                       }
-                    }) : []),
+                    }),
                   ],
                   selected: activeCossRole === key,
                 }
@@ -3437,11 +3466,13 @@ export default function App() {
                 const isActive = selectedScaleSteps.includes(step.key) || activeScaleStep === step.key
                 const overrides = scaleAxisOverrides[step.key] ?? {}
                 const localOverrides = Object.entries(overrides).filter(([tag]) => tag !== 'opsz' || overrides[tag] !== 'auto')
+                const own = ownFace(scaleFaces[step.key])
                 return {
                   id: step.key,
                   label: step.key,
                   labelStyle: { ...scaleStepStyle(step), fontSize: `${Math.min(step.pxSize, 20)}px`, lineHeight: 1.3 },
                   chips: [
+                    ...(own ? [{ text: own.familyLabel, kind: 'local' }] : []),
                     { text: `${step.pxSize}px`, kind: 'size' },
                     ...localOverrides.map(([tag, val]) => ({
                       text: `${tag} ${val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}`,
@@ -3570,27 +3601,26 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, a
       : `${String(h).padStart(2, '0')}:${mm}`
   })
 
+  // Every role's element carries data-role: a face coin finds its role by it (coinTarget).
   const roleClass = (role) => activeRole === role ? 'calcom-role-highlight' : ''
 
   // cal.com sets available days at 500 and everything else at 300. On a variable font
   // the role's inline font-variation-settings pins wght and beats any CSS font-weight,
   // so the difference has to go into the axis: +100 / -100 off the role's weight.
-  // Cal Sans VF bottoms out at 400, so its muted days land at 400 -- the closest the
-  // font can get to a 300. Inter's fvs is 'normal', where the CSS weights already apply.
-  // Set a role's weight explicitly: through the wght axis in Cal Sans mode (inline fvs
-  // beats CSS font-weight there) and through font-weight in Inter mode (fvs is 'normal').
+  // The font clamps an axis to its range, so Cal Sans VF's muted days land at 400 -- the
+  // closest it can get to a 300 -- and Inter's at its 300.
+  // Set a role's weight explicitly: through the wght axis when the face has one in the
+  // string (inline fvs beats CSS font-weight there), through font-weight when it does not.
   const withWght = (st, w) => {
     const fvs = st.fontVariationSettings
-    if (!fvs || fvs === 'normal') return { ...st, fontWeight: w }
+    if (!/"wght"/.test(fvs ?? '')) return { ...st, fontWeight: w }
     return { ...st, fontVariationSettings: fvs.replace(/"wght" \d+/, `"wght" ${w}`) }
   }
   const dayStyle = (avail) => {
     const st = roleStyle('calDay')
     // || 400: on first paint the axis values aren't populated yet and this would be NaN.
     const base = Number((st.fontVariationSettings.match(/"wght" (\d+)/) || [])[1] ?? st.fontWeight) || 400
-    const w = base + (avail ? 100 : -100)
-    // Cal Sans VF bottoms out at 400; Inter has a 300.
-    return withWght(st, st.fontVariationSettings === 'normal' ? w : Math.max(400, w))
+    return withWght(st, base + (avail ? 100 : -100))
   }
 
   return (
@@ -3607,23 +3637,23 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, a
             </div>
           </div>
           <div className="calcom-left-body">
-          <div className={`calcom-event-host ${roleClass('eventHost')}`} style={roleStyle('eventHost')}
+          <div className={`calcom-event-host ${roleClass('eventHost')}`} style={roleStyle('eventHost')} data-role="eventHost"
             contentEditable suppressContentEditableWarning
             onClick={() => onRoleClick(r => r === 'eventHost' ? null : 'eventHost')}>
             Peer Richelsen
           </div>
-          <div className={`calcom-event-title ${roleClass('eventTitle')}`} style={roleStyle('eventTitle')}
+          <div className={`calcom-event-title ${roleClass('eventTitle')}`} style={roleStyle('eventTitle')} data-role="eventTitle"
             contentEditable suppressContentEditableWarning
             onClick={() => onRoleClick(r => r === 'eventTitle' ? null : 'eventTitle')}>
             Meeting
           </div>
-          <div className={`calcom-event-desc ${roleClass('eventDesc')}`} style={roleStyle('eventDesc')}
+          <div className={`calcom-event-desc ${roleClass('eventDesc')}`} style={roleStyle('eventDesc')} data-role="eventDesc"
             contentEditable suppressContentEditableWarning
             onClick={() => onRoleClick(r => r === 'eventDesc' ? null : 'eventDesc')}>
             A quick screen share demo or longer conversation.
           </div>
           <div className="calcom-meta">
-          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}
+          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')} data-role="eventMeta"
             onClick={() => onRoleClick(r => r === 'eventMeta' ? null : 'eventMeta')}>
             <svg className="calcom-meta-icon-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -3632,7 +3662,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, a
             Requires confirmation
           </div>
           {/* A single duration is plain text on cal.com, not a chip. */}
-          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}
+          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')} data-role="eventMeta"
             onClick={() => onRoleClick(r => r === 'eventMeta' ? null : 'eventMeta')}>
             <svg className="calcom-meta-icon-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
@@ -3640,12 +3670,12 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, a
             </svg>
             15m
           </div>
-          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')}
+          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={roleStyle('eventMeta')} data-role="eventMeta"
             onClick={() => onRoleClick(r => r === 'eventMeta' ? null : 'eventMeta')}>
             <img src={calcomIcon} alt="" className="calcom-meta-icon-img" /> Cal Video
           </div>
           {/* The timezone row is the one meta line cal.com sets at 400, not 500. */}
-          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={withWght(roleStyle('eventMeta'), 400)}>
+          <div className={`calcom-meta-item ${roleClass('eventMeta')}`} style={withWght(roleStyle('eventMeta'), 400)} data-role="eventMeta">
             <svg className="calcom-meta-icon-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <line x1="2" y1="12" x2="22" y2="12"/>
@@ -3678,7 +3708,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, a
             </div>
             <div className="calcom-cal-grid">
               {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
-                <div key={d} className={`calcom-weekday ${roleClass('calHeader')}`} style={roleStyle('calHeader')}
+                <div key={d} className={`calcom-weekday ${roleClass('calHeader')}`} style={roleStyle('calHeader')} data-role="calHeader"
                   onClick={() => onRoleClick(r => r === 'calHeader' ? null : 'calHeader')}>
                   {d}
                 </div>
@@ -3688,6 +3718,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, a
                   key={i}
                   className={`calcom-day${k === null ? ' empty' : ''}${AVAIL.has(k) ? ' avail' : ''}${k === '16' ? ' today' : ''}${k === selectedDate ? ' selected' : ''} ${k !== null ? roleClass('calDay') : ''}`}
                   style={k !== null ? dayStyle(AVAIL.has(k)) : {}}
+                  data-role={k !== null ? 'calDay' : undefined}
                   onClick={() => {
                     if (AVAIL.has(k)) setSelectedDate(k)
                     onRoleClick(r => r === 'calDay' ? null : 'calDay')
@@ -3722,7 +3753,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, a
                 <button
                   key={t}
                   className={`calcom-time-btn ${roleClass('timeSlot')}`}
-                  style={roleStyle('timeSlot')}
+                  style={roleStyle('timeSlot')} data-role="timeSlot"
                   onClick={() => onRoleClick(r => r === 'timeSlot' ? null : 'timeSlot')}
                 ><span className="calcom-slot-dot" />{t}</button>
               ))}
@@ -3737,6 +3768,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, a
 
 // ── Booking Events (coss.com) preview ────────────────────────────────────────
 function CossPreview({ roleStyle, activeRole, onRoleClick }) {
+  // Every role's element carries data-role, as in CalcomPreview.
   const roleClass = (role) => activeRole === role ? 'calcom-role-highlight' : ''
   const [openMenu, setOpenMenu] = useState(null)
   const [cossPage, setCossPage] = useState('eventTypes')
@@ -3828,7 +3860,7 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
               <button
                 key={item.key}
                 className={`coss-nav-item ${cossPage === item.key ? 'active' : ''} ${roleClass('navLabel')}`}
-                style={roleStyle('navLabel')}
+                style={roleStyle('navLabel')} data-role="navLabel"
                 onClick={() => handleNavClick(item.key)}
               >
                 {item.icon}
@@ -3851,7 +3883,7 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
             { label: 'Refer and earn',        icon: <><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></> },
             { label: 'Settings',              icon: <><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></> },
           ].map(({ label, icon }) => (
-            <button key={label} className={`coss-sidebar-link ${roleClass('navLabel')}`} style={roleStyle('navLabel')}
+            <button key={label} className={`coss-sidebar-link ${roleClass('navLabel')}`} style={roleStyle('navLabel')} data-role="navLabel"
               onClick={() => onRoleClick(r => r === 'navLabel' ? null : 'navLabel')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-nav-icon">{icon}</svg>
               {label}
@@ -3866,11 +3898,11 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
         {cossPage === 'eventTypes' && (<>
         <div className="coss-page-header">
           <div>
-            <div className={`coss-page-title ${roleClass('pageTitle')}`} style={roleStyle('pageTitle')}
+            <div className={`coss-page-title ${roleClass('pageTitle')}`} style={roleStyle('pageTitle')} data-role="pageTitle"
               onClick={() => onRoleClick(r => r === 'pageTitle' ? null : 'pageTitle')}>
               Event Types
             </div>
-            <div className={`coss-page-sub ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}
+            <div className={`coss-page-sub ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')} data-role="cardDesc"
               onClick={() => onRoleClick(r => r === 'cardDesc' ? null : 'cardDesc')}>
               Create events to share for people to book on your calendar.
             </div>
@@ -3888,41 +3920,41 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
             <div key={et.id} className={`coss-event-card${et.badges.includes('paid') ? ' coss-event-card--paid' : et.badges.includes('hidden') ? ' coss-event-card--hidden' : ''}`}>
               <div className="coss-card-left">
                 <div className="coss-card-title-row">
-                  <span className={`coss-card-title ${roleClass('cardTitle')}`} style={roleStyle('cardTitle')}
+                  <span className={`coss-card-title ${roleClass('cardTitle')}`} style={roleStyle('cardTitle')} data-role="cardTitle"
                     onClick={() => onRoleClick(r => r === 'cardTitle' ? null : 'cardTitle')}>
                     {et.title}
                   </span>
-                  <span className={`coss-card-slug ${roleClass('cardSlug')}`} style={roleStyle('cardSlug')}
+                  <span className={`coss-card-slug ${roleClass('cardSlug')}`} style={roleStyle('cardSlug')} data-role="cardSlug"
                     onClick={() => onRoleClick(r => r === 'cardSlug' ? null : 'cardSlug')}>
                     {et.slug}
                   </span>
                 </div>
-                <div className={`coss-card-desc ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}
+                <div className={`coss-card-desc ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')} data-role="cardDesc"
                   onClick={() => onRoleClick(r => r === 'cardDesc' ? null : 'cardDesc')}>
                   {et.desc}
                 </div>
                 <div className="coss-card-badges">
-                  <span className={`coss-badge coss-badge--duration ${roleClass('badge')}`} style={roleStyle('badge')}
+                  <span className={`coss-badge coss-badge--duration ${roleClass('badge')}`} style={roleStyle('badge')} data-role="badge"
                     onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-badge-icon"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></svg>
                     {et.duration}
                   </span>
                   {et.badges.includes('confirmation') && (
-                    <span className={`coss-badge coss-badge--confirm ${roleClass('badge')}`} style={roleStyle('badge')}
+                    <span className={`coss-badge coss-badge--confirm ${roleClass('badge')}`} style={roleStyle('badge')} data-role="badge"
                       onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-badge-icon"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
                       Requires confirmation
                     </span>
                   )}
                   {et.badges.includes('hidden') && (
-                    <span className={`coss-badge coss-badge--hidden ${roleClass('badge')}`} style={roleStyle('badge')}
+                    <span className={`coss-badge coss-badge--hidden ${roleClass('badge')}`} style={roleStyle('badge')} data-role="badge"
                       onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-badge-icon"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.8 10.8 0 0 1-1.444 2.49M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143M2 2l20 20"/></svg>
                       Hidden
                     </span>
                   )}
                   {et.badges.includes('paid') && (
-                    <span className={`coss-badge coss-badge--paid ${roleClass('badge')}`} style={roleStyle('badge')}
+                    <span className={`coss-badge coss-badge--paid ${roleClass('badge')}`} style={roleStyle('badge')} data-role="badge"
                       onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-badge-icon"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
                       $99
@@ -3993,7 +4025,7 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
               </div>
             </div>
           ))}
-          <div className={`coss-no-more ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}>
+          <div className={`coss-no-more ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')} data-role="cardDesc">
             No more results
           </div>
         </div>
@@ -4003,11 +4035,11 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
         {cossPage === 'bookings' && (<>
         <div className="coss-page-header">
           <div>
-            <div className={`coss-page-title ${roleClass('pageTitle')}`} style={roleStyle('pageTitle')}
+            <div className={`coss-page-title ${roleClass('pageTitle')}`} style={roleStyle('pageTitle')} data-role="pageTitle"
               onClick={() => onRoleClick(r => r === 'pageTitle' ? null : 'pageTitle')}>
               Bookings
             </div>
-            <div className={`coss-page-sub ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}
+            <div className={`coss-page-sub ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')} data-role="cardDesc"
               onClick={() => onRoleClick(r => r === 'cardDesc' ? null : 'cardDesc')}>
               See upcoming and past events booked through your event type links.
             </div>
@@ -4018,7 +4050,7 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
             {['Upcoming','Unconfirmed','Recurring','Past','Cancelled'].map(t => (
               <button key={t}
                 className={`coss-bookings-tab ${roleClass('badge')} ${bookingsTab === t.toLowerCase() ? 'active' : ''}`}
-                style={roleStyle('badge')}
+                style={roleStyle('badge')} data-role="badge"
                 onClick={() => { setBookingsTab(t.toLowerCase()); onRoleClick(r => r === 'badge' ? null : 'badge') }}>
                 {t}
               </button>
@@ -4032,11 +4064,11 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
         {bookingsTab === 'upcoming' ? (
           <div className="coss-bookings-empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="coss-empty-icon"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
-            <div className={`coss-empty-title ${roleClass('cardTitle')}`} style={roleStyle('cardTitle')}
+            <div className={`coss-empty-title ${roleClass('cardTitle')}`} style={roleStyle('cardTitle')} data-role="cardTitle"
               onClick={() => onRoleClick(r => r === 'cardTitle' ? null : 'cardTitle')}>
               No upcoming bookings
             </div>
-            <div className={`coss-empty-sub ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}
+            <div className={`coss-empty-sub ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')} data-role="cardDesc"
               onClick={() => onRoleClick(r => r === 'cardDesc' ? null : 'cardDesc')}>
               You have no upcoming bookings found. As soon as someone books a time with you, it will show up here.
             </div>
@@ -4054,27 +4086,27 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
               <div key={i} className={`coss-booking-row ${b.accent ? 'accent' : ''}`}>
                 <div className="coss-booking-grid">
                   {/* row 1: date | title */}
-                  <div className={`coss-booking-date-label ${roleClass('cardSlug')}`} style={roleStyle('cardSlug')}
+                  <div className={`coss-booking-date-label ${roleClass('cardSlug')}`} style={roleStyle('cardSlug')} data-role="cardSlug"
                     onClick={() => onRoleClick(r => r === 'cardSlug' ? null : 'cardSlug')}>
                     {b.date}
                   </div>
-                  <div className={`coss-booking-title ${roleClass('cardTitle')}`} style={roleStyle('cardTitle')}
+                  <div className={`coss-booking-title ${roleClass('cardTitle')}`} style={roleStyle('cardTitle')} data-role="cardTitle"
                     onClick={() => onRoleClick(r => r === 'cardTitle' ? null : 'cardTitle')}>
                     {b.title}
                   </div>
                   {/* row 2: time | people */}
-                  <div className={`coss-booking-time ${roleClass('cardSlug')}`} style={roleStyle('cardSlug')}
+                  <div className={`coss-booking-time ${roleClass('cardSlug')}`} style={roleStyle('cardSlug')} data-role="cardSlug"
                     onClick={() => onRoleClick(r => r === 'cardSlug' ? null : 'cardSlug')}>
                     {b.time}
                   </div>
-                  <div className={`coss-booking-people ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')}
+                  <div className={`coss-booking-people ${roleClass('cardDesc')}`} style={roleStyle('cardDesc')} data-role="cardDesc"
                     onClick={() => onRoleClick(r => r === 'cardDesc' ? null : 'cardDesc')}>
                     {b.people}
                   </div>
                   {/* row 3: platform badge | status badges */}
                   <div className="coss-booking-left-badge">
                     {b.platform && (
-                      <span className={`coss-badge coss-badge--platform ${roleClass('badge')}`} style={roleStyle('badge')}
+                      <span className={`coss-badge coss-badge--platform ${roleClass('badge')}`} style={roleStyle('badge')} data-role="badge"
                         onClick={e => { e.stopPropagation(); onRoleClick(r => r === 'badge' ? null : 'badge') }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-badge-icon"><path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.82v6.361a1 1 0 0 1-1.447.894L15 14M3 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/></svg>
                         {b.platform === 'Cal Video' ? 'Join Cal Video' : `Join ${b.platform}`}
@@ -4083,14 +4115,14 @@ function CossPreview({ roleStyle, activeRole, onRoleClick }) {
                   </div>
                   <div className="coss-booking-badges">
                     {b.badge && (
-                      <span className={`coss-badge coss-badge--reschedule ${roleClass('badge')}`} style={roleStyle('badge')}
+                      <span className={`coss-badge coss-badge--reschedule ${roleClass('badge')}`} style={roleStyle('badge')} data-role="badge"
                         onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="coss-badge-icon"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg>
                         {b.badge}
                       </span>
                     )}
                     {b.calBadge && (
-                      <span className={`coss-badge coss-badge--cal ${roleClass('badge')}`} style={roleStyle('badge')}
+                      <span className={`coss-badge coss-badge--cal ${roleClass('badge')}`} style={roleStyle('badge')} data-role="badge"
                         onClick={() => onRoleClick(r => r === 'badge' ? null : 'badge')}>
                         Cal.com
                       </span>

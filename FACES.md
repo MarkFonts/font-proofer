@@ -166,8 +166,8 @@ being edited. Decided 2026-10-07.
 
 ## Consequences
 
-- The CalSans / Inter radio in the calcom route goes. Inter is a bundled second face in
-  that route's set; the A/B hash locks the global face as it does now.
+- The CalSans / Inter radio in the calcom route went (step 6). Inter is a bundled second
+  face in that route's set; the A/B hash sets the global face, as it set the radio.
 - Axis sliders show the axes of whichever face the selected scope uses (a static face
   shows its weight picker instead). Two faces that both have `wght` are never merged into
   one slider — their ranges differ.

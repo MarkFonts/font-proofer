@@ -846,6 +846,22 @@
   outline-style: solid;
   outline-color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1));
 }
+/* A Type Scale row is chrome too: dotted while the coin is held, solid under it. Inset, since
+   the rows touch and an outset outline would draw over its neighbour's. */
+.face-coin-aiming .preview-scale .scale-row {
+  outline: 1px dotted rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62));
+  outline-offset: calc(-1 * var(--tick, 3px));
+}
+.face-coin-aiming .preview-scale .scale-row[data-coin-reach] {
+  outline-style: solid;
+  outline-color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1));
+}
+/* A Cal.com or booking role in reach is a block: lifted over its halo (positioned, so the
+   z-index above takes), its own ground gone, and its words -- set by its class, not as
+   var(--text) -- in the pill's letter colour. */
+.face-coin-flying [data-role][data-coin-halo] { position: relative; background: none; }
+.face-coin-flying [data-role][data-coin-halo],
+.face-coin-flying [data-role][data-coin-halo] * { color: var(--bg, #242424); }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
@@ -1622,36 +1638,6 @@
 }
 
 /* ── Cal.com sidebar controls ────────────────────────────────────────────── */
-.calcom-radio-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--type-ui-size, 0.75rem);
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 3px 0;
-}
-.calcom-radio-label input[type="radio"] {
-  -webkit-appearance: none;
-  appearance: none;
-  cursor: pointer;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border);
-  background: transparent;
-  flex-shrink: 0;
-  position: relative;
-  transition: border-color var(--dur-fast, 140ms);
-}
-.calcom-radio-label input[type="radio"]:checked {
-  border-color: var(--text);
-  background: radial-gradient(circle, var(--text) 38%, transparent 40%);
-}
-.calcom-radio-label:has(input:checked) {
-  color: var(--text);
-}
-
 .calcom-role-chips {
   display: flex;
   flex-wrap: wrap;
@@ -2013,7 +1999,8 @@
 :root[data-abtest] .sidebar,
 :root[data-abtest] .sidebar-bumpout,
 :root[data-abtest] .mobile-tabs,
-:root[data-abtest] .preview-preset-bar { display: none !important; }
+:root[data-abtest] .preview-preset-bar,
+:root[data-abtest] .face-palette { display: none !important; }
 
 /* The page under the card is the app's neutral ground, so the light/dark toggle still
    moves it; the card itself is the booker as it is today. */
