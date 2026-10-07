@@ -865,6 +865,10 @@ function defaultLevels(faces) {
    The "+" picker has its own input, mounted whether or not the tiles are: with one face
    the palette vanishes the moment ⌥ comes up -- which is when the picker opens -- and an
    input that unmounted with it would never hear what was picked.
+   TWO MARKS ON A TILE. The pill is the font (the active face, the header's). In ¶ view a tile
+   click assigns the scoped level and the pill stays put, so the tile the scoped level draws
+   in carries a dotted outline of its own, the coin's target look: dotted = this level's face.
+   A tile can be both. Nothing is dotted outside ¶.
    TWO LOOKS, ON TRIAL. `?palette=panel` swaps the strip of small "Rag"s for a column of
    large tiles, each a "Rag" at display size over the face's name, with a "+" tile of the
    same size under them. Same placement, same visibility, same handlers -- only the look
@@ -929,7 +933,7 @@ function coinTarget(x, y) {
   }
   return best
 }
-function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove, onDropFace, onSpring }) {
+function FacePalette({ faces, activeFaceId, assignedId, onPick, onAdd, onRemove, onDropFace, onSpring }) {
   const [alt, setAlt] = useState(false)
   const inputRef = useRef(null)
   useEffect(() => {
@@ -1062,11 +1066,12 @@ function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove, onDropFace,
         <div className={`face-palette${PALETTE_PANEL ? ' face-palette--panel' : ''}`} role="toolbar" aria-label="Faces">
           {faces.map(face => {
             const active = face.id === activeFaceId
+            const assigned = face.id === assignedId
             const drag = bindDrag(face)
             return (
               <div key={face.id} className="face-tile-slot">
                 <button
-                  className={`face-tile${active ? ' active' : ''}${coin && !coin.reduced && coin.face.id === face.id ? ` face-tile--source${joined ? ' face-tile--lifted' : ''}` : ''}`}
+                  className={`face-tile${active ? ' active' : ''}${assigned ? ' assigned' : ''}${coin && !coin.reduced && coin.face.id === face.id ? ` face-tile--source${joined ? ' face-tile--lifted' : ''}` : ''}`}
                   aria-pressed={active}
                   title={face.familyLabel}
                   {...drag}
@@ -1157,6 +1162,7 @@ export default function App() {
   const [supportedRanges, setSupportedRanges] = useState(null) // [[start,end],...] cmap codepoint ranges, or null = show all
   const [glyphMatchUnavailable, setGlyphMatchUnavailable] = useState(false) // true when a compressed (woff/woff2) upload blocks glyph matching
   const [isDragging, setIsDragging] = useState(false)
+  const [dragAdd, setDragAdd] = useState(false)   // ⌥ is down during the drag
   const [ttcFonts, setTtcFonts] = useState([])
   const [ttcIndex, setTtcIndex] = useState(0)
   // The set of faces (see buildFace) and which one is live. The single-font state above
@@ -1340,6 +1346,7 @@ export default function App() {
 
   const dragCounterRef = useRef(0)
   const fileInputRef = useRef(null)
+  const uploadAddRef = useRef(false)   // the click that opened the picker held ⌥
   const previewAreaRef = useRef(null)
   const bigEditorRef = useRef(null)
   const blockRefs = useRef({})
@@ -1529,7 +1536,7 @@ export default function App() {
       try { built.push(await buildFace(g)) } catch (err) { console.error('Font load error', err) }
     }
     if (!built.length) return
-    if (add && facesRef.current.length) { addFaces(built); return }
+    if (add && facesRef.current.length) { addFaces(built); return built[0] }
     replaceFaces(built)
     activateFace(built[0])
     // A new set starts with no assignments but the guess, if there is one (never for an add).
@@ -1566,15 +1573,25 @@ export default function App() {
   }, [])
 
   // ── Drop zone ──────────────────────────────────────────────────────────────
+  // A drop onto H1-H3 in ¶ view names its effect on the overlay ("Drop → H2"): it is added
+  // and the first new face becomes that level's. Otherwise ⌥ adds and a plain drop replaces.
+  const dropLevel = mode === 'paragraph' && ['h1', 'h2', 'h3'].includes(activeParaStyle) && faces.length >= 1 ? activeParaStyle : null
   const handleDrop = useCallback((e) => {
     e.preventDefault()
     dragCounterRef.current = 0
     setIsDragging(false)
-    groupFiles(e.dataTransfer.files).then(g => loadFonts(g, e.altKey))
-  }, [loadFonts])
+    setDragAdd(false)
+    const files = e.dataTransfer.files, alt = e.altKey
+    groupFiles(files).then(async g => {
+      const first = await loadFonts(g, dropLevel ? true : alt)
+      if (dropLevel && first) setParaStyles(prev => ({ ...prev, [dropLevel]: { ...prev[dropLevel], face: first.id } }))
+    })
+  }, [loadFonts, dropLevel])
 
-  const handleDragEnter = useCallback((e) => { e.preventDefault(); dragCounterRef.current++; setIsDragging(true) }, [])
-  const handleDragOver  = useCallback((e) => { e.preventDefault() }, [])
+  // ⌥ is read off the drag itself, live: dragover repeats, and a set to the same value
+  // does not render, so the overlay re-words only when ⌥ goes down or up.
+  const handleDragEnter = useCallback((e) => { e.preventDefault(); dragCounterRef.current++; setIsDragging(true); setDragAdd(e.altKey) }, [])
+  const handleDragOver  = useCallback((e) => { e.preventDefault(); setDragAdd(e.altKey) }, [])
   const handleDragLeave = useCallback(() => { if (--dragCounterRef.current <= 0) { dragCounterRef.current = 0; setIsDragging(false) } }, [])
 
   useEffect(() => {
@@ -2058,8 +2075,8 @@ export default function App() {
         <div className="drop-overlay">
           <div className="drop-overlay-inner">
             <span className="drop-icon">↓</span>
-            <span className="drop-title">Drop your font. Or two.</span>
-            <span className="drop-tip">Some variable fonts ship as paired Roman and Italic<br />variable fonts. Drop them both in!</span>
+            <span className="drop-title">{dropLevel ? `Drop → ${dropLevel.toUpperCase()}` : dragAdd && faces.length >= 1 ? 'Add to the set.' : 'Drop your font. Or two. Or the whole family.'}</span>
+            <span className="drop-tip">{dropLevel ? `Added to the set and made the ${dropLevel.toUpperCase()} face. Everything else stays.` : dragAdd && faces.length >= 1 ? 'These join the faces you have. Let go of ⌥ to replace them instead.' : 'Roman and italic pair up. A folder of weights becomes one family. Different families get their own tile.'}</span>
           </div>
         </div>
       )}
@@ -2226,11 +2243,11 @@ export default function App() {
               accept=".ttf,.otf,.woff,.woff2,.ttc"
               multiple
               style={{ display: 'none' }}
-              onChange={e => groupFiles(e.target.files).then(loadFonts)}
+              onChange={e => { const add = uploadAddRef.current; uploadAddRef.current = false; groupFiles(e.target.files).then(g => loadFonts(g, add)) }}
             />
             <button
               className="upload-btn"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={e => { uploadAddRef.current = e.altKey; fileInputRef.current?.click() }}
             >
               {fontName ? (
                 <>
@@ -2871,6 +2888,7 @@ export default function App() {
         <FacePalette
           faces={faces}
           activeFaceId={activeFaceId}
+          assignedId={mode === 'paragraph' ? paraStyles[effectiveParaStyle].face : null}
           onPick={pickFace}
           onAdd={files => groupFiles(files).then(g => loadFonts(g, true))}
           onRemove={removeFace}
