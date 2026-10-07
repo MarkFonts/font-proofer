@@ -87,6 +87,13 @@ The proofer does not adopt the wm-primitives grid: no `.wm-lines` root, no gridS
 3px line is the chrome: the palette (this work) and the side rail's controls (chips, buttons,
 selects at 27px, vertical space in units). Nothing else. Decided 2026-10-07.
 
+### Two looks, undecided until ship
+
+The tiny strip (27px "Aa" tiles in a row) and the panel (220×129 tiles stacked, display
+"Aa" over the family name) are both built; `?palette=panel` on the URL shows the panel,
+the strip is the default. Neither is deleted until ship. In dark mode the active face's
+"Aa" is HDR white in both (icon.css's swatch and gate).
+
 ## Phones: a drawer, not a floating palette
 
 At the mobile breakpoint (≤768px) the stage is short and a floating palette sits on the
