@@ -845,11 +845,19 @@
 /* The coin is the cursor while it flies. Every element, because each control names its own. */
 .face-coin-flying,
 .face-coin-flying * { cursor: none !important; }
-/* The level's face, told on its tile: the coin's dotted target look, kept on while the
-   scoped ¶ level draws in this face. The pill is the global face; this is the scope's. */
-.face-tile.assigned:not(:focus-visible) {
-  outline: 1px dotted rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62));
-  outline-offset: var(--tick, 3px);
+/* A dot under the tile, the dock's "running" mark: this is the face the scoped level is
+   using. One unit (3px) tall, one unit below the tile, full ink. Not an outline -- a ring
+   around the pill read as a focus ring (Mark, 2026-10-07). */
+.face-tile.assigned::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(-1 * var(--tick, 3px) * 2);
+  width: var(--tick, 3px);
+  height: var(--tick, 3px);
+  margin-left: calc(-1 * var(--tick, 3px) / 2);
+  border-radius: 999px;
+  background: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1));
 }
 /* The chrome's drop targets, told while the coin is held: dotted at the quiet rung, solid
    at full ink on the one in reach. The goo is the stage's tell; this is the rail's. */
