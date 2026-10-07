@@ -49,8 +49,10 @@ entry carries axes. The bundled-route family code and the dropped-family code ar
 
 An italic is an attribute of its face, never a tile: the Roman/Italic toggle keeps scoping
 per level, and inline *italic* emphasis resolves through the face's own italic. A lone
-italic file with no roman is its own face. A tile whose face has an italic sets its g in
-italic, "Ra*g*", the letter where an italic differs most -- that is all the UI it needs.
+italic file with no roman is its own face. A face's italic is NOT shown by slanting the g in
+the specimen -- tried, and it read as a wrong glyph (2026-10-07). The panel look puts a small
+`format_italic` mark beside the family name; the strip says nothing, since the Roman/Italic
+toggle already appears for such a face.
 
 ## The palette (bottom right)
 

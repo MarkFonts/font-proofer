@@ -698,6 +698,8 @@
   color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-faint, .38));
   transition: color var(--dur-fast, 140ms) ease;
 }
+/* The italic mark rides the name's line, a space after it, same ink as the name. */
+.face-tile-name .wm-icon { vertical-align: -2px; margin-left: var(--tick, 3px); }
 .face-palette--panel .face-tile:not(.active):is(:hover, :focus-visible) {
   color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1));
   background: var(--surface-hi, var(--bg-hover, #383838));

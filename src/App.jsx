@@ -1109,9 +1109,17 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd
                 >
                   {/* The letters are a stage: the proofed face's own metrics, not the line's. */}
                   <span className="face-tile-rag" data-nosnap style={{ fontFamily: `"${face.fontFace.family}"` }}>
-                    Ra{face.italicFontFace ? <i>g</i> : 'g'}
+                    Rag
                   </span>
-                  {PALETTE_PANEL && <span className="face-tile-name">{face.familyLabel}</span>}
+                  {/* The italic is said by a mark beside the name, not by slanting the g: an
+                      italic g in the specimen read as a wrong glyph, not a tell (Mark, 2026-10-07).
+                      The strip says nothing -- the Roman/Italic toggle already appears for the face. */}
+                  {PALETTE_PANEL && (
+                    <span className="face-tile-name">
+                      {face.familyLabel}
+                      {(face.italicFontFace || face.axes.some(a => a.tag === 'ital')) && <Icon name="format_italic" size={12} />}
+                    </span>
+                  )}
                 </button>
                 {removable && (
                   <button className="face-tile-remove wm-icon-btn" aria-label={`Remove ${face.familyLabel}`} title={`Remove ${face.familyLabel}`} onClick={() => onRemove(face)}>
@@ -1163,7 +1171,7 @@ function FaceCoin({ coin }) {
       <div className="face-coin-top" aria-hidden="true">
         <div className="face-coin-at" style={at}>
           <div className="face-coin-face" style={{ scale, '--coin-squeeze': squeeze, fontFamily: `"${face.fontFace.family}"` }}>
-            <span className="face-coin-rag" style={stretch}>Ra{face.italicFontFace ? <i>g</i> : 'g'}</span>
+            <span className="face-coin-rag" style={stretch}>Rag</span>
           </div>
         </div>
       </div>
