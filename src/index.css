@@ -40,6 +40,18 @@
   font-style: normal;
   font-display: swap;
 }
+/* The same file is the italic: Cal Sans VF carries an `ital` axis. Without this rule a
+   `font-style: italic` on the chrome (the drop overlay's tip) had no italic face to
+   resolve to and the browser slanted the roman. The descriptor pins the axis so the
+   mapping does not depend on a browser's font-style → ital rule. */
+@font-face {
+  font-family: "Face";
+  src: url("../shared/fonts/CalSansVF.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: italic;
+  font-variation-settings: "ital" 1;
+  font-display: swap;
+}
 
 @font-face {
   font-family: "CalSans";
