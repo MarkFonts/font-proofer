@@ -119,6 +119,14 @@ made visible. Goo is for the stage blocks only; dotted is for chrome. So the tar
 view are the blocks (goo halo), the styles button (dotted, spring-opens) and the panel rows
 (dotted, assign).
 
+Two refinements (Mark, 2026-10-07, from the mid-neck beat). The source tile is never an
+empty pill: its letters fade back in with distance from the moment the coin moves (full
+by ~20px), and the coin's letters STRETCH along the pull while they are in the neck, easing
+back once it breaks -- the word warps out and leaves a copy behind. And the pill is INK
+ground with PAGE letters in both themes: black/white in light, white/dark in dark. In dark
+the pill's ground is the HDR swatch, so the whole pill glows; that replaces the HDR
+letters, which were borderline at 18px.
+
 The look is GOOEY. The coin stretches off its tile with a neck that breaks, and within reach
 of a target the two edges bridge and round into each other -- the metaball bridge IS the
 "you are about to land here", not a highlight. SVG goo filter (blur, then an alpha contrast
