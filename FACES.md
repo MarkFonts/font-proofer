@@ -151,6 +151,29 @@ from any view including ¶, where a single click can only reach the scoped level
 Typography ↺ resets the scoped LEVEL, and that includes its face: it lights when the level
 has a face of its own and clears it with the numbers.
 
+## Look by context, and a client route declares its set (Mark, 2026-10-07)
+
+The two looks both ship, each where it belongs. The STRIP is the discovered feature:
+quiet, found by ⌥ or a second font, everywhere the proofer is proofing the client's font.
+The PANEL is the blunt affordance: in a preview whose point is to switch faces (cal.com/peer,
+booking events) it is the switcher the radio used to be, persistent, big tiles. `?palette=`
+stays as the override for comparing.
+
+A client route says so in `routes.config.js`, per client and per preview:
+
+    { clientSlug: 'calcom', fontSlug: 'calsans',
+      faces:   [{ key: 'inter', file: 'InterVariable.woff2', italic: 'InterVariable-Italic.woff2',
+                  previews: ['calcom', 'coss'] }],
+      palette: { calcom: 'panel', coss: 'panel' },
+      levels:  { h1: 'calsans', p: 'calsans' } }
+
+`faces` are the extra faces the link ships with; `previews` says where each is IN the set
+(unlisted = everywhere). A face leaves the set when you leave its previews: anything
+assigned to it falls back, and if it was the global face the route's own font comes back.
+`palette` is the look per preview; unlisted = strip, so every existing link stays quiet.
+`levels` is what the link opens arranged as (step 7). Inter on the calcom route goes
+through this instead of being wired into the loader.
+
 ## Phones: a drawer, not a floating palette
 
 At the mobile breakpoint (≤768px) the stage is short and a floating palette sits on the
@@ -189,6 +212,6 @@ being edited. Decided 2026-10-07.
 4. Axis panel follows the scoped face.
 5. The overlay copy, the "Add to the set" and "Drop → H1/H2/H3" overlays, ⌥-drop, ⌥-click on ↺.
 6. Scale tiers, Cal.com and booking roles; retire the CalSans/Inter radio.
-7. Route-declared sets.
+7. Route-declared sets: `faces` / `palette` / `levels` per route, look by context; then the phone drawer.
 
 Steps 1–3 are enough to try it.
