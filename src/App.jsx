@@ -878,11 +878,14 @@ function defaultLevels(faces) {
    drag says where. Hold a tile still for COIN_HOLD_MS, or drag it past the tap threshold,
    and the tile becomes a COIN under the pointer -- the cursor itself is hidden for the
    flight, the coin is the cursor. The coin is the PICKED tile's pill in flight, whichever
-   tile it came off: black with white letters in light, the surface with full ink in dark.
+   tile it came off: ink ground, page letters -- black/white in light, white/dark in dark.
    Pull away and it divides: the tile's ground is drawn in the goo layer at the tile's place
-   for the whole flight, so the neck between it and the coin stretches and breaks there, and
-   the tile's letters come back once the coin is COIN_NECK away -- the moment the neck has
-   gone. Within COIN_REACH of a ¶ block a halo of the same ground appears behind it, the
+   for the whole flight, so the neck between it and the coin stretches and breaks there.
+   The tile is never an empty pill: its letters fade back in with the coin's travel from
+   where it lifted, full by COIN_FADE. And while the two are one blob the coin's letters
+   STRETCH along the pull, up to COIN_PULL wider at COIN_NECK, then ease back as the neck
+   breaks (once per flight) -- the word warps out and leaves a copy behind. Reduced motion
+   has no neck, so no stretch. Within COIN_REACH of a ¶ block a halo of the same ground appears behind it, the
    block's words invert on it as the picked tile's do, and the goo bridges coin and halo:
    that bridge is the "you will land here". The chrome takes the coin too, told with dotted outlines instead of goo: the ¶
    styles button springs its panel open after COIN_SPRING_MS under the coin, and each of the
@@ -892,17 +895,24 @@ function defaultLevels(faces) {
    POINTER EVENTS, NEVER AN HTML5 DRAG: the window listens for dragenter/drop to take FILE
    drops, and a native drag would wake that overlay. use-gesture's filterTaps keeps a click
    a click; a hold that lifted the coin eats the click its release would otherwise fire.
+   DOUBLE-CLICK is "everything to this" (onPickAll), the global pick from any view, ¶ too.
+   It is two taps under COIN_HOLD_MS, so nothing lifts; the second click is the double's, not
+   a pick of its own.
    Reduced motion: no goo and no spring -- the coin follows the pointer and is gone on
    release. The coin itself is FaceCoin, below. */
 const PALETTE_PANEL = new URLSearchParams(window.location.search).get('palette') === 'panel'
 const COIN_HOLD_MS = 250    // still for this long and the tile lifts
 const COIN_REACH = 40       // about a tile's width: coin centre to a block's box
 const COIN_NECK = 30        // coin centre to its tile's box when the neck breaks (blur 6, both looks)
+const COIN_FADE = 21        // the coin's travel from its lift point by which the tile's letters are back
+const COIN_PULL = 0.35      // the coin's letters at the neck's limit: this much wider along the pull
 const COIN_SIZE = 51        // the coin's diameter, --coin-size in App.css
 const COIN_SPRING_MS = 300  // under the coin this long and the styles button opens its panel
 const coinRect = (r) => ({ left: r.left, top: r.top, width: r.width, height: r.height })
 const insideRect = (r, x, y) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
 const rectDistance = (r, x, y) => Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom))
+// The coin centre's distance to its tile's box: the neck's length.
+const neckLength = ({ left, top, width, height }, x, y) => rectDistance({ left, top, right: left + width, bottom: top + height }, x, y)
 // The coin's two moves after a release, one frame loop: `at(ms)` gives { value, done }. Only
 // motion's spring generator is taken (under 2 kB); its `animate` would bring ~23 kB with it.
 const playCoin = (at, onUpdate, onDone) => {
@@ -933,7 +943,7 @@ function coinTarget(x, y) {
   }
   return best
 }
-function FacePalette({ faces, activeFaceId, assignedId, onPick, onAdd, onRemove, onDropFace, onSpring }) {
+function FacePalette({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd, onRemove, onDropFace, onSpring }) {
   const [alt, setAlt] = useState(false)
   const inputRef = useRef(null)
   useEffect(() => {
@@ -950,7 +960,8 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onAdd, onRemove,
     }
   }, [])
 
-  // The coin: { face, x, y, home, target, phase: 'drag' | 'home' | 'land', scale, squeeze, reduced }.
+  // The coin: { face, x, y, from, home, target, phase: 'drag' | 'home' | 'land', broke, scale, squeeze, reduced }.
+  // `from` is where it lifted; `broke` latches once the neck has broken this flight.
   // The ref is the truth the gesture reads; the state is what renders.
   const [coin, setCoin] = useState(null)
   const coinRef = useRef(null)
@@ -967,7 +978,7 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onAdd, onRemove,
     const el = pressRef.current.el
     heldRef.current = true
     update({
-      face, x, y, target: null, phase: 'drag', scale: 1, squeeze: 1,
+      face, x, y, from: { x, y }, target: null, phase: 'drag', broke: false, scale: 1, squeeze: 1,
       home: { ...coinRect(el.getBoundingClientRect()), radius: getComputedStyle(el, '::before').borderRadius },
       reduced: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     })
@@ -976,7 +987,7 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onAdd, onRemove,
     const target = coinTarget(x, y)
     if (target?.spring) springRef.current ??= setTimeout(onSpring, COIN_SPRING_MS)
     else { clearTimeout(springRef.current); springRef.current = null }
-    update({ x, y, target })
+    update({ x, y, target, broke: coinRef.current.broke || neckLength(coinRef.current.home, x, y) >= COIN_NECK })
   }
   const release = () => {
     const c = coinRef.current
@@ -1038,9 +1049,9 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onAdd, onRemove,
     reachEl.setAttribute(reachAttr, '')
     return () => reachEl.removeAttribute(reachAttr)
   }, [reachEl, reachAttr])
-  // The tile a coin is off hands its ground to the goo for the whole flight, and its letters
-  // to the coin while the two are still one blob.
-  const joined = coin && !coin.reduced && rectDistance({ ...coin.home, right: coin.home.left + coin.home.width, bottom: coin.home.top + coin.home.height }, coin.x, coin.y) < COIN_NECK
+  // The tile a coin is off hands its ground to the goo for the whole flight; its letters
+  // fade back in with the coin's travel, from nothing at the lift to full by COIN_FADE.
+  const sourceInk = coin && !coin.reduced ? Math.min(1, Math.hypot(coin.x - coin.from.x, coin.y - coin.from.y) / COIN_FADE) : 1
 
   const shown = faces.length >= 2 || (faces.length === 1 && alt)
   const removable = alt && faces.length >= 2
@@ -1068,15 +1079,18 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onAdd, onRemove,
             const active = face.id === activeFaceId
             const assigned = face.id === assignedId
             const drag = bindDrag(face)
+            const source = coin && !coin.reduced && coin.face.id === face.id
             return (
               <div key={face.id} className="face-tile-slot">
                 <button
-                  className={`face-tile${active ? ' active' : ''}${assigned ? ' assigned' : ''}${coin && !coin.reduced && coin.face.id === face.id ? ` face-tile--source${joined ? ' face-tile--lifted' : ''}` : ''}`}
+                  className={`face-tile${active ? ' active' : ''}${assigned ? ' assigned' : ''}${source ? ' face-tile--source' : ''}`}
+                  style={source ? { opacity: sourceInk } : undefined}
                   aria-pressed={active}
                   title={face.familyLabel}
                   {...drag}
                   onPointerDown={e => { drag.onPointerDown(e); press(face, e) }}
-                  onClick={e => { if (heldRef.current && e.detail > 0) return; onPick(face) }}
+                  onClick={e => { if ((heldRef.current && e.detail > 0) || e.detail > 1) return; onPick(face) }}
+                  onDoubleClick={() => { if (!heldRef.current) onPickAll(face) }}
                 >
                   {/* The letters are a stage: the proofed face's own metrics, not the line's. */}
                   <span className="face-tile-rag" data-nosnap style={{ fontFamily: `"${face.fontFace.family}"` }}>
@@ -1112,10 +1126,18 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onAdd, onRemove,
    on black in light, the "you will land here" the bridge draws.
    The LETTERS layer is above everything, unfiltered: the coin's face, a disc of the same
    ground under the face's "Rag". Anything inside the goo is blurred and thresholded, so text
-   there would melt. */
+   there would melt. While the neck holds, the "Rag" is stretched along the pull -- from the
+   tile's centre to the coin -- by rotate, scaleX, rotate back, so the letters widen along the
+   drag whatever its direction; once it breaks the scale returns to 1 and App.css eases
+   them back. */
 function FaceCoin({ coin }) {
-  const { face, x, y, home, target, scale, squeeze, reduced } = coin
+  const { face, x, y, home, target, phase, broke, scale, squeeze, reduced } = coin
   const at = { transform: `translate(${x}px, ${y}px)` }
+  const pull = !reduced && !broke && phase === 'drag' ? Math.min(1, neckLength(home, x, y) / COIN_NECK) : 0
+  const angle = Math.atan2(y - (home.top + home.height / 2), x - (home.left + home.width / 2))
+  // The same three functions at rest (scaleX 1), so the ease back is the stretch alone and
+  // not the rotation unwinding with it.
+  const stretch = reduced ? undefined : { transform: `rotate(${angle}rad) scaleX(${1 + COIN_PULL * pull}) rotate(${-angle}rad)`, transition: pull ? 'none' : undefined }
   return createPortal(
     <>
       <div className={`face-coin-goo${reduced ? ' face-coin-goo--still' : ''}`} aria-hidden="true">
@@ -1126,7 +1148,7 @@ function FaceCoin({ coin }) {
       <div className="face-coin-top" aria-hidden="true">
         <div className="face-coin-at" style={at}>
           <div className="face-coin-face" style={{ scale, '--coin-squeeze': squeeze, fontFamily: `"${face.fontFace.family}"` }}>
-            Ra{face.italicFontFace ? <i>g</i> : 'g'}
+            <span className="face-coin-rag" style={stretch}>Ra{face.italicFontFace ? <i>g</i> : 'g'}</span>
           </div>
         </div>
       </div>
@@ -1173,6 +1195,7 @@ export default function App() {
   const facesRef = useRef([])   // the same set, for the drop handler's append-or-replace
   const activeFaceIdRef = useRef(null)   // written by activateFace; the history's snapshots read it
   const faceHistoryRef = useRef({ undo: [], redo: [] })
+  const lastPickRef = useRef(null)   // { face, entry } the last tile click pushed (pickAll folds into it)
   const fontObjectUrl = useRef(null)   // the active TTC member's URL, which selectTTCFont swaps and revokes
   const ttcBufferRef = useRef(null)
   const ttcOffsetsRef = useRef([])
@@ -1754,7 +1777,17 @@ export default function App() {
   // so the face becomes THE font and every earlier assignment is cleared with it.
   const pickFace = (face) => {
     pushFaceHistory()
+    lastPickRef.current = { face, entry: faceHistoryRef.current.undo.at(-1) }
     if (mode === 'paragraph') { setScopedField('face', face.id); return }
+    activateFace(face)
+    setLevelFaces()
+  }
+  // A double-click is "everything to this": the global pick from any view, ¶ included, where
+  // a single click only reaches the scoped level. Its first click has already pushed an entry
+  // holding the state from before both, so the double folds into it: one ⌘Z undoes the pair.
+  const pickAll = (face) => {
+    const click = lastPickRef.current
+    if (!(click?.face === face && faceHistoryRef.current.undo.at(-1) === click.entry)) pushFaceHistory()
     activateFace(face)
     setLevelFaces()
   }
@@ -2499,7 +2532,8 @@ export default function App() {
                     paraStyles[effectiveParaStyle].tracking !== DEFAULT_PARA_STYLES[effectiveParaStyle].tracking ||
                     paraStyles[effectiveParaStyle].leading !== DEFAULT_PARA_STYLES[effectiveParaStyle].leading ||
                     paraStyles[effectiveParaStyle].align !== DEFAULT_PARA_STYLES[effectiveParaStyle].align ||
-                    paraStyles[effectiveParaStyle].swissRag || paraStyles[effectiveParaStyle].hyphenate
+                    paraStyles[effectiveParaStyle].swissRag || paraStyles[effectiveParaStyle].hyphenate ||
+                    paraStyles[effectiveParaStyle].face != null
                   : fontSize !== 200 || letterSpacing !== 0 || lineHeight !== 1.1 || textAlign !== 'left'
                 // Fitting counts as typography: a rag or a spent budget is a change to
                 // the setting, so it lights the reset and clears with it. The rag and the
@@ -2514,6 +2548,9 @@ export default function App() {
                     style={isDirty || fitDirty ? {} : { pointerEvents: 'none' }}
                     onClick={() => {
                       if (effectiveParaStyle) {
+                        // The level's own face goes with its numbers (the defaults' face is
+                        // null), and that is a face action, so ⌘Z can bring it back.
+                        if (paraStyles[effectiveParaStyle].face != null) pushFaceHistory()
                         setParaStyles(prev => ({
                           ...prev,
                           [effectiveParaStyle]: { ...prev[effectiveParaStyle], ...DEFAULT_PARA_STYLES[effectiveParaStyle] }
@@ -2955,6 +2992,7 @@ export default function App() {
           activeFaceId={activeFaceId}
           assignedId={mode === 'paragraph' ? paraStyles[effectiveParaStyle].face : null}
           onPick={pickFace}
+          onPickAll={pickAll}
           onAdd={files => groupFiles(files).then(g => loadFonts(g, true))}
           onRemove={removeFace}
           onDropFace={(face, level) => { pushFaceHistory(); setParaStyles(prev => ({ ...prev, [level]: { ...prev[level], face: face.id } })) }}

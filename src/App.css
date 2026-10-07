@@ -574,30 +574,24 @@
 .face-tile-slot > .face-tile { min-width: 48px; }
 .face-tile-rag { display: block; white-space: nowrap; }
 .face-tile:not(.active):is(:hover, :focus-visible) { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62)); }
-.face-tile.active { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1)); }
+.face-tile.active { color: var(--bg, #242424); }
 /* THE PICKED TILE MORPHS INTO A BUTTON: a pill ground, the chip's 27, grows in under the
    letters as the click lands -- scale and opacity at --dur-fast, so it reads as the tile
-   becoming the button, not one swapped for another. In dark the ground is the surface and
-   the letters carry the HDR white below; in light it is inverted, ink for the ground and the
-   stage colour for the letters, as the panel look's chosen tile already is. */
+   becoming the button, not one swapped for another. INK ON PAGE in both themes: the ink is
+   the ground and the letters take the stage colour -- black/white in light, white/dark in
+   dark. A surface pill with ink letters in dark was hard to find (Mark, 2026-10-07). */
 .face-tile::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   border-radius: 999px;
-  background: var(--surface, var(--bg-elevated, #2e2e2e));
+  background: var(--text, #ffffff);
   opacity: 0;
   transform: scale(.6);
   transition: opacity var(--dur-fast, 140ms) ease, transform var(--dur-fast, 140ms) ease;
 }
 .face-tile.active::before { opacity: 1; transform: none; }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .face-tile::before { background: var(--text, #111111); }
-  :root:not([data-theme="dark"]) .face-tile.active { color: var(--bg, #f5faff); }
-}
-:root[data-theme="light"] .face-tile::before { background: var(--text, #111111); }
-:root[data-theme="light"] .face-tile.active { color: var(--bg, #f5faff); }
 .face-tile:focus { outline: none; }
 .face-tile:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 2px; }
 /* The "+" and the corner mark are .wm-icon-btn, so the mark's own hover rung comes with
@@ -614,54 +608,33 @@
   corner-shape: round;
 }
 
-/* THE ACTIVE FACE'S LETTERS LEAVE SDR, in dark. The same light the icon ladder's top rung
-   wears (shared/src/icon.css, "ACTIVE IS THE ONLY STATE THAT LEAVES SDR"): one pixel of
-   PQ white, 1216 nits, the field's own peak, masked to the glyphs with background-clip:
-   text and let past SDR white by dynamic-range-limit. The same inlined swatch, byte for
-   byte (shared/assets/hdr-white.avif).
-   Under it, a layer of plain full ink: that is what shows if the AVIF never decodes, so
-   the letters cannot go transparent. On an SDR screen the swatch itself reads as white,
-   which in dark IS full ink, so nothing changes there or in a screenshot.
-   The background box is grown by a pad that a matching negative margin gives straight
-   back: background-clip paints only inside the box, and an italic g's overhang runs past
-   its advance -- without the pad its right edge would be cut off clean.
-   SIZE DECIDES WHETHER IT SHOWS. Measured on the poster: strong at display sizes, gone by
-   about 10px, where antialiased edge pixels composite the headroom away. The 18px strip is
-   on the margin; the panel's display-size "Rag" is where it was built to land. */
-.face-tile.active .face-tile-rag {
-  padding: var(--spacing-02, 6px);
-  margin: calc(-1 * var(--spacing-02, 6px));
-  color: transparent;
-  background-image:
-    url('data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAE1pUHJhdmlmbWlhZm1pZjEAAAFebWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAAAAAAAkZGluZgAAABxkcmVmAAAAAAAAAAEAAAAMdXJsIAAAAAEAAAAOcGl0bQAAAAAAAQAAADhpaW5mAAAAAAACAAAAFWluZmUCAAAAAAEAAGF2MDEAAAAAFWluZmUCAAABAAIAAEV4aWYAAAAAGmlyZWYAAAAAAAAADmNkc2MAAgABAAEAAACBaXBycAAAAGBpcGNvAAAAE2NvbHJuY2x4AAkAEAABgAAAAAxjbGxpA+gAQAAAABRpc3BlAAAAAAAAAGQAAABkAAAACWlyb3QAAAAAEHBpeGkAAAAAAwoKCgAAAAxhdjFDgQBMAAAAABlpcG1hAAAAAAAAAAEAAQaBAgMFhoQAAAAsaWxvYwAAAABEAAACAAEAAAABAAAB0AAAADcAAgAAAAEAAAGOAAAAQgAAAAFtZGF0AAAAAAAAAIkAAAAGRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAZKADAAQAAAABAAAAZAAAAAASAAoNAAAAAzY8Z//ChIgAwjIkEAGEgAYYYYi0VMregO56Wg+x6xnwsfoJWaYWX85G+ibLVJ6A'),
-    linear-gradient(
-      rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1)),
-      rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1)));
+/* THE ACTIVE PILL'S GROUND LEAVES SDR, in dark. The same light the icon ladder's top rung
+   wears (shared/src/icon.css, "ACTIVE IS THE ONLY STATE THAT LEAVES SDR"): one pixel of PQ
+   white, 1216 nits, the field's own peak, stretched over the pill and let past SDR white by
+   dynamic-range-limit -- so on an HDR screen the whole pill glows. The same inlined swatch,
+   byte for byte (shared/assets/hdr-white.avif). Under it the plain ink colour, which is what
+   shows if the AVIF never decodes; on an SDR screen the swatch reads as white, the dark ink.
+   It was on the LETTERS until 2026-10-07, masked with background-clip: text; at the strip's
+   18px that was on the margin (antialiased edges composite the headroom away), and a ground
+   has no edges to lose. The scale the pill grows in with keeps the headroom. */
+.face-tile.active::before {
+  background-image: url('data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAE1pUHJhdmlmbWlhZm1pZjEAAAFebWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAAAAAAAkZGluZgAAABxkcmVmAAAAAAAAAAEAAAAMdXJsIAAAAAEAAAAOcGl0bQAAAAAAAQAAADhpaW5mAAAAAAACAAAAFWluZmUCAAAAAAEAAGF2MDEAAAAAFWluZmUCAAABAAIAAEV4aWYAAAAAGmlyZWYAAAAAAAAADmNkc2MAAgABAAEAAACBaXBycAAAAGBpcGNvAAAAE2NvbHJuY2x4AAkAEAABgAAAAAxjbGxpA+gAQAAAABRpc3BlAAAAAAAAAGQAAABkAAAACWlyb3QAAAAAEHBpeGkAAAAAAwoKCgAAAAxhdjFDgQBMAAAAABlpcG1hAAAAAAAAAAEAAQaBAgMFhoQAAAAsaWxvYwAAAABEAAACAAEAAAABAAAB0AAAADcAAgAAAAEAAAGOAAAAQgAAAAFtZGF0AAAAAAAAAIkAAAAGRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAZKADAAQAAAABAAAAZAAAAAASAAoNAAAAAzY8Z//ChIgAwjIkEAGEgAYYYYi0VMregO56Wg+x6xnwsfoJWaYWX85G+ibLVJ6A');
   background-size: 100% 100%;
   background-repeat: no-repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
   dynamic-range-limit: no-limit;
 }
 /* LIGHT GROUND TAKES NO HDR -- physics, as icon.css says: the boost is only for pixels
-   brighter than SDR white, and a chosen mark on a light ground has to go darker. Unwound
-   back to coloured text that inherits the tile's ink (full ink in the strip, the stage
-   colour on the panel's inverted tile). Stated twice, as icon.css does: the media query
-   cannot reach someone who has chosen light against an OS set to dark. */
+   brighter than SDR white, and the light pill is the dark ink. Unwound to the plain ground.
+   Stated twice, as icon.css does: the media query cannot reach someone who has chosen light
+   against an OS set to dark. */
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .face-tile.active .face-tile-rag {
-    color: inherit;
+  :root:not([data-theme="dark"]) .face-tile.active::before {
     background-image: none;
-    -webkit-background-clip: border-box;
-    background-clip: border-box;
     dynamic-range-limit: standard;
   }
 }
-:root[data-theme="light"] .face-tile.active .face-tile-rag {
-  color: inherit;
+:root[data-theme="light"] .face-tile.active::before {
   background-image: none;
-  -webkit-background-clip: border-box;
-  background-clip: border-box;
   dynamic-range-limit: standard;
 }
 
@@ -675,10 +648,9 @@
    129px tile gives anyway. Tiles stand 6px apart (two units). Width is the free axis.
    GROUNDS. At rest a tile sits one step up from the stage, on the surface the side rail's
    chips and selects use; under the pointer it rises the next step, as theirs do.
-   ACTIVE is inverted in light: the ink becomes the ground and the letters take the stage
-   colour, the loudest thing on the page and the only dark block on it. In dark it keeps
-   the surface and the letters carry the HDR white above -- on an HDR screen the chosen
-   "Rag" is the brightest thing on the page; on SDR it reads as full ink against faint. */
+   ACTIVE is inverted in both themes: the ink becomes the ground and the letters take the
+   stage colour, the loudest block on the page -- and in dark the ground is the HDR white
+   above, so on an HDR screen the chosen tile is the brightest thing there. */
 .face-palette--panel {
   flex-direction: column;
   align-items: stretch;
@@ -719,16 +691,9 @@
 }
 .face-palette--panel .face-tile:not(.active):is(:hover, :focus-visible) .face-tile-name,
 .face-palette--panel .face-tile.active .face-tile-name { color: inherit; }
-.face-palette--panel .face-tile.active { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1)); }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .face-palette--panel .face-tile.active {
-    color: var(--bg, #f5faff);
-    background: var(--text, #111111);
-  }
-}
-:root[data-theme="light"] .face-palette--panel .face-tile.active {
-  color: var(--bg, #f5faff);
-  background: var(--text, #111111);
+.face-palette--panel .face-tile.active {
+  color: var(--bg, #242424);
+  background: var(--text, #ffffff);
 }
 /* The "+" tile: the same box and ground, the mark at 48 (the icon font's largest optical
    size) and centred. Its ink is the strip's -- faint, quiet under the pointer. */
@@ -738,7 +703,7 @@
 /* ── Face coin (FaceCoin in App.jsx) ─────────────────────────────────────── */
 /* Two fixed, full-viewport layers in a portal, taking no pointer.
    GOO: grounds only, filtered by #wm-goo (blur 6, alpha x18 - 7). Every ground is the PICKED
-   pill's -- the surface in dark, ink in light -- so the coin reads as that pill dividing and
+   pill's -- the ink, in both themes -- so the coin reads as that pill dividing and
    the filter melts one colour. z 40: over the stage's text, under the face palette's anchor
    (50). Neither the stage nor the anchor's parents make a stacking context, so the two
    meet in the root one and these numbers compare. For the flight the palette drops its
@@ -753,8 +718,8 @@
 .face-coin-top {
   --coin-size: 51px;
   --coin-squeeze: 1;
-  --coin-ground: var(--surface, var(--bg-elevated, #2e2e2e));
-  --coin-ink: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1));
+  --coin-ground: var(--text, #ffffff);
+  --coin-ink: var(--bg, #242424);
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -810,41 +775,34 @@
   background: var(--coin-ground);
   scale: var(--coin-squeeze, 1);
 }
+/* The coin's "Rag" stretches along the pull while the neck holds (FaceCoin sets the
+   transform inline, with no transition); when the neck breaks its scale returns to 1 and
+   this eases the letters back. A flex item, so the transform applies. */
+.face-coin-rag { transition: transform var(--dur-fast, 140ms) ease-out; }
 /* The flight's page-side half: the palette without its ground, the block in reach over its
-   halo. Its words take the pill's letter colour; in dark that is the ink they already have.
+   halo. Its words take the pill's letter colour, the page's, over the ink halo.
    The block sets its own colour inline as var(--text), so it is --text that is turned. */
 .face-coin-flying .face-palette { background: none; }
-.face-coin-flying [data-coin-halo] { z-index: 41; }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .face-coin-goo,
-  :root:not([data-theme="dark"]) .face-coin-top { --coin-ground: var(--text, #111111); --coin-ink: var(--bg, #f5faff); }
-  :root:not([data-theme="dark"]).face-coin-flying [data-coin-halo] { --text: var(--bg, #f5faff); }
-}
-:root[data-theme="light"] .face-coin-goo,
-:root[data-theme="light"] .face-coin-top { --coin-ground: var(--text, #111111); --coin-ink: var(--bg, #f5faff); }
-:root[data-theme="light"].face-coin-flying [data-coin-halo] { --text: var(--bg, #f5faff); }
+.face-coin-flying [data-coin-halo] { z-index: 41; --text: var(--bg, #242424); }
 /* THE TILE A COIN IS OFF. For the whole flight the goo layer draws its ground (FaceCoin), so
    its own steps out and its letters take the picked pill's colour -- whichever tile it was,
    what stays behind is the picked pill.
-   While the coin and the tile are still one blob the coin carries the letters too, so the
-   tile steps out entirely. Opacity, not visibility -- it holds the pointer capture.
+   Its letters fade back in with the coin's travel (FacePalette sets the tile's opacity, 0 at
+   the lift, 1 by COIN_FADE), so mid-neck the pill is never empty. Opacity, not visibility --
+   it holds the pointer capture.
    After the panel look's rules, and as specific as its hover, so a hovered tile obeys. */
 .face-palette .face-tile.face-tile--source:not(.face-tile--add) {
-  color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1));
+  color: var(--bg, #242424);
   background: none;
 }
 .face-palette .face-tile.face-tile--source::before { opacity: 0; transition: none; }
 .face-palette .face-tile--source .face-tile-name { color: inherit; }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .face-palette .face-tile.face-tile--source:not(.face-tile--add) { color: var(--bg, #f5faff); }
-}
-:root[data-theme="light"] .face-palette .face-tile.face-tile--source:not(.face-tile--add) { color: var(--bg, #f5faff); }
-.face-tile.face-tile--lifted { opacity: 0; }
 /* The tile becoming the coin: it grows out of the tile's size into its own. */
 @keyframes face-coin-lift { from { transform: scale(.6); } }
 @media (prefers-reduced-motion: reduce) {
   .face-coin-goo { filter: none; }
   .face-coin-disc, .face-coin-face { animation: none; }
+  .face-coin-rag { transition: none; }
 }
 /* The coin is the cursor while it flies. Every element, because each control names its own. */
 .face-coin-flying,
