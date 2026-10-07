@@ -298,16 +298,17 @@ const DEFAULT_COSS_ROLES = {
 
 // ── Paragraph style model ────────────────────────────────────────────────────
 // Per-block overrides (weight/italic/ss04/ss05) default to null = inherit the
-// global control, mirroring how axisOverrides inherit axisValues.
+// global control, mirroring how axisOverrides inherit axisValues. `face` is the same
+// rule for the font itself: null draws in the active face, a face id draws in that one.
 const DEFAULT_PARA_STYLES = {
   // size / leading / tracking / align / swissRag / hyphenate come from the primitive
   // (wm-primitives PARA_STYLE_DEFAULTS) -- both paragraph views show the same four
   // styles with the same numbers. What is added here is what this app draws with: the
   // family's axes, and the weight/italic/ssXX that scope to a style.
-  h1: { ...PARA_STYLE_DEFAULTS.h1, axisOverrides: { wght: 700, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
-  h2: { ...PARA_STYLE_DEFAULTS.h2, axisOverrides: { wght: 400, opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
-  h3: { ...PARA_STYLE_DEFAULTS.h3, axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
-  p:  { ...PARA_STYLE_DEFAULTS.p,  axisOverrides: { opsz: 'auto' }, weight: null, italic: null, ss04: null, ss05: null },
+  h1: { ...PARA_STYLE_DEFAULTS.h1, axisOverrides: { wght: 700, opsz: 'auto' }, face: null, weight: null, italic: null, ss04: null, ss05: null },
+  h2: { ...PARA_STYLE_DEFAULTS.h2, axisOverrides: { wght: 400, opsz: 'auto' }, face: null, weight: null, italic: null, ss04: null, ss05: null },
+  h3: { ...PARA_STYLE_DEFAULTS.h3, axisOverrides: { opsz: 'auto' }, face: null, weight: null, italic: null, ss04: null, ss05: null },
+  p:  { ...PARA_STYLE_DEFAULTS.p,  axisOverrides: { opsz: 'auto' }, face: null, weight: null, italic: null, ss04: null, ss05: null },
 }
 
 // Shared feature string. ss04 fires only in italic, ss05 only in roman.
@@ -493,6 +494,21 @@ function fontTableOffsets(buffer, fontOffset = 0) {
   return off
 }
 
+/* The optical size a font declares for itself, in points: OS/2 version 5's lower and upper
+   (stored in twips). Null when the font says nothing -- an older OS/2, or an upper of
+   0xFFFF, which is the spec's "no limit" and so no evidence of a display cut. */
+function readOpticalPoints(buffer, fontOffset = 0) {
+  try {
+    const data = new DataView(buffer)
+    const os2 = fontTableOffsets(buffer, fontOffset)['OS/2']
+    if (os2 && data.getUint16(os2) >= 5) {
+      const lo = data.getUint16(os2 + 96), hi = data.getUint16(os2 + 98)
+      if (hi !== 0xFFFF) return [lo / 20, hi / 20]
+    }
+  } catch {}
+  return null
+}
+
 const WEIGHT_CLASS_OF_WORD = { thin: 100, extralight: 200, ultralight: 200, light: 300, book: 400, regular: 400, normal: 400, medium: 500, semibold: 600, demibold: 600, bold: 700, extrabold: 800, heavy: 800, black: 900 }
 const WEIGHT_WORD_OF_CLASS = { 100: 'Thin', 200: 'ExtraLight', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black' }
 
@@ -669,7 +685,7 @@ const parseAxes = async (file) => {
    with its italic). Everything dropped at once is sorted into faces by groupFiles, and
    buildFace turns one group into a record without touching any state:
      { id, label, familyLabel, version, cssFamily, fontFace, italicFontFace, axes,
-       namedInstances, supportedRanges, glyphMatchUnavailable, glyphFeatures, kind,
+       namedInstances, opticalPoints, supportedRanges, glyphMatchUnavailable, glyphFeatures, kind,
        styles, weightFamilies, ttc, objectUrls, file, italicFile }
    A group is { family, styles: [{ key, label, weightClass, roman, italic }] }; a source
    is a File, or {url, filename} for a bundled font (the route path fetches instead of
@@ -742,6 +758,7 @@ async function buildFace(group, { baseName: baseOverride } = {}) {
       fontFace: ds.fontFace,
       italicFontFace: ds.italicFontFace,
       axes, namedInstances: instances,
+      opticalPoints: readOpticalPoints(primary.buffer, primary.offset),
       supportedRanges: chars, glyphMatchUnavailable,
       glyphFeatures: {
         roman: gsubFeatureTags(primary.fontBuffer),
@@ -798,6 +815,38 @@ const groupFiles = async (list) => {
       return { key: label.toLowerCase(), label, weightClass: sl.weightClass, roman: sl.roman, italic: sl.italic }
     }),
   }))
+}
+
+/* Which face draws which ¶ level in a NEW set (a replace of two or more faces; an add never
+   asks). A guess, in order of evidence, stopping at the first that splits the set into
+   heading faces and text faces: the words in a face's names (Display/Headline/Poster/Title
+   against Text/Book/Caption/Body), then the optical size it declares (OS/2 v5, else its
+   opsz axis: a top of 36pt or more is a display cut), then weight (one face a clear step --
+   200 -- heavier than every other is the heading one; a 400 beside a 500 is no evidence).
+   A face the evidence is silent on takes the side the others leave. H1 gets the first
+   heading face and H2 the second, or the same one; P and H3 get the first text face.
+   Returns { h1, h2, h3, p } of face ids, or null when nothing splits: everything then
+   inherits the active face, as it does for a set of one. */
+function defaultLevels(faces) {
+  const names = f => [f.familyLabel, ...f.styles.map(s => s.fontName)].join(' ')
+  const weight = f => f.styles.find(s => s.key === defaultStyleKey(f.styles))?.weightClass ?? 400
+  const heaviest = Math.max(...faces.map(weight))
+  const clear = faces.filter(f => weight(f) === heaviest).length === 1
+    && faces.every(f => weight(f) === heaviest || weight(f) <= heaviest - 200)
+  const evidence = [
+    f => /display|headline|poster|title/i.test(names(f)) ? 'head' : /text|book|caption|body/i.test(names(f)) ? 'text' : null,
+    f => (f.opticalPoints?.[1] ?? f.axes.find(a => a.tag === 'opsz')?.max ?? 0) >= 36 ? 'head' : 'text',
+    f => clear ? (weight(f) === heaviest ? 'head' : 'text') : null,
+  ]
+  for (const kindOf of evidence) {
+    const kinds = faces.map(kindOf)
+    const rest = kinds.includes('head') && !kinds.includes('text') ? 'text' : kinds.includes('text') && !kinds.includes('head') ? 'head' : null
+    const sides = kinds.map(k => k ?? rest)
+    if (!sides.includes('head') || !sides.includes('text')) continue
+    const heads = faces.filter((f, i) => sides[i] === 'head'), text = faces.find((f, i) => sides[i] === 'text')
+    return { h1: heads[0].id, h2: (heads[1] ?? heads[0]).id, h3: text.id, p: text.id }
+  }
+  return null
 }
 
 /* The FACE PALETTE: a tile per face in the set, each an "Aa" set in that face (the second
@@ -1148,7 +1197,8 @@ export default function App() {
 
   // Static-family weight list: the active face's styles (empty for single/variable fonts).
   // Bundled static families and dropped ones are the same thing once they are a face.
-  const familyStyles = faces.find(f => f.id === activeFaceId)?.styles ?? NO_STYLES
+  const activeFace = faces.find(f => f.id === activeFaceId)
+  const familyStyles = activeFace?.styles ?? NO_STYLES
   const isFamily = familyStyles.length >= 2
   const currentStyleKey = isFamily ? (activeStyleKey ?? defaultStyleKey(familyStyles)) : null
 
@@ -1248,6 +1298,10 @@ export default function App() {
     gone.forEach(f => f.objectUrls.forEach(u => URL.revokeObjectURL(u)))
     if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
   }
+  // Every level's face at once: a map of level -> face id, or nothing to null them all.
+  // A global pick and a new set both start from here; only a scoped pick builds on it.
+  const setLevelFaces = (ids = {}) =>
+    setParaStyles(prev => Object.fromEntries(Object.entries(prev).map(([t, st]) => [t, { ...st, face: ids[t] ?? null }])))
   // Adds are silent: the faces join the set and the active face stays as it is.
   const addFaces = (faceList) => setFaceSet([...facesRef.current, ...faceList])
   // One face leaves the set and gives back its object URLs (its FontFaces stay registered,
@@ -1259,6 +1313,8 @@ export default function App() {
     if (!rest.length) return
     setFaceSet(rest)
     face.objectUrls.forEach(u => URL.revokeObjectURL(u))
+    // A level that drew in this face goes back to inheriting the active one.
+    setParaStyles(prev => Object.fromEntries(Object.entries(prev).map(([t, st]) => [t, st.face === face.id ? { ...st, face: null } : st])))
     if (face.id === activeFaceId) {
       if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
       activateFace(rest[0])
@@ -1277,6 +1333,8 @@ export default function App() {
     if (add && facesRef.current.length) { addFaces(built); return }
     replaceFaces(built)
     activateFace(built[0])
+    // A new set starts with no assignments but the guess, if there is one (never for an add).
+    setLevelFaces(built.length >= 2 ? defaultLevels(built) ?? undefined : undefined)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activateFace])
 
@@ -1396,11 +1454,29 @@ export default function App() {
   // Weight / Roman-Italic / ss04 / ss05 scope to the selected block (P by default
   // in paragraph mode); with no block selected they edit the global control.
   const styleScope = effectiveParaStyle
-  const scopedWeight = styleScope ? (paraStyles[styleScope].weight ?? currentStyleKey) : currentStyleKey
+  // The weight picker follows the scope's face too: in ¶ a level assigned to another face
+  // lists that face's weights. Anywhere else the scope is the active face, as before.
+  const scopedFace = mode === 'paragraph'
+    ? (faces.find(f => f.id === paraStyles[styleScope].face) ?? activeFace)
+    : activeFace
+  const scopedStyles = scopedFace?.styles ?? NO_STYLES
+  const scopedIsFamily = scopedStyles.length >= 2
+  const scopedWeight = !styleScope ? currentStyleKey
+    : scopedFace === activeFace ? (paraStyles[styleScope].weight ?? currentStyleKey)
+    : (scopedStyles.find(st => st.key === paraStyles[styleScope].weight)?.key ?? defaultStyleKey(scopedStyles))
   const scopedItalic = styleScope ? (paraStyles[styleScope].italic ?? isItalic) : isItalic
   const setScopedField = (field, value) =>
     setParaStyles(prev => ({ ...prev, [styleScope]: { ...prev[styleScope], [field]: value } }))
   const setScopedWeight = (v) => styleScope ? setScopedField('weight', v) : setActiveStyleKey(v)
+  // A tile is "pick a face", and what that means is the scope's call. In ¶ the scope is
+  // always a level (P by default), so the face is assigned to it and nothing else moves:
+  // not the header, not the sliders, not the active tile. Anywhere else nothing is scoped,
+  // so the face becomes THE font and every earlier assignment is cleared with it.
+  const pickFace = (face) => {
+    if (mode === 'paragraph') { setScopedField('face', face.id); return }
+    activateFace(face)
+    setLevelFaces()
+  }
   const setScopedItalic = (v) => styleScope ? setScopedField('italic', v) : setIsItalic(v)
 
   // ── Active role for calcom mode ───────────────────────────────────────────
@@ -1533,19 +1609,37 @@ export default function App() {
   const scaleBaseClampPx = useMemo(() => Math.max(8, measure / 24), [measure])
 
   // ── Per-block style (paragraph mode) ─────────────────────────────────────
+  // What a level reads its font from. The sliders (axisValues, weightFamilies, fontFace)
+  // are the active face's, so a level assigned to another face reads that face's record
+  // instead: its own axis defaults under the level's overrides, minus any tag the face
+  // lacks. (Step 4 makes the sliders follow the scope; until then they only reach the
+  // active face.) Inherited, or assigned to the active face itself, it is all as it was.
+  const faceReads = (s) => {
+    const other = s.face && s.face !== activeFaceId ? faces.find(f => f.id === s.face) : null
+    if (!other) return { axes: variationAxes, weightFamilies, fontFace, hasItalic: isFamily || !!italicFontFace, weight: currentStyleKey, axisValues: { ...axisValues, ...s.axisOverrides } }
+    const tags = other.axes.map(a => a.tag)
+    return {
+      axes: other.axes, weightFamilies: other.weightFamilies, fontFace: other.fontFace,
+      hasItalic: other.styles.some(st => st.italicFontFace),
+      weight: null,
+      axisValues: Object.fromEntries(Object.entries({ ...axisDefaults(other.axes), ...s.axisOverrides }).filter(([t]) => tags.includes(t))),
+    }
+  }
+
   const blockStyle = (type) => {
     const s = paraStyles[type] ?? paraStyles.p
-    const merged = { ...axisValues, ...s.axisOverrides }
+    const r = faceReads(s)
+    const merged = r.axisValues
     const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     // Per-block weight/italic/ss resolve to the block's override, or the global control.
-    const weight = s.weight ?? currentStyleKey
+    const weight = s.weight ?? r.weight
     const italic = s.italic ?? isItalic
     const s04 = s.ss04 ?? ss04
     const s05 = s.ss05 ?? ss05
-    const family = (weight && weightFamilies[weight]) ? `"${weightFamilies[weight]}"` : (fontFace ? `"${fontFace.family}"` : 'serif')
+    const family = (weight && r.weightFamilies[weight]) ? `"${r.weightFamilies[weight]}"` : (r.fontFace ? `"${r.fontFace.family}"` : 'serif')
     return {
       fontFamily: family,
-      fontStyle: (italic && (isFamily || italicFontFace)) ? 'italic' : 'normal',
+      fontStyle: (italic && r.hasItalic) ? 'italic' : 'normal',
       fontSize: `${s.size}px`,
       letterSpacing: `${s.tracking}em`,
       lineHeight: s.leading,
@@ -1573,30 +1667,31 @@ export default function App() {
     const s = paraStyles[type] ?? paraStyles.p
     const s04 = s.ss04 ?? ss04
     const s05 = s.ss05 ?? ss05
+    const r = faceReads(s)
     const italic = kind === 'italic' ? true : (s.italic ?? isItalic)
-    let weight = s.weight ?? currentStyleKey
-    const merged = { ...axisValues, ...s.axisOverrides }
+    let weight = s.weight ?? r.weight
+    const merged = r.axisValues
     if (kind === 'italic') {
       // Variable italic: drive the font's own axis (Cal Sans 'ital', or a 'slnt'
       // slant). Fonts whose italic is a separate face fall through to fontStyle below.
-      const italAx = variationAxes.find(a => a.tag === 'ital')
-      const slntAx = variationAxes.find(a => a.tag === 'slnt')
+      const italAx = r.axes.find(a => a.tag === 'ital')
+      const slntAx = r.axes.find(a => a.tag === 'slnt')
       if (italAx) merged.ital = italAx.max
       else if (slntAx) merged.slnt = slntAx.min
     }
     if (kind === 'bold') {
-      const boldKey = Object.keys(weightFamilies).find(k => /bold|black|heavy|semibold|700|800|900/i.test(k))
+      const boldKey = Object.keys(r.weightFamilies).find(k => /bold|black|heavy|semibold|700|800|900/i.test(k))
       if (boldKey) weight = boldKey
       else {
-        const wghtAx = variationAxes.find(a => a.tag === 'wght')
+        const wghtAx = r.axes.find(a => a.tag === 'wght')
         if (wghtAx) merged.wght = Math.min(wghtAx.max, 700)
       }
     }
-    const family = (weight && weightFamilies[weight]) ? `"${weightFamilies[weight]}"` : (fontFace ? `"${fontFace.family}"` : 'serif')
+    const family = (weight && r.weightFamilies[weight]) ? `"${r.weightFamilies[weight]}"` : (r.fontFace ? `"${r.fontFace.family}"` : 'serif')
     const fvs = Object.entries(merged).filter(([, v]) => v !== 'auto').map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
     return {
       fontFamily: family,
-      fontStyle: (italic && (isFamily || italicFontFace)) ? 'italic' : 'normal',
+      fontStyle: (italic && r.hasItalic) ? 'italic' : 'normal',
       fontVariationSettings: fvs,
       fontFeatureSettings: featureStr(italic, s04, s05),
       fontSynthesis: 'none',
@@ -2161,7 +2256,7 @@ export default function App() {
             </div>
             )}
           </div>
-          {isFamily && (
+          {scopedIsFamily && (
             <span className="wm-select-wrap">
             <select
               className="wm-select"
@@ -2169,7 +2264,7 @@ export default function App() {
               onChange={e => setScopedWeight(e.target.value)}
               title="Style"
             >
-              {familyStyles.map(s => (
+              {scopedStyles.map(s => (
                 <option key={s.key} value={s.key}>{s.label}</option>
               ))}
             </select>
@@ -2570,13 +2665,11 @@ export default function App() {
       />
 
       <main className="preview-area" ref={previewAreaRef}>
-        {/* A tile is the GLOBAL pick: the face becomes the font, a reset. Step 3 (FACES.md)
-            adds the scoped pick beside it, and the global one then also nulls every
-            per-scope assignment -- there are none yet. */}
+        {/* A tile is "pick a face"; the scope decides what that does (pickFace). */}
         <FacePalette
           faces={faces}
           activeFaceId={activeFaceId}
-          onPick={activateFace}
+          onPick={pickFace}
           onAdd={files => groupFiles(files).then(g => loadFonts(g, true))}
           onRemove={removeFace}
         />
@@ -3045,8 +3138,10 @@ export default function App() {
               onSelect={type => setActiveParaStyle(prev => prev === type ? null : type)}
               rows={(['h1', 'h2', 'h3', 'p']).map(type => {
                 const s = paraStyles[type]
-                const merged = { ...axisValues, ...s.axisOverrides }
-                const fvs = Object.entries(merged).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+                const r = faceReads(s)
+                const fvs = Object.entries(r.axisValues).map(([t, v]) => `"${t}" ${v}`).join(', ') || 'normal'
+                // A row assigned to another face says so, first among its chips.
+                const own = s.face && s.face !== activeFaceId ? faces.find(f => f.id === s.face) : null
                 return {
                   id: type,
                   /* The MARK names the level now -- format_h1/h2/h3, and the same pilcrow
@@ -3063,7 +3158,7 @@ export default function App() {
                      chip, stated exactly; the specimen is here to show the FACE. */
                   label: 'Rag',
                   labelStyle: {
-                    fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
+                    fontFamily: r.fontFace ? `"${r.fontFace.family}"` : 'serif',
                     fontStyle,
                     fontSize: `${Math.min(s.size, 22)}px`,
                     fontVariationSettings: fvs,
@@ -3072,6 +3167,7 @@ export default function App() {
                     lineHeight: 1.3,
                   },
                   chips: [
+                    ...(own ? [{ text: own.familyLabel, kind: 'local' }] : []),
                     { text: `${s.size}px`, kind: 'size' },
                     ...Object.entries(s.axisOverrides).map(([tag, val]) => ({
                       text: `${tag} ${val === 'auto' ? 'auto' : Number.isInteger(val) ? val : val.toFixed(1)}`,

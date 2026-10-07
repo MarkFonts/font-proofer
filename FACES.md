@@ -94,6 +94,25 @@ The tiny strip (27px "Aa" tiles in a row) and the panel (220×129 tiles stacked,
 the strip is the default. Neither is deleted until ship. In dark mode the active face's
 "Aa" is HDR white in both (icon.css's swatch and gate).
 
+## Dragging a face onto a block (step 3b)
+
+Clicking a tile picks a face and the scope decides where it goes; dragging a tile says where.
+Press and hold an "Aa" and it lifts off as a COIN, a circle with the letters in it, and
+follows the pointer. Every drop target can take it: each paragraph block (its level takes the
+face), later the scale tiers and the role panels. Released on a block, that level is
+assigned; released anywhere else, the coin snaps back and nothing changes. The click model
+stays; drag is the precise version, and it answers ¶ view's "P is always the scope".
+
+The look is GOOEY. The coin stretches off its tile with a neck that breaks, and within reach
+of a target the two edges bridge and round into each other -- the metaball bridge IS the
+"you are about to land here", not a highlight. SVG goo filter (blur, then an alpha contrast
+step) over one layer holding only GROUNDS: the tile's, the coin's, the target's halo. The
+"Aa" and the block's words sit above it unfiltered, since anything inside the goo blurs.
+Reach is about a tile's width: inside it the bridge forms and release assigns. Pointer
+events (`@use-gesture/react` is already a dependency), never an HTML5 drag, so the
+file-drop overlay does not wake. `prefers-reduced-motion`: the coin still moves, the goo
+and the spring go. Decided 2026-10-07; built after step 3.
+
 ## Phones: a drawer, not a floating palette
 
 At the mobile breakpoint (≤768px) the stage is short and a floating palette sits on the
@@ -128,6 +147,7 @@ being edited. Decided 2026-10-07.
    A single file or a pair behaves exactly as now.
 2. Palette: tiles + "+", persistent at two faces, ⌥ reveals at one.
 3. Scoped assignment: face per ¶ level in the StyleScopeDropdown rows; default levels.
+   3b. The coin: drag a tile onto a block, gooey.
 4. Axis panel follows the scoped face.
 5. The overlay copy, the "Add to the set" and "Drop → H1/H2/H3" overlays, ⌥-drop, ⌥-click on ↺.
 6. Scale tiers, Cal.com and booking roles; retire the CalSans/Inter radio.
