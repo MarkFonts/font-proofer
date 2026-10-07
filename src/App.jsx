@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
+import { useDrag } from '@use-gesture/react'
+import { spring } from 'motion'
 import './App.css'
 import {
   StyleScopeList, InlineEmphasisBubble,
@@ -849,10 +851,11 @@ function defaultLevels(faces) {
   return null
 }
 
-/* The FACE PALETTE: a tile per face in the set, each an "Aa" set in that face (the second
-   letter in its italic, when it has one), and a dim "+" that adds. It sits in the stage's
-   bottom-right corner the way the theme marks sit top right, and it is furniture, not a
-   toolbar: the active face's tile is the one thing in it at full ink, every other tile and
+/* The FACE PALETTE: a tile per face in the set, each a "Rag" set in that face (the g in its
+   italic, when it has one -- single storey against double is where an italic differs most),
+   and a dim "+" that adds. "Rag" is the styles panel's specimen word: ascender, descender,
+   round and diagonal in four characters. It sits in the stage's bottom-right corner the
+   way the theme marks sit top right, and it is furniture, not a toolbar: the active face's tile is the one thing in it at full ink, every other tile and
    the "+" sit at the bottom of the ladder until pointed at.
    WHEN IT SHOWS. Two or more faces: always. One face: only while ⌥ is held, which is how
    it is found -- a route's single bundled font looks exactly as it did without it. None:
@@ -862,13 +865,71 @@ function defaultLevels(faces) {
    The "+" picker has its own input, mounted whether or not the tiles are: with one face
    the palette vanishes the moment ⌥ comes up -- which is when the picker opens -- and an
    input that unmounted with it would never hear what was picked.
-   TWO LOOKS, ON TRIAL. `?palette=panel` swaps the strip of small "Aa"s for a column of
-   large tiles, each an "Aa" at display size over the face's name, with a "+" tile of the
+   TWO LOOKS, ON TRIAL. `?palette=panel` swaps the strip of small "Rag"s for a column of
+   large tiles, each a "Rag" at display size over the face's name, with a "+" tile of the
    same size under them. Same placement, same visibility, same handlers -- only the look
    changes, so the two can be judged side by side. One of them goes once Mark has chosen.
-   Read once, here, like the route: it is a look, not state. */
+   Read once, here, like the route: it is a look, not state.
+   THE COIN (FACES.md, step 3b). A click picks a face and the scope says where it goes; a
+   drag says where. Hold a tile still for COIN_HOLD_MS, or drag it past the tap threshold,
+   and the tile becomes a COIN under the pointer -- the cursor itself is hidden for the
+   flight, the coin is the cursor. The coin is the PICKED tile's pill in flight, whichever
+   tile it came off: black with white letters in light, the surface with full ink in dark.
+   Pull away and it divides: the tile's ground is drawn in the goo layer at the tile's place
+   for the whole flight, so the neck between it and the coin stretches and breaks there, and
+   the tile's letters come back once the coin is COIN_NECK away -- the moment the neck has
+   gone. Within COIN_REACH of a ¶ block a halo of the same ground appears behind it, the
+   block's words invert on it as the picked tile's do, and the goo bridges coin and halo:
+   that bridge is the "you will land here". The chrome takes the coin too, told with dotted outlines instead of goo: the ¶
+   styles button springs its panel open after COIN_SPRING_MS under the coin, and each of the
+   panel's rows takes a drop on its "Rag" (inside the row, nearest wins). Released on a
+   block or a row, that level is assigned the face and the coin shrinks into it; anywhere
+   else it travels back and merges into its tile, and nothing changed.
+   POINTER EVENTS, NEVER AN HTML5 DRAG: the window listens for dragenter/drop to take FILE
+   drops, and a native drag would wake that overlay. use-gesture's filterTaps keeps a click
+   a click; a hold that lifted the coin eats the click its release would otherwise fire.
+   Reduced motion: no goo and no spring -- the coin follows the pointer and is gone on
+   release. The coin itself is FaceCoin, below. */
 const PALETTE_PANEL = new URLSearchParams(window.location.search).get('palette') === 'panel'
-function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove }) {
+const COIN_HOLD_MS = 250    // still for this long and the tile lifts
+const COIN_REACH = 40       // about a tile's width: coin centre to a block's box
+const COIN_NECK = 30        // coin centre to its tile's box when the neck breaks (blur 6, both looks)
+const COIN_SIZE = 51        // the coin's diameter, --coin-size in App.css
+const COIN_SPRING_MS = 300  // under the coin this long and the styles button opens its panel
+const coinRect = (r) => ({ left: r.left, top: r.top, width: r.width, height: r.height })
+const insideRect = (r, x, y) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
+const rectDistance = (r, x, y) => Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom))
+// The coin's two moves after a release, one frame loop: `at(ms)` gives { value, done }. Only
+// motion's spring generator is taken (under 2 kB); its `animate` would bring ~23 kB with it.
+const playCoin = (at, onUpdate, onDone) => {
+  const t0 = performance.now()
+  let id
+  const step = (now) => { const { value, done } = at(now - t0); onUpdate(value); if (done) onDone(); else id = requestAnimationFrame(step) }
+  id = requestAnimationFrame(step)
+  return { stop: () => cancelAnimationFrame(id) }
+}
+// What the coin at (x, y) would land on, read off the page as it is: an open styles panel's
+// row first (it floats over the stage), then the ¶ styles button, then the nearest ¶ block
+// within reach -- never a block under the panel. { el, level } | { el, spring } | null.
+function coinTarget(x, y) {
+  for (const el of document.querySelectorAll('.para-styles-panel [data-level]')) {
+    const row = el.closest('.ssd-row')
+    if (row && insideRect(row.getBoundingClientRect(), x, y)) return { el, level: el.dataset.level }
+  }
+  const btn = document.querySelector('[data-coin-spring]')
+  if (btn && insideRect(btn.getBoundingClientRect(), x, y)) return { el: btn, spring: true }
+  const panel = document.querySelector('.para-styles-panel')
+  if (panel && insideRect(panel.getBoundingClientRect(), x, y)) return null
+  let best = null
+  for (const el of document.querySelectorAll('.preview-paragraph .para-block')) {
+    const r = el.getBoundingClientRect()
+    const d = rectDistance(r, x, y)
+    const level = el.className.match(/\bpara-block--(h1|h2|h3|p)\b/)?.[1]
+    if (level && d <= COIN_REACH && (!best || d < best.d)) best = { el, level, d, halo: coinRect(r) }
+  }
+  return best
+}
+function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove, onDropFace, onSpring }) {
   const [alt, setAlt] = useState(false)
   const inputRef = useRef(null)
   useEffect(() => {
@@ -884,6 +945,99 @@ function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove }) {
       window.removeEventListener('blur', off)
     }
   }, [])
+
+  // The coin: { face, x, y, home, target, phase: 'drag' | 'home' | 'land', scale, squeeze, reduced }.
+  // The ref is the truth the gesture reads; the state is what renders.
+  const [coin, setCoin] = useState(null)
+  const coinRef = useRef(null)
+  const pressRef = useRef(null)    // { el, timer } for the press under way
+  const heldRef = useRef(false)    // this press lifted a coin: its click is not a pick
+  const springRef = useRef(null)
+  const animRef = useRef(null)
+  const update = (patch) => { coinRef.current = patch && { ...coinRef.current, ...patch }; setCoin(coinRef.current) }
+  const settle = () => { animRef.current?.stop(); animRef.current = null; clearTimeout(springRef.current); springRef.current = null; update(null) }
+  useEffect(() => () => { clearTimeout(pressRef.current?.timer); clearTimeout(springRef.current); animRef.current?.stop() }, [])
+
+  const lift = (face, x, y) => {
+    clearTimeout(pressRef.current.timer)
+    const el = pressRef.current.el
+    heldRef.current = true
+    update({
+      face, x, y, target: null, phase: 'drag', scale: 1, squeeze: 1,
+      home: { ...coinRect(el.getBoundingClientRect()), radius: getComputedStyle(el, '::before').borderRadius },
+      reduced: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    })
+  }
+  const move = (x, y) => {
+    const target = coinTarget(x, y)
+    if (target?.spring) springRef.current ??= setTimeout(onSpring, COIN_SPRING_MS)
+    else { clearTimeout(springRef.current); springRef.current = null }
+    update({ x, y, target })
+  }
+  const release = () => {
+    const c = coinRef.current
+    clearTimeout(springRef.current); springRef.current = null
+    const level = c.target?.level
+    if (level) onDropFace(c.face, level)
+    if (c.reduced) { update(null); return }
+    if (level) {
+      // Landed: the coin (and a block's halo with it) shrinks into the target.
+      update({ phase: 'land' })
+      animRef.current = playCoin(ms => ({ value: 1 - Math.min(1, ms / 180) ** 2, done: ms >= 180 }), s => update({ scale: s }), settle)
+    } else {
+      // Missed: back to the tile on a spring, merging into it as it arrives.
+      const { x, y, home } = c
+      const hx = home.left + home.width / 2, hy = home.top + home.height / 2
+      // Its ground narrows to the tile's height on the way, so what merges is the tile's own pill.
+      const fit = Math.min(1, home.height / COIN_SIZE)
+      update({ phase: 'home', target: null })
+      const back = spring({ keyframes: [0, 1], visualDuration: 0.3, bounce: 0.2 })
+      animRef.current = playCoin(ms => back.next(ms), t => update({ x: x + (hx - x) * t, y: y + (hy - y) * t, squeeze: 1 - (1 - fit) * t }), settle)
+    }
+  }
+  const press = (face, e) => {
+    if (e.button !== 0) return
+    if (coinRef.current) settle()
+    heldRef.current = false
+    clearTimeout(pressRef.current?.timer)
+    const el = e.currentTarget, x = e.clientX, y = e.clientY
+    pressRef.current = { el, timer: setTimeout(() => { lift(face, x, y); move(x, y) }, COIN_HOLD_MS) }
+  }
+  const bindDrag = useDrag(({ args: [face], active, last, tap, xy: [x, y] }) => {
+    if (tap) {
+      // Let go without moving: a plain click, unless the hold already lifted the coin.
+      clearTimeout(pressRef.current?.timer)
+      if (coinRef.current?.phase === 'drag') release()
+      return
+    }
+    if (active) {
+      if (coinRef.current?.phase !== 'drag') lift(face, x, y)
+      move(x, y)
+    } else if (last && coinRef.current?.phase === 'drag') release()
+  }, { filterTaps: true, threshold: 3, pointer: { keys: false } })
+
+  // While a coin flies the cursor is hidden (the coin is the cursor) and, until it is let go,
+  // the chrome's targets wear their dotted outlines; the one in reach steps up a rung.
+  const flying = !!coin, aiming = coin?.phase === 'drag'
+  useEffect(() => {
+    const root = document.documentElement
+    root.classList.toggle('face-coin-flying', flying)
+    root.classList.toggle('face-coin-aiming', aiming)
+    return () => root.classList.remove('face-coin-flying', 'face-coin-aiming')
+  }, [flying, aiming])
+  // The target in reach is marked on the page itself: a chrome target for its solid outline
+  // (until release), a block for lifting its words over its halo (until the coin is gone).
+  const reach = coin?.target && (aiming || (coin.phase === 'land' && coin.target.halo)) ? coin.target : null
+  const reachEl = reach?.el, reachAttr = reach?.halo ? 'data-coin-halo' : 'data-coin-reach'
+  useEffect(() => {
+    if (!reachEl) return
+    reachEl.setAttribute(reachAttr, '')
+    return () => reachEl.removeAttribute(reachAttr)
+  }, [reachEl, reachAttr])
+  // The tile a coin is off hands its ground to the goo for the whole flight, and its letters
+  // to the coin while the two are still one blob.
+  const joined = coin && !coin.reduced && rectDistance({ ...coin.home, right: coin.home.left + coin.home.width, bottom: coin.home.top + coin.home.height }, coin.x, coin.y) < COIN_NECK
+
   const shown = faces.length >= 2 || (faces.length === 1 && alt)
   const removable = alt && faces.length >= 2
   return (
@@ -896,21 +1050,32 @@ function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove }) {
         style={{ display: 'none' }}
         onChange={e => { const files = [...e.target.files]; e.target.value = ''; onAdd(files) }}
       />
+      {/* The goo: blur every ground, then cut the blurred alpha at a steep threshold, so
+          grounds that come within a blur of each other bridge and round into one. */}
+      <svg className="face-coin-defs" width="0" height="0" aria-hidden="true">
+        <filter id="wm-goo" colorInterpolationFilters="sRGB">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="6" />
+          <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" />
+        </filter>
+      </svg>
       {shown && (
         <div className={`face-palette${PALETTE_PANEL ? ' face-palette--panel' : ''}`} role="toolbar" aria-label="Faces">
           {faces.map(face => {
             const active = face.id === activeFaceId
+            const drag = bindDrag(face)
             return (
               <div key={face.id} className="face-tile-slot">
                 <button
-                  className={`face-tile${active ? ' active' : ''}`}
+                  className={`face-tile${active ? ' active' : ''}${coin && !coin.reduced && coin.face.id === face.id ? ` face-tile--source${joined ? ' face-tile--lifted' : ''}` : ''}`}
                   aria-pressed={active}
                   title={face.familyLabel}
-                  onClick={() => onPick(face)}
+                  {...drag}
+                  onPointerDown={e => { drag.onPointerDown(e); press(face, e) }}
+                  onClick={e => { if (heldRef.current && e.detail > 0) return; onPick(face) }}
                 >
                   {/* The letters are a stage: the proofed face's own metrics, not the line's. */}
-                  <span className="face-tile-aa" data-nosnap style={{ fontFamily: `"${face.fontFace.family}"` }}>
-                    A{face.italicFontFace ? <i>a</i> : 'a'}
+                  <span className="face-tile-rag" data-nosnap style={{ fontFamily: `"${face.fontFace.family}"` }}>
+                    Ra{face.italicFontFace ? <i>g</i> : 'g'}
                   </span>
                   {PALETTE_PANEL && <span className="face-tile-name">{face.familyLabel}</span>}
                 </button>
@@ -927,7 +1092,41 @@ function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove }) {
           </button>
         </div>
       )}
+      {coin && <FaceCoin coin={coin} />}
     </div>
+  )
+}
+
+/* FaceCoin: the coin in flight, a full-viewport overlay in a portal, in two layers.
+   The GOO layer holds GROUNDS only -- the tile's, at its place, for the whole flight; the
+   coin's, at the pointer; and a halo behind the ¶ block in reach -- all the PICKED pill's
+   ground (ink in light, the surface in dark), opaque and one colour, so the filter melts
+   them together. It is stacked over the stage's text and under the palette (App.css): the
+   palette goes groundless for the flight so its tiles' letters stand on the goo, and the
+   block in reach is lifted over the goo with its words in the pill's letter colour -- white
+   on black in light, the "you will land here" the bridge draws.
+   The LETTERS layer is above everything, unfiltered: the coin's face, a disc of the same
+   ground under the face's "Rag". Anything inside the goo is blurred and thresholded, so text
+   there would melt. */
+function FaceCoin({ coin }) {
+  const { face, x, y, home, target, scale, squeeze, reduced } = coin
+  const at = { transform: `translate(${x}px, ${y}px)` }
+  return createPortal(
+    <>
+      <div className={`face-coin-goo${reduced ? ' face-coin-goo--still' : ''}`} aria-hidden="true">
+        {!reduced && <div className="face-coin-ground" style={{ left: home.left, top: home.top, width: home.width, height: home.height, borderRadius: home.radius }} />}
+        {target?.halo && <div className="face-coin-ground face-coin-halo" style={target.halo} />}
+        <div className="face-coin-at" style={at}><div className="face-coin-ground face-coin-disc" style={{ scale: scale * squeeze }} /></div>
+      </div>
+      <div className="face-coin-top" aria-hidden="true">
+        <div className="face-coin-at" style={at}>
+          <div className="face-coin-face" style={{ scale, '--coin-squeeze': squeeze, fontFamily: `"${face.fontFace.family}"` }}>
+            Ra{face.italicFontFace ? <i>g</i> : 'g'}
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body,
   )
 }
 
@@ -2102,6 +2301,7 @@ export default function App() {
                 <button
                   ref={stylesPanelBtnRef}
                   className={`align-btn styles-toggle-btn ${paraStylesPanelOpen ? 'active' : ''}`}
+                  data-coin-spring
                   title="Styles panel"
                   onClick={() => setParaStylesPanelOpen(p => !p)}
                 >
@@ -2665,13 +2865,17 @@ export default function App() {
       />
 
       <main className="preview-area" ref={previewAreaRef}>
-        {/* A tile is "pick a face"; the scope decides what that does (pickFace). */}
+        {/* A tile is "pick a face"; the scope decides what that does (pickFace). A coin
+            dragged off a tile names its level itself: the same write as pickFace's in ¶,
+            to the level it was dropped on. The ¶ styles button opens under it. */}
         <FacePalette
           faces={faces}
           activeFaceId={activeFaceId}
           onPick={pickFace}
           onAdd={files => groupFiles(files).then(g => loadFonts(g, true))}
           onRemove={removeFace}
+          onDropFace={(face, level) => setParaStyles(prev => ({ ...prev, [level]: { ...prev[level], face: face.id } }))}
+          onSpring={() => setParaStylesPanelOpen(true)}
         />
         {!fontName && (
           <div className="empty-state">
@@ -3156,7 +3360,8 @@ export default function App() {
                      three put together, so the list stops being a list of four choices and
                      becomes one big word with three footnotes. The size is already in the
                      chip, stated exactly; the specimen is here to show the FACE. */
-                  label: 'Rag',
+                  /* Wrapped so a face coin can find the row's level (FacePalette). */
+                  label: <span data-level={type}>Rag</span>,
                   labelStyle: {
                     fontFamily: r.fontFace ? `"${r.fontFace.family}"` : 'serif',
                     fontStyle,

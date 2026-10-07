@@ -559,10 +559,41 @@
   overflow: visible;
   cursor: pointer;
   transition: color var(--dur-fast, 140ms) ease;
+  /* The ground below is its own layer under the letters; and a press may become a coin
+     drag (FacePalette), which is pointer events throughout -- no scrolling, no selecting. */
+  position: relative;
+  isolation: isolate;
+  touch-action: none;
+  user-select: none;
 }
-.face-tile-aa { display: block; white-space: nowrap; }
+/* "Rag" is wider than the "Aa" it replaced: the floor grows, the 27 does not. */
+.face-tile-slot > .face-tile { min-width: 48px; }
+.face-tile-rag { display: block; white-space: nowrap; }
 .face-tile:not(.active):is(:hover, :focus-visible) { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62)); }
 .face-tile.active { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1)); }
+/* THE PICKED TILE MORPHS INTO A BUTTON: a pill ground, the chip's 27, grows in under the
+   letters as the click lands -- scale and opacity at --dur-fast, so it reads as the tile
+   becoming the button, not one swapped for another. In dark the ground is the surface and
+   the letters carry the HDR white below; in light it is inverted, ink for the ground and the
+   stage colour for the letters, as the panel look's chosen tile already is. */
+.face-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+  background: var(--surface, var(--bg-elevated, #2e2e2e));
+  opacity: 0;
+  transform: scale(.6);
+  transition: opacity var(--dur-fast, 140ms) ease, transform var(--dur-fast, 140ms) ease;
+}
+.face-tile.active::before { opacity: 1; transform: none; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .face-tile::before { background: var(--text, #111111); }
+  :root:not([data-theme="dark"]) .face-tile.active { color: var(--bg, #f5faff); }
+}
+:root[data-theme="light"] .face-tile::before { background: var(--text, #111111); }
+:root[data-theme="light"] .face-tile.active { color: var(--bg, #f5faff); }
 .face-tile:focus { outline: none; }
 .face-tile:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 2px; }
 /* The "+" and the corner mark are .wm-icon-btn, so the mark's own hover rung comes with
@@ -588,12 +619,12 @@
    the letters cannot go transparent. On an SDR screen the swatch itself reads as white,
    which in dark IS full ink, so nothing changes there or in a screenshot.
    The background box is grown by a pad that a matching negative margin gives straight
-   back: background-clip paints only inside the box, and an italic a's overhang runs past
+   back: background-clip paints only inside the box, and an italic g's overhang runs past
    its advance -- without the pad its right edge would be cut off clean.
    SIZE DECIDES WHETHER IT SHOWS. Measured on the poster: strong at display sizes, gone by
    about 10px, where antialiased edge pixels composite the headroom away. The 18px strip is
-   on the margin; the panel's display-size "Aa" is where it was built to land. */
-.face-tile.active .face-tile-aa {
+   on the margin; the panel's display-size "Rag" is where it was built to land. */
+.face-tile.active .face-tile-rag {
   padding: var(--spacing-02, 6px);
   margin: calc(-1 * var(--spacing-02, 6px));
   color: transparent;
@@ -614,7 +645,7 @@
    colour on the panel's inverted tile). Stated twice, as icon.css does: the media query
    cannot reach someone who has chosen light against an OS set to dark. */
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .face-tile.active .face-tile-aa {
+  :root:not([data-theme="dark"]) .face-tile.active .face-tile-rag {
     color: inherit;
     background-image: none;
     -webkit-background-clip: border-box;
@@ -622,7 +653,7 @@
     dynamic-range-limit: standard;
   }
 }
-:root[data-theme="light"] .face-tile.active .face-tile-aa {
+:root[data-theme="light"] .face-tile.active .face-tile-rag {
   color: inherit;
   background-image: none;
   -webkit-background-clip: border-box;
@@ -632,10 +663,10 @@
 
 /* ── Face palette, variant B: the panel (?palette=panel) ──────────────────── */
 /* Mark's sketch, at the size he drew it: a column of tiles about 220 wide, each a dark
-   ground with a big "Aa", and a grey tile of the same size with a big "+" under them.
+   ground with a big "Rag", and a grey tile of the same size with a big "+" under them.
    Same anchor, padding and ground as the strip -- only the tiles change.
    ON THE LINE: a tile is 129px, 43 units, and its insides fill it exactly: 30 above, the
-   "Aa" on a display line (51, 17 units), a tick, the name on a label line (15, 5 units),
+   "Rag" on a display line (51, 17 units), a tick, the name on a label line (15, 5 units),
    30 below. 30 + 51 + 3 + 15 + 30 = 129, which is what centring a 69px column in a
    129px tile gives anyway. Tiles stand 6px apart (two units). Width is the free axis.
    GROUNDS. At rest a tile sits one step up from the stage, on the surface the side rail's
@@ -643,7 +674,7 @@
    ACTIVE is inverted in light: the ink becomes the ground and the letters take the stage
    colour, the loudest thing on the page and the only dark block on it. In dark it keeps
    the surface and the letters carry the HDR white above -- on an HDR screen the chosen
-   "Aa" is the brightest thing on the page; on SDR it reads as full ink against faint. */
+   "Rag" is the brightest thing on the page; on SDR it reads as full ink against faint. */
 .face-palette--panel {
   flex-direction: column;
   align-items: stretch;
@@ -659,7 +690,8 @@
   background: var(--surface, var(--bg-elevated, #2e2e2e));
   transition: color var(--dur-fast, 140ms) ease, background-color var(--dur-fast, 140ms) ease;
 }
-.face-palette--panel .face-tile-aa {
+.face-palette--panel .face-tile::before { border-radius: inherit; }
+.face-palette--panel .face-tile-rag {
   font-size: var(--type-display-size, 2.8125rem);
   line-height: var(--lead-display, var(--type-display-lead, 51px));
 }
@@ -698,6 +730,133 @@
    size) and centred. Its ink is the strip's -- faint, quiet under the pointer. */
 .face-palette--panel .face-tile--add { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-faint, .38)); }
 .face-palette--panel .face-tile--add:not(.active):is(:hover, :focus-visible) { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62)); }
+
+/* ── Face coin (FaceCoin in App.jsx) ─────────────────────────────────────── */
+/* Two fixed, full-viewport layers in a portal, taking no pointer.
+   GOO: grounds only, filtered by #wm-goo (blur 6, alpha x18 - 7). Every ground is the PICKED
+   pill's -- the surface in dark, ink in light -- so the coin reads as that pill dividing and
+   the filter melts one colour. z 40: over the stage's text, under the face palette's anchor
+   (50). Neither the stage nor the anchor's parents make a stacking context, so the two
+   meet in the root one and these numbers compare. For the flight the palette drops its
+   ground, so the goo's tile ground shows under the tile's own letters; and the block in
+   reach is lifted to 41, over its halo, with its words in the pill's letter colour.
+   TOP: the coin's face, unfiltered, over everything -- a disc of the same ground under its
+   "Rag" in the pill's letter colour.
+   The coin is 51px (seventeen units, the display line) and round -- a circle opts out of
+   the house superellipse, as corners.css's list does. Not on the line: it floats. */
+.face-coin-defs { position: absolute; }
+.face-coin-goo,
+.face-coin-top {
+  --coin-size: 51px;
+  --coin-squeeze: 1;
+  --coin-ground: var(--surface, var(--bg-elevated, #2e2e2e));
+  --coin-ink: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1));
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.face-coin-goo { z-index: 40; filter: url(#wm-goo); }
+.face-coin-top { z-index: 1000; }
+.face-coin-goo--still { filter: none; }
+.face-coin-ground {
+  position: absolute;
+  background: var(--coin-ground);
+}
+/* The halo stands 12px out from the block's box: with the coin's edge 14.5px off the box at
+   the limit of reach, that leaves a gap the blur can still bridge, so the bridge forms the
+   moment the halo does. Grown by a pad that a matching negative margin gives back, so the
+   measured box stays the inline left/top/width/height. */
+.face-coin-halo {
+  box-sizing: content-box;
+  padding: var(--spacing-04, 12px);
+  margin: calc(-1 * var(--spacing-04, 12px));
+  border-radius: var(--radius, 6px);
+}
+.face-coin-at { position: absolute; left: 0; top: 0; }
+.face-coin-disc,
+.face-coin-face {
+  position: absolute;
+  left: calc(var(--coin-size) / -2);
+  top: calc(var(--coin-size) / -2);
+  width: var(--coin-size);
+  height: var(--coin-size);
+  border-radius: 50%;
+  corner-shape: round;
+  animation: face-coin-lift var(--dur-fast, 140ms) ease-out;
+}
+/* The face's disc is its own layer so it can narrow to the tile's height on the way home
+   (--coin-squeeze, set by FaceCoin) while the letters keep their size. */
+.face-coin-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+  font-size: var(--type-lede-size, 1.125rem);
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--coin-ink);
+}
+.face-coin-face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  corner-shape: round;
+  background: var(--coin-ground);
+  scale: var(--coin-squeeze, 1);
+}
+/* The flight's page-side half: the palette without its ground, the block in reach over its
+   halo. Its words take the pill's letter colour; in dark that is the ink they already have.
+   The block sets its own colour inline as var(--text), so it is --text that is turned. */
+.face-coin-flying .face-palette { background: none; }
+.face-coin-flying [data-coin-halo] { z-index: 41; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .face-coin-goo,
+  :root:not([data-theme="dark"]) .face-coin-top { --coin-ground: var(--text, #111111); --coin-ink: var(--bg, #f5faff); }
+  :root:not([data-theme="dark"]).face-coin-flying [data-coin-halo] { --text: var(--bg, #f5faff); }
+}
+:root[data-theme="light"] .face-coin-goo,
+:root[data-theme="light"] .face-coin-top { --coin-ground: var(--text, #111111); --coin-ink: var(--bg, #f5faff); }
+:root[data-theme="light"].face-coin-flying [data-coin-halo] { --text: var(--bg, #f5faff); }
+/* THE TILE A COIN IS OFF. For the whole flight the goo layer draws its ground (FaceCoin), so
+   its own steps out and its letters take the picked pill's colour -- whichever tile it was,
+   what stays behind is the picked pill.
+   While the coin and the tile are still one blob the coin carries the letters too, so the
+   tile steps out entirely. Opacity, not visibility -- it holds the pointer capture.
+   After the panel look's rules, and as specific as its hover, so a hovered tile obeys. */
+.face-palette .face-tile.face-tile--source:not(.face-tile--add) {
+  color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1));
+  background: none;
+}
+.face-palette .face-tile.face-tile--source::before { opacity: 0; transition: none; }
+.face-palette .face-tile--source .face-tile-name { color: inherit; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .face-palette .face-tile.face-tile--source:not(.face-tile--add) { color: var(--bg, #f5faff); }
+}
+:root[data-theme="light"] .face-palette .face-tile.face-tile--source:not(.face-tile--add) { color: var(--bg, #f5faff); }
+.face-tile.face-tile--lifted { opacity: 0; }
+/* The tile becoming the coin: it grows out of the tile's size into its own. */
+@keyframes face-coin-lift { from { transform: scale(.6); } }
+@media (prefers-reduced-motion: reduce) {
+  .face-coin-goo { filter: none; }
+  .face-coin-disc, .face-coin-face { animation: none; }
+}
+/* The coin is the cursor while it flies. Every element, because each control names its own. */
+.face-coin-flying,
+.face-coin-flying * { cursor: none !important; }
+/* The chrome's drop targets, told while the coin is held: dotted at the quiet rung, solid
+   at full ink on the one in reach. The goo is the stage's tell; this is the rail's. */
+.face-coin-aiming [data-coin-spring],
+.face-coin-aiming .para-styles-panel [data-level] {
+  outline: 1px dotted rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62));
+  outline-offset: var(--tick, 3px);
+}
+.face-coin-aiming [data-coin-spring][data-coin-reach],
+.face-coin-aiming .para-styles-panel [data-level][data-coin-reach] {
+  outline-style: solid;
+  outline-color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1));
+}
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {

@@ -49,12 +49,12 @@ entry carries axes. The bundled-route family code and the dropped-family code ar
 
 An italic is an attribute of its face, never a tile: the Roman/Italic toggle keeps scoping
 per level, and inline *italic* emphasis resolves through the face's own italic. A lone
-italic file with no roman is its own face. A tile whose face has an italic sets its second
-letter in italic, "A*a*" — that is all the UI it needs.
+italic file with no roman is its own face. A tile whose face has an italic sets its g in
+italic, "Ra*g*", the letter where an italic differs most -- that is all the UI it needs.
 
 ## The palette (bottom right)
 
-A tile per face, set in that face as "Aa", plus a dim "+" tile. Bottom right of the stage.
+A tile per face, set in that face as "Rag" -- the same specimen the ¶ styles panel rows use (ascender, descender, round, diagonal), decided 2026-10-07 -- plus a dim "+" tile. Bottom right of the stage.
 
 - One face loaded: hidden. Hold ⌥ and it appears, one tile and the "+". You still have
   to hold ⌥ to find it; the drop overlay tells you it exists, ⌥ is how you reach it.
@@ -89,25 +89,41 @@ selects at 27px, vertical space in units). Nothing else. Decided 2026-10-07.
 
 ### Two looks, undecided until ship
 
-The tiny strip (27px "Aa" tiles in a row) and the panel (220×129 tiles stacked, display
-"Aa" over the family name) are both built; `?palette=panel` on the URL shows the panel,
+The tiny strip (27px "Rag" tiles in a row) and the panel (220×129 tiles stacked, display
+"Rag" over the family name) are both built; `?palette=panel` on the URL shows the panel,
 the strip is the default. Neither is deleted until ship. In dark mode the active face's
-"Aa" is HDR white in both (icon.css's swatch and gate).
+"Rag" is HDR white in both (icon.css's swatch and gate).
 
 ## Dragging a face onto a block (step 3b)
 
 Clicking a tile picks a face and the scope decides where it goes; dragging a tile says where.
-Press and hold an "Aa" and it lifts off as a COIN, a circle with the letters in it, and
+Press and hold an "Rag" and it lifts off as a COIN, a circle with the letters in it, and
 follows the pointer. Every drop target can take it: each paragraph block (its level takes the
 face), later the scale tiers and the role panels. Released on a block, that level is
 assigned; released anywhere else, the coin snaps back and nothing changes. The click model
 stays; drag is the precise version, and it answers ¶ view's "P is always the scope".
 
+Three beats (Mark, 2026-10-07). CLICK: the tile morphs into the active state, a button-shaped
+ground with inverted letters (black/white in light, surface/HDR in dark), in both looks, so
+the strip's active tile is a filled pill, not just full ink. HOLD: the circle REPLACES the
+cursor; the tile is the coin, one blob under your hand. DRAG AWAY: mitosis -- the blob
+divides, the "Rag" button is back in its place and the circle travels as the cursor. Release
+on a block assigns and the coin shrinks into it; release elsewhere and the coin travels
+back and merges into its tile, reverse mitosis, then the cursor returns.
+
+The chrome is a target too, and it says so with DOTTED LINES, not goo (Mark, 2026-10-07).
+While a coin is in flight the ¶ styles button gets a dotted outline; hover the coin on it
+and the panel springs open. Each row's "Rag" in the open panel gets a dotted outline; drop
+on a row and that level takes the face, and the row's "Rag" re-renders in it -- the replace
+made visible. Goo is for the stage blocks only; dotted is for chrome. So the targets in ¶
+view are the blocks (goo halo), the styles button (dotted, spring-opens) and the panel rows
+(dotted, assign).
+
 The look is GOOEY. The coin stretches off its tile with a neck that breaks, and within reach
 of a target the two edges bridge and round into each other -- the metaball bridge IS the
 "you are about to land here", not a highlight. SVG goo filter (blur, then an alpha contrast
 step) over one layer holding only GROUNDS: the tile's, the coin's, the target's halo. The
-"Aa" and the block's words sit above it unfiltered, since anything inside the goo blurs.
+"Rag" and the block's words sit above it unfiltered, since anything inside the goo blurs.
 Reach is about a tile's width: inside it the bridge forms and release assigns. Pointer
 events (`@use-gesture/react` is already a dependency), never an HTML5 drag, so the
 file-drop overlay does not wake. `prefers-reduced-motion`: the coin still moves, the goo
@@ -117,10 +133,10 @@ and the spring go. Decided 2026-10-07; built after step 3.
 
 At the mobile breakpoint (≤768px) the stage is short and a floating palette sits on the
 last line of text, so the palette becomes a side drawer on the right edge. Collapsed, a
-5px slice of the TILES peeks from the edge -- the first sliver of each "Aa", not a blank
+5px slice of the TILES peeks from the edge -- the first sliver of each "Rag", not a blank
 handle -- so the sliver already says what is in there: that is the whole hint, no label, no
 coachmark. Pulled open, it is a column of tiles 51px high (17 units; 50 was the first
-number, 51 is the one on the line, and both clear the 44px touch floor) with the "Aa" at
+number, 51 is the one on the line, and both clear the 44px touch floor) with the "Rag" at
 display size, the same ink ladder as the desktop palette. Tap outside or push it back to
 close. It is the first page-level gesture in the app (GESTURES.md promises only the
 rail's), so it is built with the drawer's own rules written there. A phone sees two faces
