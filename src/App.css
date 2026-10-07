@@ -508,6 +508,77 @@
   container-name: preview;
 }
 
+/* ── Face palette ────────────────────────────────────────────────────────── */
+/* FacePalette (App.jsx) says when it shows. Bottom right of the STAGE, not the viewport: on
+   a phone the sidebar sits under the preview and a fixed box would land on it. So the
+   anchor is a zero-height sticky first child of .preview-area, held 100% of the scrollport
+   down (a sticky inset resolves against the scrollport), and the palette hangs off it --
+   on the stage's visible bottom edge however far the stage scrolls, taking no room in it.
+   It has the stage's own ground, so it is invisible until text scrolls under it.
+   ON THE LINE: a tile is one lede line, 27px -- the chip's height, nine units -- with no
+   padding to add; the palette pads it 6px each side (39, thirteen units) and stands 12px
+   (four) off the bottom. The 16 off the right edge is not the line's (the inline axis is
+   free): it is what puts the "+" mark's right edge under the theme marks' at the top. */
+.face-palette-anchor {
+  position: sticky;
+  top: 100%;
+  height: 0;
+  z-index: 50;
+}
+.face-palette {
+  --snap-unit: 1;
+  position: absolute;
+  right: var(--spacing-05, 16px);
+  bottom: var(--spacing-04, 12px);
+  display: flex;
+  align-items: center;
+  column-gap: var(--spacing-01, 4px);
+  padding: var(--spacing-02, 6px);
+  background: var(--bg, #242424);
+  border-radius: var(--radius, 6px);
+}
+.face-tile-slot { position: relative; display: flex; }
+/* The ink ladder, as the block style rail uses it: faint at rest, quiet under the pointer,
+   full only on the active face. The letters are a stage (data-nosnap) in the proofed face,
+   whose own ascent and descent are not the line's, so the TILE holds the 27: a min-height
+   and a lede leading, overflow visible -- a tall face paints past the box, it never grows it. */
+.face-tile {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 27px;
+  min-height: 27px;
+  padding: 0 var(--spacing-02, 6px);
+  font-size: var(--type-lede-size, 1.125rem);
+  line-height: var(--lead-lede, var(--type-lede-lead, 27px));
+  color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-faint, .38));
+  background: none;
+  border: 0;
+  border-radius: var(--radius, 6px);
+  overflow: visible;
+  cursor: pointer;
+  transition: color var(--dur-fast, 140ms) ease;
+}
+.face-tile-aa { display: block; white-space: nowrap; }
+.face-tile:not(.active):is(:hover, :focus-visible) { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62)); }
+.face-tile.active { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1)); }
+.face-tile:focus { outline: none; }
+.face-tile:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 2px; }
+/* The "+" and the corner mark are .wm-icon-btn, so the mark's own hover rung comes with
+   them; these rules are unlayered and set the box over that layer's padding. */
+.face-tile--add { padding: 0; }
+/* A 12px mark centred on the tile's corner, in an 18px target: the 3px pad is reach, not look. */
+.face-tile-remove {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  padding: var(--tick, 3px);
+  background: var(--bg, #242424);
+  border-radius: 999px;
+  corner-shape: round;
+}
+
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
   display: flex;

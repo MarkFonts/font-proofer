@@ -80,6 +80,13 @@ A tile per face, set in that face as "Aa", plus a dim "+" tile. Bottom right of 
 - In ¶ view P is always the scope, so a tile click there changes the paragraph face.
   That is the expected behaviour.
 
+## The grid, as far as it goes here
+
+The proofer does not adopt the wm-primitives grid: no `.wm-lines` root, no gridSnap, no
+`lines` lint on App.css. The stage is the client's font and stays that way. What sits on the
+3px line is the chrome: the palette (this work) and the side rail's controls (chips, buttons,
+selects at 27px, vertical space in units). Nothing else. Decided 2026-10-07.
+
 ## Consequences
 
 - The CalSans / Inter radio in the calcom route goes. Inter is a bundled second face in

@@ -800,6 +800,81 @@ const groupFiles = async (list) => {
   }))
 }
 
+/* The FACE PALETTE: a tile per face in the set, each an "Aa" set in that face (the second
+   letter in its italic, when it has one), and a dim "+" that adds. It sits in the stage's
+   bottom-right corner the way the theme marks sit top right, and it is furniture, not a
+   toolbar: the active face's tile is the one thing in it at full ink, every other tile and
+   the "+" sit at the bottom of the ladder until pointed at.
+   WHEN IT SHOWS. Two or more faces: always. One face: only while ⌥ is held, which is how
+   it is found -- a route's single bundled font looks exactly as it did without it. None:
+   nothing. Holding ⌥ also puts a corner mark on every tile but a lone one; the mark removes
+   that face. ⌥ pressed WITH another key is a modifier being used (typing é in an edited
+   paragraph), not a reach for the palette, so that hides it again.
+   The "+" picker has its own input, mounted whether or not the tiles are: with one face
+   the palette vanishes the moment ⌥ comes up -- which is when the picker opens -- and an
+   input that unmounted with it would never hear what was picked. */
+function FacePalette({ faces, activeFaceId, onPick, onAdd, onRemove }) {
+  const [alt, setAlt] = useState(false)
+  const inputRef = useRef(null)
+  useEffect(() => {
+    const down = (e) => setAlt(e.key === 'Alt')
+    const up = (e) => { if (e.key === 'Alt') setAlt(false) }
+    const off = () => setAlt(false)
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', off)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', off)
+    }
+  }, [])
+  const shown = faces.length >= 2 || (faces.length === 1 && alt)
+  const removable = alt && faces.length >= 2
+  return (
+    <div className="face-palette-anchor">
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".ttf,.otf,.woff,.woff2,.ttc"
+        multiple
+        style={{ display: 'none' }}
+        onChange={e => { const files = [...e.target.files]; e.target.value = ''; onAdd(files) }}
+      />
+      {shown && (
+        <div className="face-palette" role="toolbar" aria-label="Faces">
+          {faces.map(face => {
+            const active = face.id === activeFaceId
+            return (
+              <div key={face.id} className="face-tile-slot">
+                <button
+                  className={`face-tile${active ? ' active' : ''}`}
+                  aria-pressed={active}
+                  title={face.familyLabel}
+                  onClick={() => onPick(face)}
+                >
+                  {/* The letters are a stage: the proofed face's own metrics, not the line's. */}
+                  <span className="face-tile-aa" data-nosnap style={{ fontFamily: `"${face.fontFace.family}"` }}>
+                    A{face.italicFontFace ? <i>a</i> : 'a'}
+                  </span>
+                </button>
+                {removable && (
+                  <button className="face-tile-remove wm-icon-btn" aria-label={`Remove ${face.familyLabel}`} title={`Remove ${face.familyLabel}`} onClick={() => onRemove(face)}>
+                    <Icon name="close" size={12} />
+                  </button>
+                )}
+              </div>
+            )
+          })}
+          <button className="face-tile face-tile--add wm-icon-btn" title="Add fonts to the set" onClick={() => inputRef.current?.click()}>
+            <Icon name="add" size={18} />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const { clientSlug, fontSlug } = parseRoute()
@@ -1167,6 +1242,20 @@ export default function App() {
   }
   // Adds are silent: the faces join the set and the active face stays as it is.
   const addFaces = (faceList) => setFaceSet([...facesRef.current, ...faceList])
+  // One face leaves the set and gives back its object URLs (its FontFaces stay registered,
+  // as a replaced set's do). If it was the active one, the first that remains takes over --
+  // and a TTC member switched in by selectTTCFont has a URL of its own to give back too.
+  // The last face is never removed: the palette offers no mark on a lone tile.
+  const removeFace = (face) => {
+    const rest = facesRef.current.filter(f => f !== face)
+    if (!rest.length) return
+    setFaceSet(rest)
+    face.objectUrls.forEach(u => URL.revokeObjectURL(u))
+    if (face.id === activeFaceId) {
+      if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
+      activateFace(rest[0])
+    }
+  }
 
   // Every group of a drop (or pick) becomes a face, in order. The set is replaced and the
   // first face activated -- unless `add` (⌥ held) and a face is already loaded, when they
@@ -2473,6 +2562,16 @@ export default function App() {
       />
 
       <main className="preview-area" ref={previewAreaRef}>
+        {/* A tile is the GLOBAL pick: the face becomes the font, a reset. Step 3 (FACES.md)
+            adds the scoped pick beside it, and the global one then also nulls every
+            per-scope assignment -- there are none yet. */}
+        <FacePalette
+          faces={faces}
+          activeFaceId={activeFaceId}
+          onPick={activateFace}
+          onAdd={files => groupFiles(files).then(g => loadFonts(g, true))}
+          onRemove={removeFace}
+        />
         {!fontName && (
           <div className="empty-state">
             <img src={logoGif} alt="Logo" className="empty-logo" />
