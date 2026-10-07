@@ -867,7 +867,7 @@ function defaultLevels(faces) {
    input that unmounted with it would never hear what was picked.
    TWO MARKS ON A TILE. The pill is the font (the active face, the header's). In ¶ view a tile
    click assigns the scoped level and the pill stays put, so the tile the scoped level draws
-   in carries a dotted outline of its own, the coin's target look: dotted = this level's face.
+   in carries a dot under it, the dock's "running" mark: the dot = this level's face.
    A tile can be both. Nothing is dotted outside ¶.
    TWO LOOKS, ON TRIAL. `?palette=panel` swaps the strip of small "Rag"s for a column of
    large tiles, each a "Rag" at display size over the face's name, with a "+" tile of the
@@ -881,8 +881,9 @@ function defaultLevels(faces) {
    tile it came off: ink ground, page letters -- black/white in light, white/dark in dark.
    Pull away and it divides: the tile's ground is drawn in the goo layer at the tile's place
    for the whole flight, so the neck between it and the coin stretches and breaks there.
-   The tile is never an empty pill: its letters fade back in with the coin's travel from
-   where it lifted, full by COIN_FADE. And while the two are one blob the coin's letters
+   The tile is never an empty pill: its letters fade back in as the neck grows, from nothing
+   until COIN_FADE (the disc has mostly cleared them; sooner and the coin cuts them mid-neck)
+   to full at COIN_NECK, where it breaks. And while the two are one blob the coin's letters
    STRETCH along the pull, up to COIN_PULL wider at COIN_NECK, then ease back as the neck
    breaks (once per flight) -- the word warps out and leaves a copy behind. Reduced motion
    has no neck, so no stretch. Within COIN_REACH of a ¶ block a halo of the same ground appears behind it, the
@@ -904,7 +905,7 @@ const PALETTE_PANEL = new URLSearchParams(window.location.search).get('palette')
 const COIN_HOLD_MS = 250    // still for this long and the tile lifts
 const COIN_REACH = 40       // about a tile's width: coin centre to a block's box
 const COIN_NECK = 30        // coin centre to its tile's box when the neck breaks (blur 6, both looks)
-const COIN_FADE = 21        // the coin's travel from its lift point by which the tile's letters are back
+const COIN_FADE = 12        // the neck's length before the tile's letters start back (full at COIN_NECK)
 const COIN_PULL = 0.35      // the coin's letters at the neck's limit: this much wider along the pull
 const COIN_SIZE = 51        // the coin's diameter, --coin-size in App.css
 const COIN_SPRING_MS = 300  // under the coin this long and the styles button opens its panel
@@ -960,8 +961,8 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd
     }
   }, [])
 
-  // The coin: { face, x, y, from, home, target, phase: 'drag' | 'home' | 'land', broke, scale, squeeze, reduced }.
-  // `from` is where it lifted; `broke` latches once the neck has broken this flight.
+  // The coin: { face, x, y, home, target, phase: 'drag' | 'home' | 'land', broke, scale, squeeze, reduced }.
+  // `broke` latches once the neck has broken this flight.
   // The ref is the truth the gesture reads; the state is what renders.
   const [coin, setCoin] = useState(null)
   const coinRef = useRef(null)
@@ -978,7 +979,7 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd
     const el = pressRef.current.el
     heldRef.current = true
     update({
-      face, x, y, from: { x, y }, target: null, phase: 'drag', broke: false, scale: 1, squeeze: 1,
+      face, x, y, target: null, phase: 'drag', broke: false, scale: 1, squeeze: 1,
       home: { ...coinRect(el.getBoundingClientRect()), radius: getComputedStyle(el, '::before').borderRadius },
       reduced: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     })
@@ -1050,8 +1051,8 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd
     return () => reachEl.removeAttribute(reachAttr)
   }, [reachEl, reachAttr])
   // The tile a coin is off hands its ground to the goo for the whole flight; its letters
-  // fade back in with the coin's travel, from nothing at the lift to full by COIN_FADE.
-  const sourceInk = coin && !coin.reduced ? Math.min(1, Math.hypot(coin.x - coin.from.x, coin.y - coin.from.y) / COIN_FADE) : 1
+  // fade back in with the neck, nothing until COIN_FADE, full at COIN_NECK.
+  const sourceInk = coin && !coin.reduced ? Math.min(1, Math.max(0, neckLength(coin.home, coin.x, coin.y) - COIN_FADE) / (COIN_NECK - COIN_FADE)) : 1
 
   const shown = faces.length >= 2 || (faces.length === 1 && alt)
   const removable = alt && faces.length >= 2
@@ -1767,6 +1768,16 @@ export default function App() {
   const scopedWeight = !styleScope ? currentStyleKey
     : scopedFace === activeFace ? (paraStyles[styleScope].weight ?? currentStyleKey)
     : (scopedStyles.find(st => st.key === paraStyles[styleScope].weight)?.key ?? defaultStyleKey(scopedStyles))
+  // The axis sliders, named instances and Roman/Italic follow the scope's face the same way
+  // (FACES.md: the sliders show the axes of whichever face the scope uses). `otherFace` is
+  // that face only when it is not the active one: its sliders read the face's own defaults
+  // under the level's overrides and write the overrides alone -- axisValues are the active
+  // face's and never take another face's numbers. Inherited, everything reads as before.
+  const otherFace = scopedFace && scopedFace !== activeFace ? scopedFace : null
+  const controlAxes = otherFace ? otherFace.axes : variationAxes
+  const controlInstances = otherFace ? otherFace.namedInstances : namedInstances
+  const controlItalicFace = otherFace ? otherFace.italicFontFace : italicFontFace
+  const controlBase = otherFace ? axisDefaults(otherFace.axes) : axisValues
   const scopedItalic = styleScope ? (paraStyles[styleScope].italic ?? isItalic) : isItalic
   const setScopedField = (field, value) =>
     setParaStyles(prev => ({ ...prev, [styleScope]: { ...prev[styleScope], [field]: value } }))
@@ -1926,8 +1937,8 @@ export default function App() {
   // What a level reads its font from. The sliders (axisValues, weightFamilies, fontFace)
   // are the active face's, so a level assigned to another face reads that face's record
   // instead: its own axis defaults under the level's overrides, minus any tag the face
-  // lacks. (Step 4 makes the sliders follow the scope; until then they only reach the
-  // active face.) Inherited, or assigned to the active face itself, it is all as it was.
+  // lacks; the sliders write those overrides when the level is scoped (otherFace).
+  // Inherited, or assigned to the active face itself, it is all as it was.
   const faceReads = (s) => {
     const other = s.face && s.face !== activeFaceId ? faces.find(f => f.id === s.face) : null
     if (!other) return { axes: variationAxes, weightFamilies, fontFace, hasItalic: isFamily || !!italicFontFace, weight: currentStyleKey, axisValues: { ...axisValues, ...s.axisOverrides } }
@@ -2593,22 +2604,26 @@ export default function App() {
   <Chevron dir={-1} width={12} height={7} />
             </span>
           )}
-          {(italicFontFace || variationAxes.some(a => a.tag === 'ital')) && (() => {
-            const italAxis = variationAxes.find(a => a.tag === 'ital')
+          {(controlItalicFace || controlAxes.some(a => a.tag === 'ital')) && (() => {
+            const italAxis = controlAxes.find(a => a.tag === 'ital')
+            // Another face's ital is the level's, like the rest of its axes.
+            const setItal = v => otherFace
+              ? setParaStyles(prev => ({ ...prev, [styleScope]: { ...prev[styleScope], axisOverrides: { ...prev[styleScope].axisOverrides, ital: v } } }))
+              : setAxisValues(prev => ({ ...prev, ital: v }))
             return (
               <div className="roman-italic-toggle">
                 <button
                   className={`roman-italic-btn${!scopedItalic ? ' active' : ''}`}
                   onClick={() => {
                     setScopedItalic(false)
-                    if (italAxis) setAxisValues(prev => ({ ...prev, ital: italAxis.min ?? 0 }))
+                    if (italAxis) setItal(italAxis.min ?? 0)
                   }}
                 >Roman</button>
                 <button
                   className={`roman-italic-btn${scopedItalic ? ' active' : ''}`}
                   onClick={() => {
                     setScopedItalic(true)
-                    if (italAxis) setAxisValues(prev => ({ ...prev, ital: italAxis.max ?? 1 }))
+                    if (italAxis) setItal(italAxis.max ?? 1)
                   }}
                 >Italic</button>
               </div>
@@ -2636,17 +2651,17 @@ export default function App() {
   <Chevron dir={-1} width={12} height={7} />
             </span>
           )}
-          {namedInstances.length > 0 && (() => {
+          {controlInstances.length > 0 && (() => {
             const currentCoords = effectiveScaleStep
               ? { ...axisValues, ...scaleAxisOverrides[effectiveScaleStep] }
               : effectiveParaStyle
-              ? { ...axisValues, ...paraStyles[effectiveParaStyle].axisOverrides }
+              ? { ...controlBase, ...paraStyles[effectiveParaStyle].axisOverrides }
               : axisValues
-            const activeInst = namedInstances.find(inst =>
-              variationAxes.every(a => (currentCoords[a.tag] ?? a.defaultVal) === inst.coordinates[a.tag])
+            const activeInst = controlInstances.find(inst =>
+              controlAxes.every(a => (currentCoords[a.tag] ?? a.defaultVal) === inst.coordinates[a.tag])
             )
             const applyInstance = (name) => {
-              const inst = namedInstances.find(i => i.name === name)
+              const inst = controlInstances.find(i => i.name === name)
               if (!inst) return
               if (effectiveScaleStep) {
                 setScaleAxisOverrides(prev => {
@@ -2671,7 +2686,7 @@ export default function App() {
                 onChange={e => applyInstance(e.target.value)}
               >
                 {!activeInst && <option value="" disabled>—</option>}
-                {namedInstances.map(inst => (
+                {controlInstances.map(inst => (
                   <option key={inst.name} value={inst.name}>{inst.name}</option>
                 ))}
               </select>
@@ -2780,13 +2795,18 @@ export default function App() {
         )}
 
         {/* Variable font axes */}
-        {variationAxes.length > 0 && (
+        {controlAxes.length > 0 && (
           <>
             <div className="sidebar-divider" />
             <div className="sidebar-section">
               <div className="typography-header">
-                <div className="section-label">
+                <div className={`section-label${otherFace ? ' section-label--face' : ''}`}>
                   Variable Axes
+                  {/* In ¶ the level, and when the level draws in another face, whose axes these are. */}
+                  {mode === 'paragraph' && (activeParaStyle || otherFace) && (
+                    <span className="section-label-sub">{effectiveParaStyle === 'p' ? 'P' : effectiveParaStyle.toUpperCase()}</span>
+                  )}
+                  {otherFace && <span className="section-label-sub section-label-sub--face" title={otherFace.familyLabel}>{otherFace.familyLabel}</span>}
                   {effectiveScaleStep && (
                     <button className="section-label-exit" onClick={() => { setActiveScaleStep(null); setScaleStepRangeEnd(null); setExtraScaleSteps(new Set()) }}>
                       {selectedScaleSteps.length > 1 ? `${selectedScaleSteps.length} steps` : effectiveScaleStep} ×
@@ -2811,6 +2831,8 @@ export default function App() {
                 {(() => {
                   const axesDirty = effectiveScaleStep
                     ? JSON.stringify(scaleAxisOverrides[effectiveScaleStep]) !== JSON.stringify(DEFAULT_SCALE_AXIS_OVERRIDES[effectiveScaleStep])
+                    : otherFace
+                    ? otherFace.axes.some(a => (paraStyles[effectiveParaStyle].axisOverrides[a.tag] ?? controlBase[a.tag]) !== controlBase[a.tag])
                     : effectiveParaStyle
                     ? JSON.stringify(paraStyles[effectiveParaStyle].axisOverrides) !== JSON.stringify(DEFAULT_PARA_STYLES[effectiveParaStyle].axisOverrides)
                     : effectiveCalcomRole
@@ -2830,6 +2852,9 @@ export default function App() {
                             selectedScaleSteps.forEach(k => { next[k] = { ...DEFAULT_SCALE_AXIS_OVERRIDES[k] } })
                             return next
                           })
+                        } else if (otherFace) {
+                          // Another face's level starts from that face's defaults: nothing over them.
+                          setParaStyles(prev => ({ ...prev, [effectiveParaStyle]: { ...prev[effectiveParaStyle], axisOverrides: {} } }))
                         } else if (effectiveParaStyle) {
                           setParaStyles(prev => ({
                             ...prev,
@@ -2856,11 +2881,11 @@ export default function App() {
                   )
                 })()}
               </div>
-              {variationAxes.map(axis => {
+              {controlAxes.map(axis => {
                 const val = effectiveScaleStep
                   ? (scaleAxisOverrides[effectiveScaleStep]?.[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
                   : effectiveParaStyle
-                  ? (paraStyles[effectiveParaStyle].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
+                  ? (paraStyles[effectiveParaStyle].axisOverrides[axis.tag] ?? controlBase[axis.tag] ?? axis.defaultVal)
                   : effectiveCalcomRole
                   ? (calcomRoles[effectiveCalcomRole].axisOverrides[axis.tag] ?? axisValues[axis.tag] ?? axis.defaultVal)
                   : effectiveCossRole

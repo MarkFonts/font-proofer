@@ -424,6 +424,19 @@
 .section-label-exit {
   cursor: pointer;
 }
+/* The face a level's axes belong to (another face than the header's). Family names run
+   long; the header stays one line and the name gives way, cut with an ellipsis. */
+.section-label--face {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  white-space: nowrap;
+}
+.section-label-sub--face {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .section-label-exit:hover {
   color: var(--text);
   border-color: var(--text-muted);

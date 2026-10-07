@@ -91,8 +91,8 @@ selects at 27px, vertical space in units). Nothing else. Decided 2026-10-07.
 
 The tiny strip (27px "Rag" tiles in a row) and the panel (220×129 tiles stacked, display
 "Rag" over the family name) are both built; `?palette=panel` on the URL shows the panel,
-the strip is the default. Neither is deleted until ship. In dark mode the active face's
-"Rag" is HDR white in both (icon.css's swatch and gate).
+the strip is the default. Neither is deleted until ship. The active face's pill is ink on
+page in both themes; in dark its ground is the HDR swatch (icon.css's swatch and gate).
 
 ## Dragging a face onto a block (step 3b)
 
