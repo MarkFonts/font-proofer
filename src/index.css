@@ -11,7 +11,6 @@
    puts wm.icon first and the statement can no longer move it. Same failure that cost an
    evening when App.jsx was imported before index.css -- see DIAL.md §6. */
 @import '../shared/src/icon.css';
-@import url("https://fonts.googleapis.com/css2?family=Cal+Sans&display=swap");
 
 @font-face {
   font-family: "Inter";

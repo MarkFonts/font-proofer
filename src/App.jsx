@@ -162,12 +162,18 @@ function resolveInitialMode(isCalcom) {
    bump-font.yml only fires on that path. */
 import calSansUrl from '../shared/fonts/CalSansVF.ttf?url'
 import calSansFlexUrl from '../shared/fonts/CalSansFlexVF.ttf?url'
-// Inter is the calcom route's second face (cal.com sets its UI in it), from the same files
-// index.css declares as "Inter".
-import interUrl from './fonts/InterVariable.woff2?url'
-import interItalicUrl from './fonts/InterVariable-Italic.woff2?url'
+// A route's declared set (Inter on calcom) is named in routes.config.js and resolved through
+// the glob below, so a second face needs no import of its own.
+import ROUTES from './routes.config.js'
 
 const fontModules = import.meta.glob('/src/fonts/*.{ttf,otf,woff,woff2}', { eager: true, query: '?url', import: 'default' })
+// A bundled file by its exact name: { url, filename }, or null.
+const bundledFont = (filename) => {
+  const entry = filename && Object.entries(fontModules).find(([path]) => path.endsWith('/' + filename))
+  return entry ? { url: entry[1], filename } : null
+}
+// A declared face is in the set in the previews it lists, or everywhere when it lists none.
+const inPreview = (declared, mode) => !declared.previews || declared.previews.includes(mode)
 
 function normalize(s) {
   return s.toLowerCase().replace(/[-_\s]/g, '').replace(/var|demo|variable|display|text/g, '')
@@ -874,11 +880,12 @@ function defaultLevels(faces) {
    a ¶ level, a selected scale step or Cal.com / booking role -- a tile click assigns it and
    the pill stays put, so the tile the scope draws in carries a dot under it, the dock's
    "running" mark: the dot = this scope's face. A tile can be both. Nothing scoped, no dot.
-   TWO LOOKS, ON TRIAL. `?palette=panel` swaps the strip of small "Rag"s for a column of
+   TWO LOOKS, BY CONTEXT (`look`). The STRIP is a row of small "Rag"s; the PANEL a column of
    large tiles, each a "Rag" at display size over the face's name, with a "+" tile of the
    same size under them. Same placement, same visibility, same handlers -- only the look
-   changes, so the two can be judged side by side. One of them goes once Mark has chosen.
-   Read once, here, like the route: it is a look, not state.
+   changes. The route says which per preview (routes.config.js `palette`: the panel where
+   switching faces is the point, cal.com/peer and booking events), so it switches with the
+   mode; `?palette=panel|strip` overrides it, read once here like the route.
    THE COIN (FACES.md, step 3b). A click picks a face and the scope says where it goes; a
    drag says where. Hold a tile still for COIN_HOLD_MS, or drag it past the tap threshold,
    and the tile becomes a COIN under the pointer -- the cursor itself is hidden for the
@@ -908,7 +915,7 @@ function defaultLevels(faces) {
    a pick of its own.
    Reduced motion: no goo and no spring -- the coin follows the pointer and is gone on
    release. The coin itself is FaceCoin, below. */
-const PALETTE_PANEL = new URLSearchParams(window.location.search).get('palette') === 'panel'
+const PALETTE_OVERRIDE = (v => v === 'panel' || v === 'strip' ? v : null)(new URLSearchParams(window.location.search).get('palette'))
 const COIN_HOLD_MS = 250    // still for this long and the tile lifts
 const COIN_REACH = 40       // about a tile's width: coin centre to a block's box
 const COIN_NECK = 30        // coin centre to its tile's box when the neck breaks (blur 6, both looks)
@@ -955,9 +962,17 @@ function coinTarget(x, y) {
     const scope = level ? { level } : el.dataset.role ? { role: el.dataset.role } : null
     if (scope && d <= COIN_REACH && (!best || d < best.d)) best = { el, ...scope, d, halo: coinRect(r) }
   }
+  // A role sits on its preview's own ground, not the page's (cal.com's card is dark in either
+  // theme), so its halo is the inverse of THAT: the preview root's --stage-ink, under words
+  // in its --stage-page (App.css). The coin takes them too, so the goo still melts one colour.
+  if (best?.role) {
+    const cs = getComputedStyle(best.el)
+    const ink = cs.getPropertyValue('--stage-ink').trim(), page = cs.getPropertyValue('--stage-page').trim()
+    if (ink && page) best.stage = { '--coin-ground': ink, '--coin-ink': page }
+  }
   return best
 }
-function FacePalette({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd, onRemove, onDropFace, onSpring }) {
+function FacePalette({ faces, look, activeFaceId, assignedId, onPick, onPickAll, onAdd, onRemove, onDropFace, onSpring }) {
   const [alt, setAlt] = useState(false)
   const inputRef = useRef(null)
   useEffect(() => {
@@ -1089,7 +1104,7 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd
         </filter>
       </svg>
       {shown && (
-        <div className={`face-palette${PALETTE_PANEL ? ' face-palette--panel' : ''}`} role="toolbar" aria-label="Faces">
+        <div className={`face-palette${look === 'panel' ? ' face-palette--panel' : ''}`} role="toolbar" aria-label="Faces">
           {faces.map(face => {
             const active = face.id === activeFaceId
             const assigned = face.id === assignedId
@@ -1114,7 +1129,7 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd
                   {/* The italic is said by a mark beside the name, not by slanting the g: an
                       italic g in the specimen read as a wrong glyph, not a tell (Mark, 2026-10-07).
                       The strip says nothing -- the Roman/Italic toggle already appears for the face. */}
-                  {PALETTE_PANEL && (
+                  {look === 'panel' && (
                     <span className="face-tile-name">
                       {face.familyLabel}
                       {(face.italicFontFace || face.axes.some(a => a.tag === 'ital')) && <Icon name="format_italic" size={12} />}
@@ -1130,7 +1145,7 @@ function FacePalette({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd
             )
           })}
           <button className="face-tile face-tile--add wm-icon-btn" title="Add fonts to the set" onClick={() => inputRef.current?.click()}>
-            <Icon name="add" size={PALETTE_PANEL ? 48 : 18} />
+            <Icon name="add" size={look === 'panel' ? 48 : 18} />
           </button>
         </div>
       )}
@@ -1165,12 +1180,12 @@ function FaceCoin({ coin }) {
     <>
       <div className={`face-coin-goo${reduced ? ' face-coin-goo--still' : ''}`} aria-hidden="true">
         {!reduced && <div className="face-coin-ground" style={{ left: home.left, top: home.top, width: home.width, height: home.height, borderRadius: home.radius }} />}
-        {target?.halo && <div className="face-coin-ground face-coin-halo" style={target.halo} />}
-        <div className="face-coin-at" style={at}><div className="face-coin-ground face-coin-disc" style={{ scale: scale * squeeze }} /></div>
+        {target?.halo && <div className="face-coin-ground face-coin-halo" style={{ ...target.halo, ...target.stage }} />}
+        <div className="face-coin-at" style={at}><div className="face-coin-ground face-coin-disc" style={{ scale: scale * squeeze, ...target?.stage }} /></div>
       </div>
       <div className="face-coin-top" aria-hidden="true">
         <div className="face-coin-at" style={at}>
-          <div className="face-coin-face" style={{ scale, '--coin-squeeze': squeeze, fontFamily: `"${face.fontFace.family}"` }}>
+          <div className="face-coin-face" style={{ scale, '--coin-squeeze': squeeze, fontFamily: `"${face.fontFace.family}"`, ...target?.stage }}>
             <span className="face-coin-rag" style={stretch}>Rag</span>
           </div>
         </div>
@@ -1185,6 +1200,9 @@ export default function App() {
   const { clientSlug, fontSlug } = parseRoute()
   const clientLabel = clientSlug ? toDisplayName(clientSlug) : null
   const isCalcom = clientSlug?.toLowerCase() === 'calcom'
+  // The route's own entry: the faces it ships besides its font, its palette look per
+  // preview, the levels it opens with (routes.config.js).
+  const routeEntry = ROUTES.find(r => r.clientSlug === clientSlug?.toLowerCase() && r.fontSlug === fontSlug?.toLowerCase())
 
   // Font loading
   const [fontName, setFontName] = useState(null)
@@ -1217,7 +1235,8 @@ export default function App() {
   const activeFaceIdRef = useRef(null)   // written by activateFace; the history's snapshots read it
   const faceHistoryRef = useRef({ undo: [], redo: [] })
   const lastPickRef = useRef(null)   // { face, entry } the last tile click pushed (pickAll folds into it)
-  const calcomFacesRef = useRef(null)   // { font, inter }: the calcom route's two faces, for the A/B hash
+  const routeFaceRef = useRef(null)   // the route's own face, which a face leaving the set hands back to
+  const declaredFacesRef = useRef([])   // [{ key, face, previews }]: the route's declared faces, for the session
   const fontObjectUrl = useRef(null)   // the active TTC member's URL, which selectTTCFont swaps and revokes
   const ttcBufferRef = useRef(null)
   const ttcOffsetsRef = useRef([])
@@ -1228,6 +1247,7 @@ export default function App() {
   // Justify is an ALIGNMENT; Swiss Rag is a rag treatment that rides on any of the
   // other three. Only one fitting mode can be live, so it is derived, never stored.
   const [mode, setMode] = useState(() => resolveInitialMode(isCalcom)) // 'big' | 'paragraph' | 'glyphs' | 'scale' | 'calcom' | 'coss'
+  const setModeRef = useRef(mode)   // the mode the set was last made for (declared faces' availability)
 
   // UI tab: the board fills the whole preview area, so it can pan its top row up under
   // #theme-toggle (fixed, top-right — the only thing that floats over .preview-area here).
@@ -1480,9 +1500,7 @@ export default function App() {
     if (special?.file) {
       // A `url` on the entry wins: that face is imported directly (see calSansUrl) and
       // so is not in the src/fonts glob at all.
-      const entry = special.url ? null : Object.entries(fontModules).find(([path]) => path.endsWith('/' + special.file))
-      matched = special.url ? { url: special.url, filename: special.file }
-              : entry ? { url: entry[1], filename: special.file } : null
+      matched = special.url ? { url: special.url, filename: special.file } : bundledFont(special.file)
       italicMatch = null
     } else {
       // Static family: every weight is a style of one face (a family has two or more).
@@ -1501,17 +1519,30 @@ export default function App() {
         ? { family: fontSlug, styles: routeStyles.map(st => ({ key: st.key, label: st.label, weightClass: WEIGHT_CLASS_OF_WORD[st.key] ?? 400, roman: st.roman, italic: st.italic })) }
         : { family: null, styles: [{ key: 'regular', label: 'Regular', weightClass: 400, roman: matched, italic: italicMatch }] }
       const face = await buildFace(group, { baseName: special ? special.name : routeStyles.length ? fontSlug : undefined })
-      // The calcom route's set is two faces: its font, then Inter, which cal.com sets its UI
-      // in. Inter waits in the palette, which is the switcher there (the radio was); the A/B
-      // hash picks between the two itself.
-      const inter = isCalcom ? await buildFace({ family: null, styles: [{ key: 'regular', label: 'Regular', weightClass: 400,
-        roman: { url: interUrl, filename: 'InterVariable.woff2' }, italic: { url: interItalicUrl, filename: 'InterVariable-Italic.woff2' } }] }, { baseName: 'Inter' }) : null
-      replaceFaces(inter ? [face, inter] : [face])
-      activateFace(face)
-      if (inter) {
-        calcomFacesRef.current = { font: face, inter }
-        applyAbVariant(abVariantFromHash(window.location.hash))
+      // The faces the route ships besides its font (routes.config.js): Inter on calcom, which
+      // cal.com sets its UI in. Built once for the session; each is in the set only in its
+      // previews (the mode effect below). A woff2's name table is not readable here, so the
+      // face is named from its key, as a bundled family is from its slug.
+      const declared = []
+      for (const d of routeEntry?.faces ?? []) {
+        const roman = bundledFont(d.file)
+        if (!roman) { console.warn(`font-proofer: ${d.file} is not in src/fonts; ${d.key} is left out`); continue }
+        const built = await buildFace({ family: null, styles: [{ key: 'regular', label: 'Regular', weightClass: 400, roman, italic: bundledFont(d.italic) }] }, { baseName: toDisplayName(d.key) })
+        declared.push({ key: d.key, previews: d.previews ?? null, face: built })
       }
+      const set = [face, ...declared.filter(d => inPreview(d, setModeRef.current)).map(d => d.face)]
+      replaceFaces(set)
+      routeFaceRef.current = face
+      declaredFacesRef.current = declared
+      // The levels the link opens with, by key, when every key names one of the route's faces;
+      // one whose face is out in this preview inherits, as it would on leaving it. Not an edit.
+      const byKey = { [fontSlug]: face, ...Object.fromEntries(declared.map(d => [d.key, d.face])) }
+      const levels = Object.entries(routeEntry?.levels ?? {})
+      if (levels.length && levels.every(([, k]) => byKey[k])) {
+        setScopeFaces({ levelFaces: Object.fromEntries(levels.filter(([, k]) => set.includes(byKey[k])).map(([lvl, k]) => [lvl, byKey[k].id])) })
+      }
+      activateFace(face)
+      applyAbVariant(abVariantFromHash(window.location.hash))
     }
     loadRouteFont().catch(console.error)
   }, [fontSlug])
@@ -1625,6 +1656,9 @@ export default function App() {
     const h = faceHistoryRef.current
     const gone = [...facesRef.current, ...[...h.undo, ...h.redo].flatMap(e => e.faces)]
     h.undo = []; h.redo = []
+    // A replace ends the route's set too: its declared faces do not come back with a mode.
+    routeFaceRef.current = null
+    declaredFacesRef.current = []
     setFaceSet(next)
     new Set(gone).forEach(f => f.objectUrls.forEach(u => URL.revokeObjectURL(u)))
     if (fontObjectUrl.current) URL.revokeObjectURL(fontObjectUrl.current)
@@ -1641,11 +1675,12 @@ export default function App() {
   }
   // The A/B hash on the calcom route: A is Inter, B the route's font at AB_CALSANS_AXES,
   // each a global pick (no undo entry: the hash is not an edit). Set on load and on
-  // hashchange only, so a tile picked while a variant is up still takes.
+  // hashchange only, so a tile picked while a variant is up still takes. A/B forces the
+  // cal.com/peer preview, where Inter is in the set.
   const applyAbVariant = (v) => {
-    const set = calcomFacesRef.current
-    if (!v || !set) return
-    activateFace(v === 'a' ? set.inter : set.font)
+    const inter = declaredFacesRef.current.find(d => d.key === 'inter')?.face
+    if (!v || !inter) return
+    activateFace(v === 'a' ? inter : routeFaceRef.current)
     setScopeFaces()
     if (v === 'b') setAxisValues(AB_CALSANS_AXES)
   }
@@ -1660,17 +1695,44 @@ export default function App() {
     if (!rest.length) return
     pushFaceHistory()
     setFaceSet(rest)
-    // A level, step or role that drew in this face goes back to inheriting the active one.
-    const release = prev => Object.fromEntries(Object.entries(prev).map(([k, st]) => [k, st.face === face.id ? { ...st, face: null } : st]))
-    setParaStyles(release)
-    setCalcomRoles(release)
-    setCossRoles(release)
-    setScaleFaces(prev => Object.fromEntries(Object.entries(prev).filter(([, id]) => id !== face.id)))
+    unassignFaces([face])
     if (face.id === activeFaceId) {
       if (fontObjectUrl.current && !face.objectUrls.includes(fontObjectUrl.current)) URL.revokeObjectURL(fontObjectUrl.current)
       activateFace(rest[0])
     }
   }
+
+  // A level, step or role that drew in one of these faces goes back to inheriting the active one.
+  const unassignFaces = (list) => {
+    const ids = new Set(list.map(f => f.id))
+    const release = prev => Object.fromEntries(Object.entries(prev).map(([k, st]) => [k, ids.has(st.face) ? { ...st, face: null } : st]))
+    setParaStyles(release)
+    setCalcomRoles(release)
+    setCossRoles(release)
+    setScaleFaces(prev => Object.fromEntries(Object.entries(prev).filter(([, id]) => !ids.has(id))))
+  }
+  // A declared face is in the set only in its previews (routes.config.js). Moving to a mode
+  // where some are out: they leave, whatever was assigned to them inherits again, and if one
+  // was the font the route's own font comes back. Those that are in again are appended, not
+  // picked. A mode change is not a face action, so no undo entry -- but the history is
+  // cleared whenever the declared faces' availability changes, since its snapshots hold the
+  // set as it was and restoring one would bring a face back where it is out. Before paint,
+  // so the face that left never draws a frame in the new mode.
+  useLayoutEffect(() => {
+    const declared = declaredFacesRef.current, was = setModeRef.current
+    setModeRef.current = mode
+    if (!declared.some(d => inPreview(d, was) !== inPreview(d, mode))) return
+    const out = declared.filter(d => !inPreview(d, mode)).map(d => d.face)
+    const kept = facesRef.current.filter(f => !out.includes(f))
+    setFaceSet([...kept, ...declared.filter(d => inPreview(d, mode) && !kept.includes(d.face)).map(d => d.face)])
+    unassignFaces(out)
+    if (out.some(f => f.id === activeFaceIdRef.current)) activateFace(routeFaceRef.current)
+    const h = faceHistoryRef.current
+    const history = [...h.undo, ...h.redo].flatMap(e => e.faces)
+    h.undo = []; h.redo = []
+    releaseFaces(history)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode])
 
   // Every group of a drop (or pick) becomes a face, in order. The set is replaced and the
   // first face activated -- unless `add` (⌥ held) and a face is already loaded, when they
@@ -3052,6 +3114,7 @@ export default function App() {
             opens under it. */}
         <FacePalette
           faces={faces}
+          look={PALETTE_OVERRIDE ?? routeEntry?.palette?.[mode] ?? 'strip'}
           activeFaceId={activeFaceId}
           assignedId={scopeFaceId}
           onPick={pickFace}

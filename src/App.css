@@ -174,7 +174,9 @@
   font-size: var(--type-title-size, 1.625rem);
   color: #777;
   margin-top: 8px;
-  font-family: 'Cal Sans', sans-serif;
+  font-family: 'Face', system-ui, sans-serif;
+  font-variation-settings: "wght" 400, "GEOM" 25;
+  font-optical-sizing: auto;
   font-weight: 400;
   font-style: normal;
 }
@@ -194,7 +196,9 @@
   color: var(--text);
 }
 .client-logo-text {
-  font-family: 'Cal Sans', sans-serif;
+  font-family: 'Face', system-ui, sans-serif;
+  font-variation-settings: "wght" 400, "GEOM" 25;
+  font-optical-sizing: auto;
   font-size: var(--type-title-size, 1.625rem);
   color: var(--text);
   line-height: 1;
@@ -860,10 +864,11 @@
 }
 /* A Cal.com or booking role in reach is a block: lifted over its halo (positioned, so the
    z-index above takes), its own ground gone, and its words -- set by its class, not as
-   var(--text) -- in the pill's letter colour. */
+   var(--text) -- in the colour of the ground it sits on (--stage-page, from its preview's
+   root), since the halo is that ground's inverse. */
 .face-coin-flying [data-role][data-coin-halo] { position: relative; background: none; }
 .face-coin-flying [data-role][data-coin-halo],
-.face-coin-flying [data-role][data-coin-halo] * { color: var(--bg, #242424); }
+.face-coin-flying [data-role][data-coin-halo] * { color: var(--stage-page, var(--bg, #242424)); }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
@@ -1112,6 +1117,9 @@
   padding: var(--spacing-07, 32px) var(--spacing-08, 48px);
 }
 
+/* 'Face' (Cal Sans v2 from the submodule), not the Google Fonts 'Cal Sans' the page used to
+   @import: that is v1, a different drawing, and it showed in this note and the glyph codes
+   (Mark, 2026-10-07). Text-UI setting: opsz auto, wght 400, GEOM 25. */
 .glyph-match-note {
   margin-bottom: 24px;
   padding: var(--spacing-03, 8px) var(--spacing-04, 12px);
@@ -1119,7 +1127,9 @@
   border: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
   color: var(--text-muted);
-  font-family: 'Cal Sans', sans-serif;
+  font-family: 'Face', system-ui, sans-serif;
+  font-variation-settings: "wght" 400, "GEOM" 25;
+  font-optical-sizing: auto;
   font-size: var(--type-ui-size, 0.75rem);
   line-height: 1.4;
   max-width: 520px;
@@ -1160,7 +1170,9 @@
   margin-top: 8px;
   font-size: var(--type-micro-size, 0.5625rem);
   color: var(--text-dim);
-  font-family: 'Cal Sans', monospace;
+  font-family: 'Face', system-ui, sans-serif;
+  font-variation-settings: "wght" 400, "GEOM" 25;
+  font-optical-sizing: auto;
   letter-spacing: 0;                   /* a glyph's U+ code is a code, not a caps run */
 }
 
@@ -1682,11 +1694,15 @@
   overflow-y: auto;
   container-type: inline-size;
   background: #111111;
+  /* The card's ground and ink, named so what sits on it can invert against IT, not the page
+     theme: a face coin's halo over a role (App.jsx coinTarget). A light mode redefines these. */
+  --stage-page: #171717;
+  --stage-ink: #d4d4d4;
 }
 
 .calcom-card {
   display: flex;
-  background: #171717;
+  background: var(--stage-page, #171717);
   border: 1px solid #262626;
   border-radius: 8px;
   overflow: hidden;
@@ -1695,7 +1711,7 @@
   /* cal.com's card is 490px tall; the slot column scrolls inside it rather than
      stretching the card to the length of the day. */
   max-height: 490px;
-  color: #d4d4d4;
+  color: var(--stage-ink, #d4d4d4);
 }
 
 .calcom-left {
@@ -2127,6 +2143,10 @@
    hold their value in both. Same for the toggle thumb, which is white on a coloured
    track and would go black if it followed --text into light mode. */
 .coss-shell {
+  /* What a role sits on, for a face coin's halo to invert (see .calcom-page): the mock's
+     ground and surface follow the theme, so its ink is the inverse. */
+  --stage-page: var(--coss-on-ink, var(--bg, #242424));
+  --stage-ink: var(--coss-ink, var(--text, #ffffff));
   display: flex;
   width: 100%;
   height: 100%;
