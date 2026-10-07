@@ -129,6 +129,18 @@ events (`@use-gesture/react` is already a dependency), never an HTML5 drag, so t
 file-drop overlay does not wake. `prefers-reduced-motion`: the coin still moves, the goo
 and the spring go. Decided 2026-10-07; built after step 3.
 
+## Undo and reset
+
+⌘Z / ⇧⌘Z undo and redo FACE actions: a level assignment (click, coin on a block, coin on a
+row, "Drop → H2"), a global pick (activate and the nulling of every level, one entry), an
+add, a remove. A plain-drop replace is a boundary and clears the history: the faces that
+left had their files released. Inside a paragraph block ⌘Z stays the text's own undo.
+
+Two resets (Mark, 2026-10-07). DOUBLE-CLICK a tile: "everything to this" -- the global pick,
+from any view including ¶, where a single click can only reach the scoped level. The
+Typography ↺ resets the scoped LEVEL, and that includes its face: it lights when the level
+has a face of its own and clears it with the numbers.
+
 ## Phones: a drawer, not a floating palette
 
 At the mobile breakpoint (≤768px) the stage is short and a floating palette sits on the
