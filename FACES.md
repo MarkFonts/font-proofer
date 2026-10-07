@@ -87,6 +87,21 @@ The proofer does not adopt the wm-primitives grid: no `.wm-lines` root, no gridS
 3px line is the chrome: the palette (this work) and the side rail's controls (chips, buttons,
 selects at 27px, vertical space in units). Nothing else. Decided 2026-10-07.
 
+## Phones: a drawer, not a floating palette
+
+At the mobile breakpoint (≤768px) the stage is short and a floating palette sits on the
+last line of text, so the palette becomes a side drawer on the right edge. Collapsed, a
+5px slice of the TILES peeks from the edge -- the first sliver of each "Aa", not a blank
+handle -- so the sliver already says what is in there: that is the whole hint, no label, no
+coachmark. Pulled open, it is a column of tiles 51px high (17 units; 50 was the first
+number, 51 is the one on the line, and both clear the 44px touch floor) with the "Aa" at
+display size, the same ink ladder as the desktop palette. Tap outside or push it back to
+close. It is the first page-level gesture in the app (GESTURES.md promises only the
+rail's), so it is built with the drawer's own rules written there. A phone sees two faces
+only through a route-declared set, so this is built with step 7, against a real route.
+Until then, on a coarse pointer the floating palette hides while a paragraph block is
+being edited. Decided 2026-10-07.
+
 ## Consequences
 
 - The CalSans / Inter radio in the calcom route goes. Inter is a bundled second face in
