@@ -194,6 +194,28 @@ only through a route-declared set, so this is built with step 7, against a real 
 Until then, on a coarse pointer the floating palette hides while a paragraph block is
 being edited. Decided 2026-10-07.
 
+The tray shows the faces the link ships with -- on a phone that is a route-declared set --
+and keeps the palette's "+" last in the column (Mark, 2026-10-07: "there SHOULD still be
+plus"; the Files picker works on iOS). Four teases were built to compare behind
+`?tray=a|b|c|d`: the tiles' first 5px peeking (A), a 5px rail with a dot per face (B),
+grounds only with a one-time 16px nudge (C), and D, the one shipped (default): a Material
+side sheet, full stage height, 200px, a scrim over the stage, names hidden while shut, and
+a 10px band (5 was "so hard to touch") that cuts each "Rag" through the MIDDLE of the R --
+"not the edge" -- so there is letter texture in the sliver. A swipe left from anywhere
+along the right edge (a 34px strip that claims only horizontal drags) or a tap on the band
+opens it; tap the scrim, swipe right, or pick to close. The open tray's tiles are 51px
+with "Rag" at the title role, not display: 55pt "would look weird, but it should look like
+something is there". A bottom bar at the lift tab's height was considered for two-face
+sets and not built ("no work i think").
+
+The same branch gave the phone its chrome: the theme row (56px, 15-25% of the ¶ stage) is
+replaced by wm-primitives' vertical theme+zoom stack (`.wm-theme-stack--vertical`,
+`data-below` the tab strip and chip row, `data-scroller` the stage, `data-hidden` while the
+sheet is open; the zoom's column sits on its mark's axis and its rail shrinks to fit the
+stage); the rail's chevron bar is a flap 2/3 of the window wide and 45px tall ("1/7
+shorter"), the strips beside it are stage, so the zoom column buys that height; Glyphs
+stacks the pinned glyph over a full-width grid; Big Word fits the stage.
+
 ## Consequences
 
 - The CalSans / Inter radio in the calcom route went (step 6). Inter is a bundled second
