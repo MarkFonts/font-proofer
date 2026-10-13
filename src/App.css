@@ -284,11 +284,7 @@
 }
 
 /* ── Mode buttons ────────────────────────────────────────────────────────── */
-.mode-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+/* .mode-group is a .wm-menu-list (button-sets.css): the column and its --tick gap. */
 
 /* THE ROW IS THE BAR. The panel toggle used to be a sibling sitting beside the mode
    button with a 4px gap, which read as one pill and a loose mark next to it -- and once
@@ -304,12 +300,16 @@
   border-radius: var(--radius);
   transition: background var(--dur-fast, 140ms);
 }
-.mode-btn-row:hover,
-.mode-btn-row:has(.mode-btn.active) { background: var(--bg-elevated); }
+.mode-btn-row:hover { background: color-mix(in oklab, var(--text) 6%, transparent); }   /* 06 Menu's hover wash */
+.mode-btn-row:has(.mode-btn.active) { background: var(--surface-hi); }   /* 06 Menu's chosen ground */
 
 .mode-btn-row .mode-btn {
   flex: 1;
 }
+/* The label keeps landing on the rail's inset (the field grammar: 1px edge + 12px), as it
+   did before the row became a .wm-menu; the sheet's own 8px would pull it left of every
+   field below it. Sides only. */
+.mode-group .mode-btn { padding-inline: calc(var(--spacing-04, 12px) + 1px); }
 /* Inside the bar the button paints nothing -- the bar is doing it, and two nested fills
    read as a pill inside a pill. */
 .mode-btn-row .mode-btn,
@@ -322,35 +322,6 @@
   border-radius: 0;
   flex-shrink: 0;
 }
-
-.mode-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  /* The field grammar -- 1px edge + 12px -- so the label lands on the rail's inset (29)
-     with the text in every field; sides only, so the height is unchanged. */
-  padding: var(--spacing-03, 8px) 12px;
-  border: 0;
-  border-inline: 1px solid transparent;
-  border-radius: var(--radius);
-  font-size: var(--type-ui-size, 0.75rem);
-  font-family:  'Face', system-ui, sans-serif;
-  color: var(--text-muted);
-  background: transparent;
-  transition: background var(--dur-fast, 140ms), color var(--dur-fast, 140ms);
-  text-align: left;
-}
-
-.mode-btn:hover {
-  background: var(--bg-elevated);
-  color: var(--text);
-}
-
-.mode-btn.active {
-  background: var(--bg-elevated);
-  color: var(--text);
-}
-
 
 /* ── Slider row ──────────────────────────────────────────────────────────── */
 /* slider CSS moved to wm-primitives AxisSlider.css */
@@ -1397,28 +1368,7 @@
 
   /* sub-bar order: 2, preview: 3, sidebar: 4 */
 
-  .mobile-tab {
-    flex: none;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: var(--spacing-04, 12px) var(--spacing-04, 12px);
-    font-size: var(--type-ui-size, 0.75rem);
-    font-family: 'Face', system-ui, sans-serif;
-    color: var(--text-muted);
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: color var(--dur-fast, 140ms), border-color var(--dur-fast, 140ms);
-  }
-
-  .mobile-tab.active {
-    color: var(--text);
-    border-bottom-color: var(--text);
-  }
+  .mobile-tab { flex: none; }   /* 06 Menu, button form (wm-menu); the strip scrolls */
 
   .mobile-sub-bar {
     display: flex;
