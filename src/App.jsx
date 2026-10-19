@@ -2992,7 +2992,7 @@ export default function App() {
                   : (mode === 'scale' && axis.tag === 'opsz')
                   ? (() => { const v = scaleAxisOverrides[TAILWIND_SCALE[0].key]?.opsz ?? 'auto'; return TAILWIND_SCALE.every(s => (scaleAxisOverrides[s.key]?.opsz ?? 'auto') === v) ? v : 'auto' })()
                   : (axisValues[axis.tag] ?? axis.defaultVal)
-                const autoOpszValue = effectiveScaleStep
+                const autoOpszSize = effectiveScaleStep
                   ? (TAILWIND_SCALE.find(s => s.key === effectiveScaleStep)?.pxSize ?? fontSize)
                   : effectiveCalcomRole
                   ? calcomRoles[effectiveCalcomRole].size
@@ -3001,6 +3001,10 @@ export default function App() {
                   : effectiveParaStyle
                   ? paraStyles[effectiveParaStyle].size
                   : fontSize
+                // What opsz auto renders: the browser takes the optical size from font-size in CSS px
+                // and clamps it to the axis. Unpinning writes THAT number, not the size -- 200px on an
+                // 8-45 axis is opsz 45 (wm-primitives#9).
+                const autoOpszValue = Math.min(axis.max, Math.max(axis.min, autoOpszSize))
                 return (
                   <SliderRow variant="track"
                     key={axis.tag}
