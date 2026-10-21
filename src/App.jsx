@@ -628,7 +628,7 @@ function extractFontFromTTC(buffer, fontOffset) {
 // ── Mode button ──────────────────────────────────────────────────────────────
 function ModeBtn({ active, onClick, children }) {
   return (
-    <button className={`mode-btn ${active ? 'active' : ''}`} onClick={onClick}>
+    <button className={`wm-menu wm-menu--row mode-btn ${active ? 'active' : ''}`} onClick={onClick}>
       {children}
     </button>
   )
@@ -2309,13 +2309,13 @@ export default function App() {
 
       {/* Mobile tab bar */}
       <nav className="mobile-tabs">
-        {isCalcom && <button className={`mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><Icon name="calendar_month" /> cal.com/peer</button>}
-        {isCalcom && <button className={`mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><Icon name="calendar_month" /> booking events</button>}
-        <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><Icon name="insert_text" /> Big Word</button>
-        <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><Icon name="format_paragraph" /> Paragraph</button>
-        <button className={`mobile-tab ${mode === 'ui' ? 'active' : ''}`} onClick={() => setMode('ui')}><Icon name="calendar_month" /> UI</button>
-        <button className={`mobile-tab ${mode === 'scale' ? 'active' : ''}`} onClick={() => setMode('scale')}><Icon name="text_fields" /> Type Scale</button>
-        <button className={`mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><Icon name="grid_view" /> Glyphs</button>
+        {isCalcom && <button className={`wm-menu mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><Icon name="calendar_month" /> cal.com/peer</button>}
+        {isCalcom && <button className={`wm-menu mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><Icon name="calendar_month" /> booking events</button>}
+        <button className={`wm-menu mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><Icon name="insert_text" /> Big Word</button>
+        <button className={`wm-menu mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><Icon name="format_paragraph" /> Paragraph</button>
+        <button className={`wm-menu mobile-tab ${mode === 'ui' ? 'active' : ''}`} onClick={() => setMode('ui')}><Icon name="calendar_month" /> UI</button>
+        <button className={`wm-menu mobile-tab ${mode === 'scale' ? 'active' : ''}`} onClick={() => setMode('scale')}><Icon name="text_fields" /> Type Scale</button>
+        <button className={`wm-menu mobile-tab ${mode === 'glyphs' ? 'active' : ''}`} onClick={() => setMode('glyphs')}><Icon name="grid_view" /> Glyphs</button>
       </nav>
 
       {/* Mobile sub-bar: context-sensitive chips */}
@@ -2498,7 +2498,7 @@ export default function App() {
         {/* Mode switcher */}
         <div className="sidebar-section sidebar-mode-section">
           <div className="section-label">Preview Mode</div>
-          <div className="mode-group">
+          <div className="mode-group wm-menu-list">
             {isCalcom && (
               <div className="mode-btn-row">
                 <ModeBtn active={mode === 'calcom'} onClick={() => setMode('calcom')}>
