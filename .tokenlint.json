@@ -2,7 +2,10 @@
   "roots": [
     "src"
   ],
-  "exempt": [],
+  "_exempt": "VercelPreviews.css imitates vercel.com's New Project, Docs and Marketplace screens: its spacing is Vercel's, measured off their pages, not ours.",
+  "exempt": [
+    "src/VercelPreviews.css"
+  ],
   "_tokenSources": "Where the tokens these files read are DECLARED. roots is src, but the tokens live in the submodule, so without this every var() into shared reads as undefined.",
   "tokenSources": [
     "shared/src"
