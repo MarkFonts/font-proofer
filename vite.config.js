@@ -61,10 +61,14 @@ function fileToDisplayName(file) {
 function findFontFile(fontSlug) {
   const needle = normalize(fontSlug)
   const files = listFontFiles()
+  const nameOf = f => normalize(f.replace(/\.[^.]+$/, ''))
   const matches = files.filter(f => {
-    const n = normalize(f.replace(/\.[^.]+$/, ''))
+    const n = nameOf(f)
     return n.includes(needle) || needle.includes(n)
   })
+    // Closest match first, as matchFont does in the app: 'geist' is Geist[wght], not
+    // GeistMono[wght], which also contains it.
+    .sort((a, b) => Math.abs(nameOf(a).length - needle.length) - Math.abs(nameOf(b).length - needle.length))
   const upright = matches.filter(f => !/italic|oblique/i.test(f))
   // Prefer the Regular weight so a static family's OG image isn't rendered in Black.
   return upright.find(f => /regular/i.test(f)) ?? upright[0] ?? matches[0] ?? null
