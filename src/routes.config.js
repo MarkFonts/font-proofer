@@ -7,6 +7,7 @@
 //            lists the modes the face is in the set for, unlisted = everywhere
 //   palette: { [mode]: 'panel' | 'strip' }, the palette's look per preview; unlisted = strip
 //   levels:  { h1?, h2?, h3?, p? } face keys (the route's own font is its fontSlug), set on load
+//   roles:   { [vercelRole]: faceKey }, the same for the Vercel previews' roles
 export default [
   { clientSlug: 'claudetype', fontSlug: 'ernest' },
   { clientSlug: 'weltkern', fontSlug: 'kloten'       },
@@ -18,6 +19,9 @@ export default [
     palette: { calcom: 'panel', coss: 'panel' } },
   { clientSlug: 'calcom',   fontSlug: 'calsansflex'    },
   { clientSlug: 'weltkern', fontSlug: 'switzerland2038' },
-  { clientSlug: 'vercel',   fontSlug: 'geist'     },
+  { clientSlug: 'vercel',   fontSlug: 'geist',
+    faces:   [{ key: 'geist-mono', file: 'GeistMono[wght].woff2', italic: 'GeistMono-Italic[wght].woff2' }],
+    palette: { vercelNew: 'panel', vercelDocs: 'panel', vercelMarket: 'panel' },
+    roles:   { code: 'geist-mono' } },
   { clientSlug: 'vercel',   fontSlug: 'geistserif' },
 ]
