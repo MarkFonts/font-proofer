@@ -18,6 +18,7 @@ import {
   PARA_STYLE_DEFAULTS, fitOptionsFor,
   loadSpecimen, specimenChunks, SpecimenNav,
 } from '../shared/index' // wm-primitives (git submodule)
+import { useIosFocusGuardRef } from './useIosFocusGuardRef'
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
 import fontAxesData from 'virtual:font-axes'
@@ -1466,10 +1467,13 @@ export default function App() {
   const scalePanelBtnRef = useRef(null)
   const scalePanelPopoverRef = useRef(null)
 
+  const bigGuardRef = useIosFocusGuardRef()
   const bigEditorCallback = useCallback(el => {
     bigEditorRef.current = el
+    bigGuardRef(el)
     if (el && !el.textContent) el.textContent = SAMPLE_BIG
-  }, [])
+  }, [bigGuardRef])
+  const scaleGuardRef = useIosFocusGuardRef()   // wraps every Scale row; they come and go
 
   // ── Sync URL hash with active mode ───────────────────────────────────────
   useEffect(() => {
@@ -3378,7 +3382,7 @@ export default function App() {
 
         {fontName && mode === 'scale' && (() => {
           return (
-            <div className="preview-scale" style={{ maxWidth: `${measure}px` }}>
+            <div ref={scaleGuardRef} className="preview-scale" style={{ maxWidth: `${measure}px` }}>
               {visibleScaleSteps.map(step => (
                 <div
                   key={step.key}
@@ -3823,6 +3827,7 @@ export default function App() {
 
 // ── Cal.com preview ───────────────────────────────────────────────────────────
 function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, abVars = null }) {
+  const calcomGuardRef = useIosFocusGuardRef()   // wraps the three editable lines
   const [selectedDate, setSelectedDate] = useState('18')
   const [clock, setClock] = useState('12h')
 
@@ -3884,7 +3889,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, a
               <img src={peerAvatar} alt="Peer Richelsen" className="calcom-avatar-img" />
             </div>
           </div>
-          <div className="calcom-left-body">
+          <div ref={calcomGuardRef} className="calcom-left-body">
           <div className={`calcom-event-host ${roleClass('eventHost')}`} style={roleStyle('eventHost')} data-role="eventHost"
             contentEditable suppressContentEditableWarning
             onClick={() => onRoleClick(r => r === 'eventHost' ? null : 'eventHost')}>
