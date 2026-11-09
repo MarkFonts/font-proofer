@@ -1,6 +1,6 @@
 // Known font routes — add an entry whenever a new client/font URL is deployed.
 // Used at build time to generate per-route index.html files with og:image meta tags.
-// og:image will be served from /font-proofer/og/[fontSlug].png
+// og:image will be served from /og/[fontSlug].png
 // An entry may also declare the set its link opens with (FACES.md, "a client route declares
 // its set"); the OG build reads only the two slugs.
 //   faces:   extra faces, { key, file, italic?, previews? } -- files in src/fonts; `previews`

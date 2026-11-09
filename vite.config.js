@@ -1,13 +1,45 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync, readdirSync, existsSync } from 'fs'
+import { VitePWA } from 'vite-plugin-pwa'
+import { mkdirSync, readFileSync, writeFileSync, readdirSync, existsSync } from 'fs'
 import { createRequire } from 'module'
 import routes from './src/routes.config.js'
 import AXIS_REGISTRY from './src/axisRegistry.json' with { type: 'json' }
 
 // OG/Twitter image URLs must be absolute (https://…) — scrapers drop root-relative ones.
-const SITE_ORIGIN = 'https://wordmark.nyc'
-const SITE_BASE = '/font-proofer'
+/* WHERE THE BUILD LIVES. Production is wordproof.app's root: deploy.yml builds with
+   FONT_PROOFER_BASE=/ . Everything else -- `npm run build` on a laptop, and above all
+   wm-primitives' consumers.yml, which builds this app and serves dist/ at /font-proofer/
+   for the behaviour tests that gate every primitive dispatch (calbuild --bump included)
+   -- keeps the old /font-proofer/ subpath by default, so none of that had to change.
+   The PWA is on only for the root build: a service worker scoped to a test server's
+   subpath would be noise. */
+/* FONTS THE INSTALLED APP MAY KEEP. Deny by default: a face is saved for offline use only
+   if it is named here, so a client's retail font (TWK, Weltkern, Ernest, the next one) is
+   never written into anyone's app storage -- it is fetched like any web page asset and
+   that is all. Only open-licensed faces go on this list: OFL (name ID 13 says so, or for
+   Cal Sans, the family's own license) and Apache for Material Symbols, the UI icons.
+   Entries are the hashed asset's name stem as Vite writes it ('[wght]' becomes '_wght_').
+   Fonts a visitor drops in are read from their disk, never fetched, so never cached. */
+const OFFLINE_FONTS = [
+  'CalSansVF', 'CalSansFlexVF', 'CalSans-Bold',                          // OFL
+  'Geist_wght_', 'Geist-Italic_wght_', 'GeistMono_wght_', 'GeistMono-Italic_wght_',
+  'GeistSerifVF',                                                         // OFL
+  'InterVariable', 'InterVariable-Italic',                                // OFL
+  'GoogleSansFlex-VariableFont_GRAD_ROND_opsz_slnt_wdth_wght',            // OFL
+  'TikTokSans-VariableFont_opsz_slnt_wdth_wght',                          // OFL
+  'MaterialSymbolsOutlined',                                              // Apache 2.0
+]
+// <stem>-<8-char Vite hash>.<ext>, the stem exact: 'InterVariable' cannot match the italic.
+// A RegExp, not a function: workbox writes urlPattern into sw.js as source, and a function
+// that closed over this list would reach the service worker without it.
+const OFFLINE_FONT_RE = new RegExp(
+  `/assets/(${OFFLINE_FONTS.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})-[A-Za-z0-9_-]{8}\\.(ttf|otf|woff2?)(\\?.*)?$`)
+
+const BASE = process.env.FONT_PROOFER_BASE ?? '/font-proofer/'
+const ROOT_BUILD = BASE === '/'
+const SITE_ORIGIN = ROOT_BUILD ? 'https://wordproof.app' : 'https://wordmark.nyc'
+const SITE_BASE = BASE.replace(/\/$/, '')
 
 /* CAL SANS LIVES IN THE SUBMODULE. shared/ IS wm-primitives, and deploy.yml already
    advances its pointer on every `primitive-updated` dispatch -- so keeping the face there
@@ -28,8 +60,8 @@ const listFontFiles = () => [
 ]
 
 const SPECIAL_SLUG_NAMES = {
-  calsans: 'CalSans',
-  calsansflex: 'CalSans Flex',
+  calsans: 'Cal Sans',
+  calsansflex: 'Cal Sans Flex',
   switzerland2038: 'Switzerland 2038',
 }
 
@@ -279,6 +311,84 @@ async function generateOgImages() {
 export default defineConfig({
   plugins: [
     react(),
+    /* THE PWA. Installable from wordproof.app, works offline once opened.
+       Precache is the app shell only (JS, CSS, HTML, icons) and never a font. Open-licensed
+       faces (OFFLINE_FONTS) are cached the first time they are fetched (CacheFirst; a font
+       file's name changes when its version does); client faces never are. OG images never.
+       A new deploy (a wm-primitives bump included) is picked up on the next launch with
+       no prompt (skipWaiting below). public/_headers keeps sw.js uncached so that
+       check is never stale. */
+    VitePWA({
+      disable: !ROOT_BUILD,
+      registerType: 'autoUpdate',
+      injectRegister: 'script-defer',
+      includeAssets: ['favicon.svg', 'favicon-light.svg', 'favicon-dark.svg'],
+      manifest: {
+        id: '/',
+        name: 'Wordproof',
+        short_name: 'Wordproof',
+        description: 'Variable font proofing by WORDMARK.',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        background_color: '#242424',
+        theme_color: '#242424',
+        icons: [
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        // Desktop Chrome/Edge: an installed Wordproof shows up under Finder's "Open With"
+        // for font files. The launch lands in App.jsx's launchQueue consumer.
+        file_handlers: [{
+          action: '/',
+          accept: {
+            'font/ttf': ['.ttf'],
+            'font/otf': ['.otf'],
+            'font/woff': ['.woff'],
+            'font/woff2': ['.woff2'],
+            'font/collection': ['.ttc'],
+          },
+        }],
+        launch_handler: { client_mode: 'focus-existing' },
+      },
+      workbox: {
+        // A new deploy takes over as soon as it is fetched, not after every Wordproof
+        // window has closed (injectRegister 'script-defer' has no prompt to send
+        // SKIP_WAITING). Old precaches are dropped.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        globPatterns: ['**/*.{js,css,html,svg,ico,webmanifest}', 'icons/*.png'],
+        globIgnores: ['_dial*.html', 'og/**'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/_dial/, /^\/og\//],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        runtimeCaching: [{
+          // OFFLINE_FONTS only. Any other font falls through to the network, uncached.
+          urlPattern: OFFLINE_FONT_RE,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'wordproof-fonts',
+            // The same file arrives twice, once from @font-face (a CORS request, with
+            // Origin) and once from the app's fetch() (without). A Vary on the response
+            // makes those two different cache keys, and the second missed offline.
+            matchOptions: { ignoreVary: true },
+            expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 90 },
+          },
+        }, {
+          // Logos, avatars, the WORDMARK gif: cached as they are first shown, so the
+          // chrome is whole offline. Refreshed in the background when online.
+          urlPattern: ({ request, url }) => request.destination === 'image' && !url.pathname.startsWith('/og/'),
+          handler: 'StaleWhileRevalidate',
+          options: {
+            cacheName: 'wordproof-images',
+            matchOptions: { ignoreVary: true },
+            expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 90 },
+          },
+        }],
+      },
+    }),
     {
       name: 'font-axes-virtual',
       resolveId(id) {
@@ -302,12 +412,9 @@ export default defineConfig({
         return `export default ${JSON.stringify(result)}`
       },
     },
-    {
-      name: 'copy-404',
-      closeBundle() {
-        copyFileSync('dist/index.html', 'dist/404.html')
-      },
-    },
+    /* No 404.html: Cloudflare Pages serves index.html for any path it has no file for
+       (its SPA mode), with a 200. A 404.html would switch that off. The old copy existed
+       for GitHub Pages, which had no fallback. */
     {
       name: 'og-routes',
       async closeBundle() {
@@ -326,6 +433,7 @@ export default defineConfig({
           const imageUrl = `${SITE_ORIGIN}${SITE_BASE}/og/${fontSlug}.png`
           const pageUrl = `${SITE_ORIGIN}${SITE_BASE}/${clientSlug}/${fontSlug}/`
           const html = base
+            .replace(/\s*<meta property="og:url"[^>]*>/, '')   // the root's; this page writes its own below
             .replace('<title>Font Proofer</title>', `<title>${title}</title>`)
             .replace(/(<meta property="og:title"[^>]*>)/, `<meta property="og:title" content="${title}" />`)
             .replace(/<meta property="og:image" [^>]+>/,
@@ -341,5 +449,5 @@ export default defineConfig({
       },
     },
   ],
-  base: '/font-proofer/',
+  base: BASE,
 })
