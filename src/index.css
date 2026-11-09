@@ -29,7 +29,7 @@
 }
 
 /* 'Face' — the interface typeface, named by ROLE not product (was CalSansUI).
-   font-proofer proofs arbitrary fonts, usually Cal Sans itself, so the chrome
+   Wordproof proofs arbitrary fonts, usually Cal Sans itself, so the chrome
    family must stay distinct from the specimen family 'CalSans'; a role name also
    survives a reface. Same CalSansVF.ttf today. */
 @font-face {
