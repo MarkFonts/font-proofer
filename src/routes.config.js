@@ -1,12 +1,13 @@
 // Known font routes — add an entry whenever a new client/font URL is deployed.
 // Used at build time to generate per-route index.html files with og:image meta tags.
-// og:image will be served from /font-proofer/og/[fontSlug].png
+// og:image will be served from /og/[fontSlug].png
 // An entry may also declare the set its link opens with (FACES.md, "a client route declares
 // its set"); the OG build reads only the two slugs.
 //   faces:   extra faces, { key, file, italic?, previews? } -- files in src/fonts; `previews`
 //            lists the modes the face is in the set for, unlisted = everywhere
 //   palette: { [mode]: 'panel' | 'strip' }, the palette's look per preview; unlisted = strip
 //   levels:  { h1?, h2?, h3?, p? } face keys (the route's own font is its fontSlug), set on load
+//   roles:   { [vercelRole]: faceKey }, the same for the Vercel previews' roles
 export default [
   { clientSlug: 'claudetype', fontSlug: 'ernest' },
   { clientSlug: 'weltkern', fontSlug: 'kloten'       },
@@ -18,6 +19,9 @@ export default [
     palette: { calcom: 'panel', coss: 'panel' } },
   { clientSlug: 'calcom',   fontSlug: 'calsansflex'    },
   { clientSlug: 'weltkern', fontSlug: 'switzerland2038' },
-  { clientSlug: 'vercel',   fontSlug: 'geist'     },
+  { clientSlug: 'vercel',   fontSlug: 'geist',
+    faces:   [{ key: 'geist-mono', file: 'GeistMono[wght].woff2', italic: 'GeistMono-Italic[wght].woff2' }],
+    palette: { vercelNew: 'panel', vercelDocs: 'panel', vercelMarket: 'panel' },
+    roles:   { code: 'geist-mono' } },
   { clientSlug: 'vercel',   fontSlug: 'geistserif' },
 ]

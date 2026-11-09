@@ -3,7 +3,7 @@
 
    The registry (github.com/googlefonts/axisregistry, Lib/axisregistry/data/*.textproto)
    is one small text file per registered axis: tag, display name, range, precision, the
-   named fallback stops, a paragraph of description. font-proofer names a rail row from
+   named fallback stops, a paragraph of description. Wordproof names a rail row from
    the font's own name table first; a font that ships a bare tag with no name record --
    or a tag the app had never met -- used to fall through a six-entry table to the tag
    itself. Now it falls through this file, which knows fifty-odd, and nothing at
@@ -46,7 +46,7 @@ function parse(text) {
   return out
 }
 
-const files = (await (await fetch(API, { headers: { 'User-Agent': 'font-proofer' } })).json())
+const files = (await (await fetch(API, { headers: { 'User-Agent': 'wordproof' } })).json())
   .map(f => f.name).filter(n => n.endsWith('.textproto')).sort()
 const registry = {}
 for (const f of files) {

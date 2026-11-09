@@ -24,7 +24,7 @@ Controls are kept to what matters: size, tracking, leading, alignment, and varia
 
 ## Deployment model
 
-Each client gets one link — a route on the shared GitHub Pages site (workmark.nyc/font-proofer), configured for their font. There is no shared dashboard, no client management, no multi-tenant infrastructure. The designer sets up the route, embeds the font, and sends the URL. That's the full handoff.
+Each client gets one link — a route on the shared GitHub Pages site (wordproof.app, formerly wordmark.nyc/font-proofer), configured for their font. There is no shared dashboard, no client management, no multi-tenant infrastructure. The designer sets up the route, embeds the font, and sends the URL. That's the full handoff.
 
 The repo may contain multiple routes (one per client or font family). What a client can see is determined entirely by what the designer put there. Pushing to main triggers a GitHub Actions workflow that builds the app and deploys it to the MarkFonts/wordmark repo, which is served via GitHub Pages at workmark.nyc.
 

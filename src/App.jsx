@@ -24,6 +24,7 @@ import '../shared/src/zoomControl.js'
 import '../shared/src/zoomControl.css'
 import '../shared/src/dialHandle.css'
 import '../shared/src/themeStack.js'
+import { useIosFocusGuardRef } from './useIosFocusGuardRef'
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
 import fontAxesData from 'virtual:font-axes'
@@ -91,7 +92,8 @@ function ClientLogo({ slug, clientLabel }) {
 }
 
 // ── URL route parsing ────────────────────────────────────────────────────────
-const BASE = '/font-proofer'
+// '' at wordproof.app's root, '/font-proofer' in the default (test) build: follows vite.config.js `base`.
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
 const SLUG_REDIRECTS = { calsansui: 'calsans', calsans2: 'calsans' }
 function parseRoute() {
   const params = new URLSearchParams(window.location.search)
@@ -116,8 +118,8 @@ function toDisplayName(slug) {
 }
 
 // ── Hash ↔ mode mapping ───────────────────────────────────────────────────────
-const HASH_TO_MODE = { '#big': 'big', '#paragraph': 'paragraph', '#glyphs': 'glyphs', '#type-scale': 'scale', '#calcom': 'calcom', '#coss': 'coss', '#ui': 'ui' }
-const MODE_TO_HASH = { big: '#big', paragraph: '#paragraph', glyphs: '#glyphs', scale: '#type-scale', calcom: '#calcom', coss: '#coss', ui: '#ui' }
+const HASH_TO_MODE = { '#big': 'big', '#paragraph': 'paragraph', '#glyphs': 'glyphs', '#type-scale': 'scale', '#calcom': 'calcom', '#coss': 'coss', '#ui': 'ui', '#new-project': 'vercelNew', '#docs': 'vercelDocs', '#marketplace': 'vercelMarket' }
+const MODE_TO_HASH = { big: '#big', paragraph: '#paragraph', glyphs: '#glyphs', scale: '#type-scale', calcom: '#calcom', coss: '#coss', ui: '#ui', vercelNew: '#new-project', vercelDocs: '#docs', vercelMarket: '#marketplace' }
 
 // ── A/B screenshot mode ──────────────────────────────────────────────────────
 // Reachable only by hash: ...#calcom#abtest is variant A (Inter), ...#calcom#abtest=b is
@@ -152,10 +154,11 @@ function axisDefaults(axes) {
   return out
 }
 
-function resolveInitialMode(isCalcom) {
+function resolveInitialMode(isCalcom, isVercel) {
   if (isCalcom && abVariantFromHash(window.location.hash)) return 'calcom'
   const fromHash = HASH_TO_MODE[modeFragment(window.location.hash)]
   if (fromHash === 'calcom' || fromHash === 'coss') return isCalcom ? fromHash : 'paragraph'
+  if (VERCEL_MODES.has(fromHash)) return isVercel ? fromHash : 'paragraph'
   return fromHash ?? 'paragraph'
 }
 
@@ -171,6 +174,7 @@ import calSansFlexUrl from '../shared/fonts/CalSansFlexVF.ttf?url'
 // A route's declared set (Inter on calcom) is named in routes.config.js and resolved through
 // the glob below, so a second face needs no import of its own.
 import ROUTES from './routes.config.js'
+import { VercelNewProjectPreview, VercelDocsPreview, VercelMarketplacePreview } from './VercelPreviews.jsx'
 
 const fontModules = import.meta.glob('/src/fonts/*.{ttf,otf,woff,woff2}', { eager: true, query: '?url', import: 'default' })
 // A bundled file by its exact name: { url, filename }, or null.
@@ -315,6 +319,32 @@ const DEFAULT_COSS_ROLES = {
   badge:     { size: 11, tracking: 0,      leading: 1,   axisOverrides: {}, face: null },
 }
 
+// ── Vercel (New Project, Docs, Marketplace) type role model ─────────────────
+// One set for the three screens, as Geist is one system across vercel.com. Sizes and
+// tracking are measured off vercel.com/docs and /marketplace (2026-10-21); Code draws
+// in Geist Mono, which the route declares (routes.config.js `roles`).
+const VERCEL_MODES = new Set(['vercelNew', 'vercelDocs', 'vercelMarket'])
+const VERCEL_PREVIEWS = [['vercelNew', 'add', 'New Project'], ['vercelDocs', 'book_2', 'Docs'], ['vercelMarket', 'public', 'Marketplace']]
+const VERCEL_ROLE_LABELS = {
+  display: 'Display', title: 'Title', heading: 'Heading', subhead: 'Subhead',
+  cardTitle: 'Card', lede: 'Lede', body: 'Body', label: 'Label', button: 'Button',
+  meta: 'Meta', badge: 'Badge', code: 'Code',
+}
+const DEFAULT_VERCEL_ROLES = {
+  display:   { size: 48, tracking: -0.06, leading: 1.17, axisOverrides: { wght: 600 }, face: null },
+  title:     { size: 32, tracking: -0.04, leading: 1.25, axisOverrides: { wght: 600 }, face: null },
+  heading:   { size: 24, tracking: -0.04, leading: 1.33, axisOverrides: { wght: 600 }, face: null },
+  subhead:   { size: 20, tracking: -0.02, leading: 1.3,  axisOverrides: { wght: 600 }, face: null },
+  cardTitle: { size: 16, tracking: 0,     leading: 1.25, axisOverrides: { wght: 500 }, face: null },
+  lede:      { size: 18, tracking: 0,     leading: 1.56, axisOverrides: { wght: 400 }, face: null },
+  body:      { size: 16, tracking: 0,     leading: 1.7,  axisOverrides: { wght: 400 }, face: null },
+  label:     { size: 14, tracking: 0,     leading: 1.43, axisOverrides: { wght: 400 }, face: null },
+  button:    { size: 14, tracking: 0,     leading: 1.43, axisOverrides: { wght: 500 }, face: null },
+  meta:      { size: 13, tracking: 0,     leading: 1.54, axisOverrides: { wght: 400 }, face: null },
+  badge:     { size: 11, tracking: 0.02,  leading: 1.8,  axisOverrides: { wght: 500 }, face: null },
+  code:      { size: 13, tracking: 0,     leading: 1.54, axisOverrides: { wght: 400 }, face: null },
+}
+
 // ── Paragraph style model ────────────────────────────────────────────────────
 // Per-block overrides (weight/italic/ss04/ss05) default to null = inherit the
 // global control, mirroring how axisOverrides inherit axisValues. `face` is the same
@@ -382,7 +412,7 @@ function renderInline(text, italicStyle, boldStyle) {
 // parseCmapRanges now imported from wm-primitives (shared/src/glyphset.ts).
 
 // Base groups (Uppercase/Lowercase/Numerals/Symbols) come from the shared factory;
-// Miscellaneous (spacing modifiers + dotted-circle combining marks) is font-proofer's
+// Miscellaneous (spacing modifiers + dotted-circle combining marks) is Wordproof's
 // own extra group, folded into "All" by makeGlyphSets.
 const GLYPH_SETS = makeGlyphSets({
   'Miscellaneous': [
@@ -824,7 +854,7 @@ const groupFiles = async (list) => {
     const slotKey = info.variable ? 'vf' : info.weightClass
     if (!slots.has(slotKey)) slots.set(slotKey, { weightClass: info.weightClass, roman: null, italic: null })
     const slot = slots.get(slotKey), side = info.italic ? 'italic' : 'roman'
-    if (slot[side]) console.info(`font-proofer: ${slot[side].name} and ${info.f.name} are the same family, weight and slant; loading ${info.f.name}`)
+    if (slot[side]) console.info(`wordproof: ${slot[side].name} and ${info.f.name} are the same family, weight and slant; loading ${info.f.name}`)
     slot[side] = info.f
   })
   return [...groups.values()].map(({ family, slots }) => ({
@@ -1476,6 +1506,7 @@ export default function App() {
   const { clientSlug, fontSlug } = parseRoute()
   const clientLabel = clientSlug ? toDisplayName(clientSlug) : null
   const isCalcom = clientSlug?.toLowerCase() === 'calcom'
+  const isVercel = clientSlug?.toLowerCase() === 'vercel'
   // The route's own entry: the faces it ships besides its font, its palette look per
   // preview, the levels it opens with (routes.config.js).
   const routeEntry = ROUTES.find(r => r.clientSlug === clientSlug?.toLowerCase() && r.fontSlug === fontSlug?.toLowerCase())
@@ -1522,7 +1553,7 @@ export default function App() {
   const [fit, setFit] = useState(FIT_DEFAULTS)   // paragraph line fitting (flattersatz.js)
   // Justify is an ALIGNMENT; Swiss Rag is a rag treatment that rides on any of the
   // other three. Only one fitting mode can be live, so it is derived, never stored.
-  const [mode, setMode] = useState(() => resolveInitialMode(isCalcom)) // 'big' | 'paragraph' | 'glyphs' | 'scale' | 'calcom' | 'coss'
+  const [mode, setMode] = useState(() => resolveInitialMode(isCalcom, isVercel)) // 'big' | 'paragraph' | 'glyphs' | 'scale' | 'calcom' | 'coss' | 'vercelNew' | 'vercelDocs' | 'vercelMarket'
   const setModeRef = useRef(mode)   // the mode the set was last made for (declared faces' availability)
 
   // UI tab: the board fills the whole preview area, so it can pan its top row up under
@@ -1571,6 +1602,8 @@ export default function App() {
   // Coss (booking events) preview state
   const [cossRoles, setCossRoles] = useState(DEFAULT_COSS_ROLES)
   const [activeCossRole, setActiveCossRole] = useState(null)
+  const [vercelRoles, setVercelRoles] = useState(DEFAULT_VERCEL_ROLES)
+  const [activeVercelRole, setActiveVercelRole] = useState(null)
 
   // Text content
   const [bigText, setBigText] = useState(SAMPLE_BIG)
@@ -1619,6 +1652,7 @@ export default function App() {
   const [calcomPanelOpen, setCalcomPanelOpen] = useState(false)
   // Coss roles panel
   const [cossPanelOpen, setCossPanelOpen] = useState(false)
+  const [vercelPanelOpen, setVercelPanelOpen] = useState(false)
 
   // Mobile sidebar collapse
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true)
@@ -1716,15 +1750,20 @@ export default function App() {
   const calcomPanelPopoverRef = useRef(null)
   const cossPanelBtnRef = useRef(null)
   const cossPanelPopoverRef = useRef(null)
+  const vercelPanelBtnRef = useRef(null)
+  const vercelPanelPopoverRef = useRef(null)
   const scaleRowRefs = useRef({})
   const scalePairRefs = useRef({})
   const scalePanelBtnRef = useRef(null)
   const scalePanelPopoverRef = useRef(null)
 
+  const bigGuardRef = useIosFocusGuardRef()
   const bigEditorCallback = useCallback(el => {
     bigEditorRef.current = el
+    bigGuardRef(el)
     if (el && !el.textContent) el.textContent = SAMPLE_BIG
-  }, [])
+  }, [bigGuardRef])
+  const scaleGuardRef = useIosFocusGuardRef()   // wraps every Scale row; they come and go
 
   // ── Sync URL hash with active mode ───────────────────────────────────────
   useEffect(() => {
@@ -1815,7 +1854,7 @@ export default function App() {
       const declared = []
       for (const d of routeEntry?.faces ?? []) {
         const roman = bundledFont(d.file)
-        if (!roman) { console.warn(`font-proofer: ${d.file} is not in src/fonts; ${d.key} is left out`); continue }
+        if (!roman) { console.warn(`wordproof: ${d.file} is not in src/fonts; ${d.key} is left out`); continue }
         const built = await buildFace({ family: null, styles: [{ key: 'regular', label: 'Regular', weightClass: 400, roman, italic: bundledFont(d.italic) }] }, { baseName: toDisplayName(d.key) })
         declared.push({ key: d.key, previews: d.previews ?? null, face: built })
       }
@@ -1827,8 +1866,16 @@ export default function App() {
       // one whose face is out in this preview inherits, as it would on leaving it. Not an edit.
       const byKey = { [fontSlug]: face, ...Object.fromEntries(declared.map(d => [d.key, d.face])) }
       const levels = Object.entries(routeEntry?.levels ?? {})
-      if (levels.length && levels.every(([, k]) => byKey[k])) {
-        setScopeFaces({ levelFaces: Object.fromEntries(levels.filter(([, k]) => set.includes(byKey[k])).map(([lvl, k]) => [lvl, byKey[k].id])) })
+      // The roles it opens with go the same way (Geist Mono on Vercel's Code role).
+      const roles = Object.entries(routeEntry?.roles ?? {})
+      const levelsOk = levels.length && levels.every(([, k]) => byKey[k])
+      const rolesOk = roles.length && roles.every(([, k]) => byKey[k])
+      if (levelsOk || rolesOk) {
+        const ids = list => Object.fromEntries(list.filter(([, k]) => set.includes(byKey[k])).map(([key, k]) => [key, byKey[k].id]))
+        setScopeFaces({
+          ...(levelsOk && { levelFaces: ids(levels) }),
+          ...(rolesOk && { vercelFaces: ids(roles) }),
+        })
       }
       activateFace(face)
       applyAbVariant(abVariantFromHash(window.location.hash))
@@ -1886,7 +1933,7 @@ export default function App() {
   const paraStylesRef = useRef(paraStyles)
   paraStylesRef.current = paraStyles
   const scopesRef = useRef(null)   // the steps' and roles' faces, read the same way
-  scopesRef.current = { scaleFaces, calcomRoles, cossRoles }
+  scopesRef.current = { scaleFaces, calcomRoles, cossRoles, vercelRoles }
   const FACE_HISTORY_CAP = 50
   const facesOf = (styles) => Object.fromEntries(Object.entries(styles).map(([k, st]) => [k, st.face]))
   const faceSnapshot = () => ({
@@ -1896,6 +1943,7 @@ export default function App() {
     stepFaces: scopesRef.current.scaleFaces,
     calcomFaces: facesOf(scopesRef.current.calcomRoles),
     cossFaces: facesOf(scopesRef.current.cossRoles),
+    vercelFaces: facesOf(scopesRef.current.vercelRoles),
   })
   // Give back the URLs of any of these faces that neither the set nor an entry can reach.
   const releaseFaces = (list) => {
@@ -1956,11 +2004,12 @@ export default function App() {
   // face id (a snapshot's), or nothing to null them all. A global pick and a new set both
   // start from here; only a scoped pick builds on it.
   const withFaces = (ids = {}) => prev => Object.fromEntries(Object.entries(prev).map(([k, st]) => [k, { ...st, face: ids[k] ?? null }]))
-  const setScopeFaces = ({ levelFaces, stepFaces, calcomFaces, cossFaces } = {}) => {
+  const setScopeFaces = ({ levelFaces, stepFaces, calcomFaces, cossFaces, vercelFaces } = {}) => {
     setParaStyles(withFaces(levelFaces))
     setScaleFaces(stepFaces ?? {})
     setCalcomRoles(withFaces(calcomFaces))
     setCossRoles(withFaces(cossFaces))
+    setVercelRoles(withFaces(vercelFaces))
   }
   // The A/B hash on the calcom route: A is Inter, B the route's font at AB_CALSANS_AXES,
   // each a global pick (no undo entry: the hash is not an edit). Set on load and on
@@ -1998,6 +2047,7 @@ export default function App() {
     setParaStyles(release)
     setCalcomRoles(release)
     setCossRoles(release)
+    setVercelRoles(release)
     setScaleFaces(prev => Object.fromEntries(Object.entries(prev).filter(([, id]) => !ids.has(id))))
   }
   // A declared face is in the set only in its previews (routes.config.js). Moving to a mode
@@ -2083,6 +2133,17 @@ export default function App() {
       if (dropLevel && first) setParaStyles(prev => ({ ...prev, [dropLevel]: { ...prev[dropLevel], face: first.id } }))
     })
   }, [loadFonts, dropLevel])
+
+  // Installed PWA, desktop Chrome/Edge: "Open With → Wordproof" on a font file hands the
+  // files here (manifest file_handlers). Same path as a plain drop: they replace the set.
+  useEffect(() => {
+    if (!('launchQueue' in window)) return
+    window.launchQueue.setConsumer(async params => {
+      if (!params.files?.length) return
+      const files = await Promise.all(params.files.map(h => h.getFile()))
+      loadFonts(await groupFiles(files), false)
+    })
+  }, [loadFonts])
 
   // ⌥ is read off the drag itself, live: dragover repeats, and a set to the same value
   // does not render, so the overlay re-words only when ⌥ goes down or up.
@@ -2234,6 +2295,7 @@ export default function App() {
   // ── Active role for calcom mode ───────────────────────────────────────────
   const effectiveCalcomRole = mode === 'calcom' ? activeCalcomRole : null
   const effectiveCossRole = mode === 'coss' ? activeCossRole : null
+  const effectiveVercelRole = VERCEL_MODES.has(mode) ? activeVercelRole : null
   const effectiveScaleStep = mode === 'scale' ? activeScaleStep : null
   // The face the selected scope names: a ¶ level's, a selected scale step's, a selected
   // Cal.com or booking role's. Null when it inherits, or when nothing is selected.
@@ -2241,6 +2303,7 @@ export default function App() {
     : effectiveScaleStep ? (scaleFaces[effectiveScaleStep] ?? null)
     : effectiveCalcomRole ? calcomRoles[effectiveCalcomRole].face
     : effectiveCossRole ? cossRoles[effectiveCossRole].face
+    : effectiveVercelRole ? vercelRoles[effectiveVercelRole].face
     : null
   // The axis sliders, named instances and Roman/Italic follow the scope's face the same way
   // (FACES.md: the sliders show the axes of whichever face the scope uses). `otherFace` is
@@ -2274,6 +2337,7 @@ export default function App() {
     if (effectiveScaleStep) { setScaleFaces(prev => ({ ...prev, ...Object.fromEntries(selectedScaleSteps.map(k => [k, face.id])) })); return }
     if (effectiveCalcomRole) { setRoleFace(setCalcomRoles, effectiveCalcomRole, face.id); return }
     if (effectiveCossRole) { setRoleFace(setCossRoles, effectiveCossRole, face.id); return }
+    if (effectiveVercelRole) { setRoleFace(setVercelRoles, effectiveVercelRole, face.id); return }
     activateFace(face)
     setScopeFaces()
   }
@@ -2320,6 +2384,18 @@ export default function App() {
 
   // The booking page's title was CalSansBold whenever the radio said Inter. It follows its
   // face now; assigning the route's font to the Title role is that look.
+  // Geist's own features stay on: Vercel sets it with calt and the rest at their defaults.
+  const vercelRoleStyle = (role) => {
+    const r = vercelRoles[role] ?? vercelRoles.body
+    return {
+      ...faceFontStyle(faceReads(r)),
+      fontSize: `${r.size}px`,
+      letterSpacing: `${r.tracking}em`,
+      lineHeight: r.leading,
+      fontSynthesis: 'none',
+    }
+  }
+
   const cossRoleStyle = (role) => {
     const r = cossRoles[role] ?? cossRoles.cardDesc
     return {
@@ -2622,6 +2698,19 @@ export default function App() {
   }, [cossPanelOpen])
 
   useEffect(() => {
+    if (!vercelPanelOpen) return
+    const handler = (e) => {
+      if (
+        vercelPanelBtnRef.current?.contains(e.target) ||
+        vercelPanelPopoverRef.current?.contains(e.target)
+      ) return
+      setVercelPanelOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [vercelPanelOpen])
+
+  useEffect(() => {
     if (!scaleStepsPanelOpen) return
     const handler = (e) => {
       if (
@@ -2655,6 +2744,9 @@ export default function App() {
       <nav className="mobile-tabs">
         {isCalcom && <button className={`mobile-tab ${mode === 'calcom' ? 'active' : ''}`} onClick={() => setMode('calcom')}><Icon name="calendar_month" /> cal.com/peer</button>}
         {isCalcom && <button className={`mobile-tab ${mode === 'coss' ? 'active' : ''}`} onClick={() => setMode('coss')}><Icon name="calendar_month" /> booking events</button>}
+        {isVercel && VERCEL_PREVIEWS.map(([m, icon, label]) => (
+          <button key={m} className={`mobile-tab ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}><Icon name={icon} /> {label}</button>
+        ))}
         <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><Icon name="insert_text" /> Big Word</button>
         <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><Icon name="format_paragraph" /> Paragraph</button>
         <button className={`mobile-tab ${mode === 'ui' ? 'active' : ''}`} onClick={() => setMode('ui')}><Icon name="calendar_month" /> UI</button>
@@ -2877,6 +2969,23 @@ export default function App() {
                 )}
               </div>
             )}
+            {isVercel && VERCEL_PREVIEWS.map(([m, icon, label]) => (
+              <div key={m} className="mode-btn-row">
+                <ModeBtn active={mode === m} onClick={() => setMode(m)}>
+                  <Icon name={icon} /> {label}
+                </ModeBtn>
+                {fontName && mode === m && (
+                  <button
+                    ref={vercelPanelBtnRef}
+                    className={`align-btn styles-toggle-btn ${vercelPanelOpen ? 'active' : ''}`}
+                    title="Type roles panel"
+                    onClick={() => setVercelPanelOpen(p => !p)}
+                  >
+                    <Icon name="discover_tune" />
+                  </button>
+                )}
+              </div>
+            ))}
             <ModeBtn active={mode === 'big'} onClick={() => setMode('big')}>
               <Icon name="insert_text" /> Big Word
             </ModeBtn>
@@ -2967,7 +3076,7 @@ export default function App() {
         <div className="sidebar-divider" />
 
         {/* Typography controls */}
-        {mode !== 'calcom' && (
+        {mode !== 'calcom' && !VERCEL_MODES.has(mode) && (
         <div className="sidebar-section">
           <div className="typography-header">
             <div className="section-label">
@@ -3271,6 +3380,11 @@ export default function App() {
                       {COSS_ROLE_LABELS[effectiveCossRole]} ×
                     </button>
                   )}
+                  {effectiveVercelRole && (
+                    <button className="section-label-exit" onClick={() => setActiveVercelRole(null)} title="Back to master">
+                      {VERCEL_ROLE_LABELS[effectiveVercelRole]} ×
+                    </button>
+                  )}
                 </div>
                 {(() => {
                   const axesDirty = effectiveScaleStep
@@ -3283,6 +3397,8 @@ export default function App() {
                     ? JSON.stringify(calcomRoles[effectiveCalcomRole].axisOverrides) !== JSON.stringify(DEFAULT_CALCOM_ROLES[effectiveCalcomRole].axisOverrides)
                     : effectiveCossRole
                     ? JSON.stringify(cossRoles[effectiveCossRole].axisOverrides) !== JSON.stringify(DEFAULT_COSS_ROLES[effectiveCossRole].axisOverrides)
+                    : effectiveVercelRole
+                    ? JSON.stringify(vercelRoles[effectiveVercelRole].axisOverrides) !== JSON.stringify(DEFAULT_VERCEL_ROLES[effectiveVercelRole].axisOverrides)
                     : variationAxes.some(a => axisValues[a.tag] !== axisDefaults(variationAxes)[a.tag])
                   return (
                     <button
@@ -3314,6 +3430,11 @@ export default function App() {
                             ...prev,
                             [effectiveCossRole]: { ...prev[effectiveCossRole], axisOverrides: { ...DEFAULT_COSS_ROLES[effectiveCossRole].axisOverrides } }
                           }))
+                        } else if (effectiveVercelRole) {
+                          setVercelRoles(prev => ({
+                            ...prev,
+                            [effectiveVercelRole]: { ...prev[effectiveVercelRole], axisOverrides: { ...DEFAULT_VERCEL_ROLES[effectiveVercelRole].axisOverrides } }
+                          }))
                         } else {
                           // The same defaults the font loaded with (axisDefaults): opsz parked on
                           // 'auto', not the font's own default. Reset used to hand back the fvar
@@ -3334,18 +3455,26 @@ export default function App() {
                   ? (calcomRoles[effectiveCalcomRole].axisOverrides[axis.tag] ?? controlBase[axis.tag] ?? axis.defaultVal)
                   : effectiveCossRole
                   ? (cossRoles[effectiveCossRole].axisOverrides[axis.tag] ?? controlBase[axis.tag] ?? axis.defaultVal)
+                  : effectiveVercelRole
+                  ? (vercelRoles[effectiveVercelRole].axisOverrides[axis.tag] ?? controlBase[axis.tag] ?? axis.defaultVal)
                   : (mode === 'scale' && axis.tag === 'opsz')
                   ? (() => { const v = scaleAxisOverrides[TAILWIND_SCALE[0].key]?.opsz ?? 'auto'; return TAILWIND_SCALE.every(s => (scaleAxisOverrides[s.key]?.opsz ?? 'auto') === v) ? v : 'auto' })()
                   : (axisValues[axis.tag] ?? axis.defaultVal)
-                const autoOpszValue = effectiveScaleStep
+                const autoOpszSize = effectiveScaleStep
                   ? (TAILWIND_SCALE.find(s => s.key === effectiveScaleStep)?.pxSize ?? fontSize)
                   : effectiveCalcomRole
                   ? calcomRoles[effectiveCalcomRole].size
                   : effectiveCossRole
                   ? cossRoles[effectiveCossRole].size
+                  : effectiveVercelRole
+                  ? vercelRoles[effectiveVercelRole].size
                   : effectiveParaStyle
                   ? paraStyles[effectiveParaStyle].size
                   : bigSize
+                // What opsz auto renders: the browser takes the optical size from font-size in CSS px
+                // and clamps it to the axis. Unpinning writes THAT number, not the size -- 200px on an
+                // 8-45 axis is opsz 45 (wm-primitives#9).
+                const autoOpszValue = Math.min(axis.max, Math.max(axis.min, autoOpszSize))
                 return (
                   <SliderRow variant="track"
                     key={axis.tag}
@@ -3376,6 +3505,11 @@ export default function App() {
                         setCossRoles(prev => ({
                           ...prev,
                           [effectiveCossRole]: { ...prev[effectiveCossRole], axisOverrides: { ...prev[effectiveCossRole].axisOverrides, [axis.tag]: v } }
+                        }))
+                      } else if (effectiveVercelRole) {
+                        setVercelRoles(prev => ({
+                          ...prev,
+                          [effectiveVercelRole]: { ...prev[effectiveVercelRole], axisOverrides: { ...prev[effectiveVercelRole].axisOverrides, [axis.tag]: v } }
                         }))
                       } else if (mode === 'scale' && axis.tag === 'opsz') {
                         setScaleAxisOverrides(prev => {
@@ -3470,7 +3604,7 @@ export default function App() {
             pushFaceHistory()
             if (level) setParaStyles(prev => ({ ...prev, [level]: { ...prev[level], face: face.id } }))
             else if (step) setScaleFaces(prev => ({ ...prev, [step]: face.id }))
-            else setRoleFace(mode === 'coss' ? setCossRoles : setCalcomRoles, role, face.id)
+            else setRoleFace(mode === 'coss' ? setCossRoles : VERCEL_MODES.has(mode) ? setVercelRoles : setCalcomRoles, role, face.id)
           }}
           onSpring={() => setParaStylesPanelOpen(true)}
         />
@@ -3501,6 +3635,11 @@ export default function App() {
         {mode === 'coss' && (
           <CossPreview key={activeFaceId} roleStyle={cossRoleStyle} activeRole={activeCossRole} onRoleClick={setActiveCossRole} />
         )}
+
+        {fontName && VERCEL_MODES.has(mode) && (() => {
+          const Preview = { vercelNew: VercelNewProjectPreview, vercelDocs: VercelDocsPreview, vercelMarket: VercelMarketplacePreview }[mode]
+          return <Preview key={activeFaceId} roleStyle={vercelRoleStyle} activeRole={activeVercelRole} onRoleClick={setActiveVercelRole} />
+        })()}
 
         {fontName && mode === 'ui' && (
           /* --ui-font is the HOST's interface face ('Face', Cal Sans) and the board's tabs,
@@ -3607,7 +3746,7 @@ export default function App() {
 
         {fontName && mode === 'scale' && (() => {
           return (
-            <div className="preview-scale" style={{ maxWidth: `${measure}px` }}>
+            <div ref={scaleGuardRef} className="preview-scale" style={{ maxWidth: `${measure}px` }}>
               {visibleScaleSteps.map(step => (
                 <div
                   key={step.key}
@@ -3833,6 +3972,60 @@ export default function App() {
         )
       })()}
 
+      {vercelPanelOpen && VERCEL_MODES.has(mode) && (() => {
+        const rect = vercelPanelBtnRef.current?.getBoundingClientRect()
+        if (!rect) return null
+        return (
+          <div
+            ref={vercelPanelPopoverRef}
+            className="para-styles-panel"
+            style={{
+              top: rect.bottom + 8,
+              left: rect.left,
+              '--caret-x': `${rect.width / 2}px`,
+            }}
+          >
+            {/* the booking roles panel's list, over the Vercel roles */}
+            <StyleScopeList
+              inline
+              mode="single"
+              className="ssd-list--dense"
+              onSelect={key => { setActiveVercelRole(prev => prev === key ? null : key); setVercelPanelOpen(false) }}
+              rows={Object.entries(VERCEL_ROLE_LABELS).map(([key, label]) => {
+                const r = vercelRoles[key]
+                const rd = faceReads(r)
+                const own = ownFace(r.face)
+                return {
+                  id: key,
+                  label,
+                  labelStyle: {
+                    ...faceFontStyle(rd),
+                    fontSize: `${Math.min(r.size, 22)}px`,
+                    fontOpticalSizing: 'none',
+                    fontSynthesis: 'none',
+                    lineHeight: 1.3,
+                  },
+                  chips: [
+                    ...(own ? [{ text: own.familyLabel, kind: 'local' }] : []),
+                    { text: `${r.size}px`, kind: 'size' },
+                    { text: nbMinus(r.tracking < 0 ? r.tracking.toFixed(2) : r.tracking.toFixed(3)), kind: 'size' },
+                    ...rd.axes.map(axis => {
+                      const val = rd.axisValues[axis.tag] ?? axis.defaultVal
+                      const isLocal = axis.tag in r.axisOverrides
+                      return {
+                        text: `${axis.tag} ${val === 'auto' ? 'A ' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
+                        kind: isLocal ? 'local' : 'axis',
+                      }
+                    }),
+                  ],
+                  selected: activeVercelRole === key,
+                }
+              })}
+            />
+          </div>
+        )
+      })()}
+
       {/* Scale steps panel popover */}
       {scaleStepsPanelOpen && mode === 'scale' && fontName && (() => {
         const rect = scalePanelBtnRef.current?.getBoundingClientRect()
@@ -3999,6 +4192,7 @@ export default function App() {
 
 // ── Cal.com preview ───────────────────────────────────────────────────────────
 function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, abVars = null }) {
+  const calcomGuardRef = useIosFocusGuardRef()   // wraps the three editable lines
   const [selectedDate, setSelectedDate] = useState('18')
   const [clock, setClock] = useState('12h')
 
@@ -4060,7 +4254,7 @@ function CalcomPreview({ roleStyle, activeRole, onRoleClick, abVariant = null, a
               <img src={peerAvatar} alt="Peer Richelsen" className="calcom-avatar-img" />
             </div>
           </div>
-          <div className="calcom-left-body">
+          <div ref={calcomGuardRef} className="calcom-left-body">
           <div className={`calcom-event-host ${roleClass('eventHost')}`} style={roleStyle('eventHost')} data-role="eventHost"
             contentEditable suppressContentEditableWarning
             onClick={() => onRoleClick(r => r === 'eventHost' ? null : 'eventHost')}>

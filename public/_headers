@@ -1,0 +1,14 @@
+# Cloudflare Pages response headers.
+# The service worker and its manifest must never be served from cache, or an installed
+# Wordproof keeps checking a stale copy and never sees a new deploy.
+/sw.js
+  Cache-Control: no-cache
+/registerSW.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
+  Content-Type: application/manifest+json
+
+# Vite fingerprints everything in assets/, so a file there never changes.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

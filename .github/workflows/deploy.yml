@@ -1,4 +1,4 @@
-name: Deploy to Wordmark
+name: Deploy to wordproof.app
 
 on:
   push:
@@ -65,25 +65,75 @@ jobs:
       - run: npm ci
       # Fails the deploy if chrome has drifted off the scale or the type roles.
       - run: node shared/scripts/lint-tokens.mjs
+      # Root build for wordproof.app. Plain `npm run build` stays at /font-proofer/ on
+      # purpose: wm-primitives' consumers.yml builds this repo that way and serves it at
+      # that path for the behaviour tests that gate every dispatch (vite.config.js, BASE).
       - run: npm run build
+        env:
+          WORDPROOF_BASE: /
 
-      - name: Push to wordmark repo
+      # Cloudflare Pages, project "wordproof", custom domain wordproof.app.
+      # CLOUDFLARE_API_TOKEN: an API token with Account > Cloudflare Pages > Edit.
+      # The account ID is an identifier, not a credential.
+      - name: Create the Pages project on the first run
+        run: |
+          if npx --yes wrangler@3 pages project list 2>/dev/null | grep -qw wordproof; then
+            echo "project wordproof exists"
+          else
+            npx --yes wrangler@3 pages project create wordproof --production-branch=main
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 84c4ef01aa5edb13e0502327c99e5807
+      - name: Deploy to Cloudflare Pages
+        id: pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 84c4ef01aa5edb13e0502327c99e5807
+          command: pages deploy dist --project-name=wordproof --branch=main --commit-dirty=true
+
+      # EVAL.md D4 + D5: pushed is not shipped. Wait for wordproof.app itself to serve the
+      # bundle THIS run built, and record which wm-primitives commit it came from, so the
+      # run log is the answer to "what is live?". Only then does wordmark.nyc start
+      # forwarding: forwarding before wordproof.app serves the app would send visitors
+      # to a domain that still points back at wordmark.nyc.
+      - name: wordproof.app serves what this run built
+        run: |
+          want=$(grep -o 'assets/index-[A-Za-z0-9_-]*\.js' dist/index.html | head -1)
+          pin=$(git -C shared rev-parse --short HEAD)
+          echo "built $want from wm-primitives $pin (preview: ${{ steps.pages.outputs.deployment-url }})"
+          for i in $(seq 1 30); do
+            got=$(curl -fsS "https://wordproof.app/?v=$GITHUB_SHA-$i" | grep -o 'assets/index-[A-Za-z0-9_-]*\.js' | head -1 || true)
+            if [ "$got" = "$want" ]; then
+              echo "live after ~$((i*20))s: $want" | tee -a "$GITHUB_STEP_SUMMARY"
+              echo "built from wm-primitives $pin" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::10 minutes after the deploy, wordproof.app serves ${got:-nothing}; this run built $want. Pushed is not shipped."
+          exit 1
+
+      # wordmark.nyc/font-proofer/ becomes forwarders, one per route, plus the site-wide
+      # 404.html for every other /font-proofer/ path (scripts/write-forwarders.mjs).
+      - name: Push the forwarders to wordmark
         env:
           TOKEN: ${{ secrets.WORDMARK_DEPLOY_TOKEN2 }}
         run: |
           git clone https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git wordmark-repo
           rm -rf wordmark-repo/font-proofer
-          cp -r dist wordmark-repo/font-proofer
+          node scripts/write-forwarders.mjs dist wordmark-repo/font-proofer
           cp scripts/wordmark-404.html wordmark-repo/404.html
           cd wordmark-repo
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git remote set-url origin https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git
-          git add font-proofer/ 404.html
-          git diff --staged --quiet || git commit -m "Deploy font-proofer"
-          # Retry with rebase: the font-proofer and ReCal deploys both push into this
-          # repo and can collide. We only touch font-proofer/ + 404.html, so a rebase
-          # never conflicts. (Fixes the 2026-07-23 'fetch first' rejection.)
+          git add -A font-proofer/ 404.html
+          if git diff --staged --quiet; then echo "forwarders unchanged"; exit 0; fi
+          git commit -m "Wordproof: forward /font-proofer/ to wordproof.app"
+          # Retry with rebase: the ReCal deploy also pushes into this repo. We only touch
+          # font-proofer/ + 404.html, so a rebase never conflicts.
           n=0
           until git push; do
             n=$((n+1)); [ $n -ge 5 ] && { echo "push failed after 5 attempts"; exit 1; }
@@ -91,31 +141,3 @@ jobs:
             git pull --rebase origin main
             sleep $((RANDOM % 5 + 3))
           done
-
-      # EVAL.md D4 + D5: pushed is not shipped. The push above lands in a repo; Pages
-      # builds it later, or not, and nothing here used to notice. This waits for the
-      # site to serve the bundle THIS run built, and records which wm-primitives commit
-      # it was built from, so the run log is the answer to "what is live?".
-      - name: The site serves what this run built
-        run: |
-          want=$(grep -o 'assets/index-[A-Za-z0-9_-]*\.js' dist/index.html | head -1)
-          pin=$(git -C shared rev-parse --short HEAD)
-          echo "built $want from wm-primitives $pin"
-          for i in $(seq 1 30); do
-            got=$(curl -fsS "https://wordmark.nyc/font-proofer/?v=$GITHUB_SHA-$i" | grep -o 'assets/index-[A-Za-z0-9_-]*\.js' | head -1 || true)
-            if [ "$got" = "$want" ]; then
-              echo "live after ~$((i*20))s: $want" | tee -a "$GITHUB_STEP_SUMMARY"
-              echo "built from wm-primitives $pin" >> "$GITHUB_STEP_SUMMARY"
-              exit 0
-            fi
-            # A later run of this app may already have replaced ours in the repo. That
-            # is not a failure of this run -- but it must be said, not passed silently.
-            repo=$(curl -fsS "https://raw.githubusercontent.com/MarkFonts/wordmark/main/font-proofer/index.html?v=$GITHUB_SHA-$i" | grep -o 'assets/index-[A-Za-z0-9_-]*\.js' | head -1 || true)
-            if [ -n "$repo" ] && [ "$repo" != "$want" ]; then
-              echo "::notice::superseded: wordmark carries $repo, newer than this run's $want"
-              exit 0
-            fi
-            sleep 20
-          done
-          echo "::error::10 minutes after the push, wordmark.nyc/font-proofer/ serves ${got:-nothing}; this run built $want. Pushed is not shipped."
-          exit 1
