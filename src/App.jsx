@@ -406,7 +406,7 @@ function renderInline(text, italicStyle, boldStyle) {
 // parseCmapRanges now imported from wm-primitives (shared/src/glyphset.ts).
 
 // Base groups (Uppercase/Lowercase/Numerals/Symbols) come from the shared factory;
-// Miscellaneous (spacing modifiers + dotted-circle combining marks) is font-proofer's
+// Miscellaneous (spacing modifiers + dotted-circle combining marks) is Wordproof's
 // own extra group, folded into "All" by makeGlyphSets.
 const GLYPH_SETS = makeGlyphSets({
   'Miscellaneous': [
@@ -848,7 +848,7 @@ const groupFiles = async (list) => {
     const slotKey = info.variable ? 'vf' : info.weightClass
     if (!slots.has(slotKey)) slots.set(slotKey, { weightClass: info.weightClass, roman: null, italic: null })
     const slot = slots.get(slotKey), side = info.italic ? 'italic' : 'roman'
-    if (slot[side]) console.info(`font-proofer: ${slot[side].name} and ${info.f.name} are the same family, weight and slant; loading ${info.f.name}`)
+    if (slot[side]) console.info(`wordproof: ${slot[side].name} and ${info.f.name} are the same family, weight and slant; loading ${info.f.name}`)
     slot[side] = info.f
   })
   return [...groups.values()].map(({ family, slots }) => ({
@@ -1565,7 +1565,7 @@ export default function App() {
       const declared = []
       for (const d of routeEntry?.faces ?? []) {
         const roman = bundledFont(d.file)
-        if (!roman) { console.warn(`font-proofer: ${d.file} is not in src/fonts; ${d.key} is left out`); continue }
+        if (!roman) { console.warn(`wordproof: ${d.file} is not in src/fonts; ${d.key} is left out`); continue }
         const built = await buildFace({ family: null, styles: [{ key: 'regular', label: 'Regular', weightClass: 400, roman, italic: bundledFont(d.italic) }] }, { baseName: toDisplayName(d.key) })
         declared.push({ key: d.key, previews: d.previews ?? null, face: built })
       }

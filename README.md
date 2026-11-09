@@ -1,4 +1,4 @@
-# Font Proofer
+# Wordproof
 
 A clean font proofing tool for sharing with clients. Upload a font (including variable fonts), set your controls, and send the link.
 
@@ -48,7 +48,7 @@ git push -u origin main
 ## Step 3 — Deploy (Cloudflare Pages, automatic)
 
 Deploy is fully automated via GitHub Actions. On every push to `main`:
-- `.github/workflows/deploy.yml` builds with `FONT_PROOFER_BASE=/` and deploys `dist/` to the Cloudflare Pages project **`wordproof`**, served at **https://wordproof.app** (needs the repo secret `CLOUDFLARE_API_TOKEN`, Account › Cloudflare Pages › Edit). Once wordproof.app serves the new build, it rewrites the **`wordmark`** repo's `font-proofer/` folder as forwarders (`scripts/write-forwarders.mjs`) and copies `scripts/wordmark-404.html`, so every old wordmark.nyc/font-proofer/… link lands on the same path at wordproof.app.
+- `.github/workflows/deploy.yml` builds with `WORDPROOF_BASE=/` and deploys `dist/` to the Cloudflare Pages project **`wordproof`**, served at **https://wordproof.app** (needs the repo secret `CLOUDFLARE_API_TOKEN`, Account › Cloudflare Pages › Edit). Once wordproof.app serves the new build, it rewrites the **`wordmark`** repo's `font-proofer/` folder as forwarders (`scripts/write-forwarders.mjs`) and copies `scripts/wordmark-404.html`, so every old wordmark.nyc/font-proofer/… link lands on the same path at wordproof.app.
 - A plain `npm run build` still builds at `/font-proofer/`. That is on purpose: wm-primitives' `consumers.yml` builds this repo and serves it at that path for the behaviour tests that gate every primitive dispatch (`calbuild --bump` included).
 - The root build is a PWA (vite-plugin-pwa, see `vite.config.js`). Icons: `node scripts/make-pwa-icons.mjs` after changing `public/favicon.svg`.
 - `.github/workflows/bump-font.yml` watches `src/fonts/*.ttf`: when a versioned font is pushed it renames it to the canonical name and records the version in `font-versions.json`.

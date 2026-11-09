@@ -70,7 +70,7 @@ jobs:
       # that path for the behaviour tests that gate every dispatch (vite.config.js, BASE).
       - run: npm run build
         env:
-          FONT_PROOFER_BASE: /
+          WORDPROOF_BASE: /
 
       # Cloudflare Pages, project "wordproof", custom domain wordproof.app.
       # CLOUDFLARE_API_TOKEN: an API token with Account > Cloudflare Pages > Edit.
@@ -131,7 +131,7 @@ jobs:
           git remote set-url origin https://MarkFonts:${TOKEN}@github.com/MarkFonts/wordmark.git
           git add -A font-proofer/ 404.html
           if git diff --staged --quiet; then echo "forwarders unchanged"; exit 0; fi
-          git commit -m "font-proofer: forward to wordproof.app"
+          git commit -m "Wordproof: forward /font-proofer/ to wordproof.app"
           # Retry with rebase: the ReCal deploy also pushes into this repo. We only touch
           # font-proofer/ + 404.html, so a rebase never conflicts.
           n=0

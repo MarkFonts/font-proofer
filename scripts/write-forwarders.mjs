@@ -1,4 +1,4 @@
-// The font proofer lives at wordproof.app. wordmark.nyc/font-proofer/ keeps one small page
+// Wordproof (the font proofer) lives at wordproof.app. wordmark.nyc/font-proofer/ keeps one small page
 // per route the app used to serve, each forwarding to the same path there -- query and
 // hash kept, so a shared link like /font-proofer/calcom/calsans/#glyphs still opens the
 // glyphs view. GitHub Pages has no server redirects, so it is a canonical link, a meta
@@ -32,7 +32,7 @@ const page = to => `<!DOCTYPE html>
 <script>location.replace('${ORIGIN}${to}' + location.search + location.hash)</script>
 </head>
 <body>
-<p>The font proofer moved to <a href="${ORIGIN}${to}">wordproof.app</a>.</p>
+<p>The font proofer is now Wordproof, at <a href="${ORIGIN}${to}">wordproof.app</a>.</p>
 </body>
 </html>
 `

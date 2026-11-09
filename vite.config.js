@@ -8,7 +8,7 @@ import AXIS_REGISTRY from './src/axisRegistry.json' with { type: 'json' }
 
 // OG/Twitter image URLs must be absolute (https://…) — scrapers drop root-relative ones.
 /* WHERE THE BUILD LIVES. Production is wordproof.app's root: deploy.yml builds with
-   FONT_PROOFER_BASE=/ . Everything else -- `npm run build` on a laptop, and above all
+   WORDPROOF_BASE=/ . Everything else -- `npm run build` on a laptop, and above all
    wm-primitives' consumers.yml, which builds this app and serves dist/ at /font-proofer/
    for the behaviour tests that gate every primitive dispatch (calbuild --bump included)
    -- keeps the old /font-proofer/ subpath by default, so none of that had to change.
@@ -36,7 +36,7 @@ const OFFLINE_FONTS = [
 const OFFLINE_FONT_RE = new RegExp(
   `/assets/(${OFFLINE_FONTS.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})-[A-Za-z0-9_-]{8}\\.(ttf|otf|woff2?)(\\?.*)?$`)
 
-const BASE = process.env.FONT_PROOFER_BASE ?? '/font-proofer/'
+const BASE = process.env.WORDPROOF_BASE ?? '/font-proofer/'
 const ROOT_BUILD = BASE === '/'
 const SITE_ORIGIN = ROOT_BUILD ? 'https://wordproof.app' : 'https://wordmark.nyc'
 const SITE_BASE = BASE.replace(/\/$/, '')
@@ -429,12 +429,12 @@ export default defineConfig({
           // Drop a trailing weight/style word so a static family reads "Foo",
           // not "Foo Black" (findFontFile picks a single weight file).
           const fontDisplayName = rawName.replace(/\s+(Thin|Extra ?Light|Ultra ?Light|Light|Book|Regular|Medium|Semi ?Bold|Demi ?Bold|Bold|Extra ?Bold|Heavy|Black)(\s+Italic)?$/i, '').trim() || rawName
-          const title = `${fontDisplayName} — Font Proofer`
+          const title = `${fontDisplayName} — Wordproof`
           const imageUrl = `${SITE_ORIGIN}${SITE_BASE}/og/${fontSlug}.png`
           const pageUrl = `${SITE_ORIGIN}${SITE_BASE}/${clientSlug}/${fontSlug}/`
           const html = base
             .replace(/\s*<meta property="og:url"[^>]*>/, '')   // the root's; this page writes its own below
-            .replace('<title>Font Proofer</title>', `<title>${title}</title>`)
+            .replace('<title>Wordproof</title>', `<title>${title}</title>`)
             .replace(/(<meta property="og:title"[^>]*>)/, `<meta property="og:title" content="${title}" />`)
             .replace(/<meta property="og:image" [^>]+>/,
               `<meta property="og:image" content="${imageUrl}" />\n`
