@@ -541,11 +541,92 @@
    sideways inside it; the document never gets wider, or mobile Chromium widens the layout
    viewport and the fixed stack drifts right with it (wm-primitives G80). */
 .stage-zoom { display: contents; }
-.has-theme-stack .stage-zoom { display: block; height: 100%; }
+.has-theme-stack .stage-zoom { display: block; height: 100%; --stage-z: 1; }   /* --stage-z: ThemeStack overrides it inline */
 .has-theme-stack .preview-area { overflow-x: auto; }
+/* UNDER 100% the page sits in the middle of the stage, not hugging its left edge.
+   zoomControl.js owns the box's inline zoom, width and margins, so this moves it with
+   translate: ThemeStack writes --stage-z (the zoom, 0.5 for 50%) and data-shrunk while it is
+   below 1. The box keeps its 100% width W and is drawn x z, so half the freed width,
+   W(1 - z)/2 on screen, is (1 - z)/(2z) of W before the zoom. Only while shrunk: a
+   translate makes the box a containing block for anything fixed inside it. Above 100% the
+   pan is unchanged, left-anchored. */
+.has-theme-stack .stage-zoom[data-shrunk] {
+  translate: calc(100% * (1 - var(--stage-z, 1)) / (2 * var(--stage-z, 1))) 0;
+}
 /* the palette's anchor stays on the stage's visible right edge however far it pans: sticky
-   on the inline axis too (it is a direct child of the scroller, as on the block axis) */
-.has-theme-stack .face-palette-anchor { left: 0; }
+   on the inline axis too (it is a direct child of the scroller, as on the block axis).
+   Clipped on the inline axis only: the shut faces sheet waits translated past the stage's
+   right edge (200px less its 10px band), and unclipped that overhang was scrollable
+   overflow -- the stage panned 190px past the specimen at every zoom, into an empty strip. */
+.has-theme-stack .face-palette-anchor { left: 0; overflow-x: clip; overflow-y: visible; }
+
+/* THE MARKS' GROUND, two options behind ?marks= (ThemeStack, App.jsx) so Mark can flip them on
+   his phone. The stack is ink with no ground (wm-primitives G76), so a light mark vanished over
+   the cal.com hero card in dark, and a dark one over black display type in light.
+   halo (default): a soft page-coloured disc behind each mark -- the page at 75% over an 8px blur
+   of what is under it, its edge feathered by a radial mask, so each mark floats on its own
+   patch of page and the column never joins into a bar. Behind the mark (z -1 in the button's
+   own layer), so the active mark's HDR swatch is drawn over it untouched. */
+.marks-halo > .wm-theme .wm-icon-btn,
+.marks-halo .wm-zoom-toggle { position: relative; isolation: isolate; }
+.marks-halo > .wm-theme .wm-icon-btn::before,
+.marks-halo .wm-zoom-toggle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bg, #242424) 75%, transparent);
+  -webkit-backdrop-filter: blur(var(--spacing-03, 8px));
+  backdrop-filter: blur(var(--spacing-03, 8px));
+  -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent);
+  mask-image: radial-gradient(closest-side, #000 62%, transparent);
+  pointer-events: none;
+}
+/* blend: no ground. The stack is drawn white and composited with difference, so every mark
+   inverts against whatever is under it: white over the dark page, black over the white card.
+   mix-blend-mode has to sit on the stack itself (it is fixed, so its own stacking context:
+   a mark blending inside it would only blend with the stack's own transparent box), so the
+   active mark goes through the blend too -- its HDR swatch is composited in an SDR blend
+   group, so blend loses the HDR. */
+.marks-blend { mix-blend-mode: difference; --text-rgb: 255, 255, 255; --text: #fff; }
+/* tone (the default): the stack takes the look of the theme that matches the SURFACE under
+   it, set by watchStackTone (App.jsx) as data-tone. The stack's colours are all read through
+   these few tokens (the marks' inks through --text-rgb, the zoom's rule, readout and lozenge
+   through --text / --text-muted / --text-dim / --border), so restating them on the stack
+   flips it whole; the values are index.css's two palettes. Dark tone needs nothing on the
+   active mark: in dark theme it is icon.css's HDR swatch, untouched; in light theme it is
+   icon.css's full-ink mark, now in white ink (no HDR: icon.css's light gate drops the
+   swatch, and the swatch is an inline url a host cannot re-apply -- see the primitive note).
+   Light tone unwinds the swatch as icon.css's light gate does, on the stack only. The flip
+   eases over --dur-fast (icon.css's own 90ms is the rollover's; this is a change of ground). */
+.marks-tone .wm-icon { --icon-dur: var(--dur-fast, 140ms); }
+.marks-tone[data-tone="light"] {
+  color-scheme: light;
+  --text: #111111;
+  --text-rgb: 17, 17, 17;
+  --text-muted: rgba(17, 17, 17, 0.55);
+  --text-dim: rgba(17, 17, 17, 0.35);
+  --border: #c4d8eb;
+  --bg: #f5faff;
+}
+.marks-tone[data-tone="dark"] {
+  color-scheme: dark;
+  --text: #ffffff;
+  --text-rgb: 255, 255, 255;
+  --text-muted: #888888;
+  --text-dim: #555555;
+  --border: #3a3a3a;
+  --bg: #242424;
+}
+.marks-tone[data-tone="light"] .active > .wm-icon {
+  --icon-hdr: 0;
+  color: rgba(var(--text-rgb, 17, 17, 17), calc(var(--ink-full, 1) - (var(--ink-full, 1) - var(--ink-faint, .38)) * var(--confirm-off, 0)));
+  background-image: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  dynamic-range-limit: standard;
+}
 
 /* ── Face palette ────────────────────────────────────────────────────────── */
 /* FacePalette (App.jsx) says when it shows. Bottom right of the STAGE, not the viewport: on
@@ -1055,14 +1136,33 @@
    at this width, never from its content, so the size containment changes nothing else. */
 @media (max-width: 768px) {
   .preview-area:has(> .face-palette-anchor .face-tray--d) { container-type: size; }
+  /* THE ANCHOR IS A REAL BOX WITH D: the stage's visible box (sticky at its top, 100cqh,
+     a negative margin as tall so it takes no flow space), clipped on both axes. The parked
+     sheet waits 190px past the stage's right edge, and that overhang must not widen the
+     stage's scroll width. overflow-x: clip with overflow-y: visible on the old zero-height
+     anchor did that in Chromium, but iOS WebKit clipped both axes of the 0px box and the
+     band and its swipe vanished (2026-11-08). Clipping a box the stage's own size needs no
+     split. The box itself takes no touches; the tray and the strip do, and the scrim does
+     only while open (its own rule). */
+  .face-palette-anchor:has(> .face-tray--d) {
+    top: 0;
+    height: calc(100cqh + var(--stage-foot, 0px));   /* to the stage's real foot, padding included */
+    margin-bottom: calc(-100cqh - var(--stage-foot, 0px));
+    overflow: hidden;
+    overflow: clip;
+    pointer-events: none;
+  }
+  .face-palette-anchor > :is(.face-tray--d, .face-tray-edge) { pointer-events: auto; }
+  /* the box already reaches the real foot, so the sheet, strip and scrim sit on its bottom */
+  .face-palette-anchor:has(> .face-tray--d) > :is(.face-tray--d, .face-tray-edge, .face-tray-scrim--d) { bottom: 0; }
 }
 /* D's swipe zone is not the tray's ::before (which took every tap in it) but its own strip,
    .face-tray-edge, a sibling under the tray: the stage's right edge, full height, the band
-   and 24px more. pan-y, so a sideways finger is the sheet's and an upright one still scrolls
-   the stage -- the stage's specimen is pan-x pan-y (the zoom's pan), and on it the browser
-   took any sideways finger that missed the band. FaceTray hands a tap on it to whatever is
-   under it, so the preview there still answers. Shut only; the band (the tray) is over its
-   right 10px and keeps the tap that opens. */
+   and 24px more. touch-action: none, and the shut band too: every touch that starts there
+   is the sheet's. It was pan-y, and on an iPhone a real finger's few px of dy started the
+   stage's scroll, WebKit sent pointercancel, and the sheet peeked and sprang back. The cost
+   is that the stage does not scroll from its right 34px. A tap on it opens, like the band.
+   Shut only; the band (the tray) is over its right 10px. */
 .face-tray--d:not(.open)::before { content: none; }
 /* Shut, the zone and the band go under the theme stack (fixed, z-index 30): its marks and
    zoom dial overlap the zone's left 22px, and a drag on the dial is the dial's. Nothing else
@@ -1076,9 +1176,11 @@
   bottom: 0;
   width: calc(var(--tray-peek) + 24px);
   height: 100cqh;
-  touch-action: pan-y;
+  touch-action: none;
   -webkit-touch-callout: none;
 }
+.face-tray--d:not(.open),
+.face-tray--d:not(.open) .face-tile { touch-action: none; }
 .face-tray--d::after {
   border-radius: 0;
   background: var(--surface, var(--bg-elevated, #2e2e2e));
@@ -1684,6 +1786,13 @@
     order: 1;
     flex-shrink: 0;
     border-bottom: 1px solid var(--border-subtle);
+    /* over the theme stack (fixed, z-index 30, wm-primitives): hiding or coming back it
+       translates off the top edge, and without a ground and a layer above 30 its marks
+       crossed the tabs for the 180ms of the slide. 31 is the least that covers it; the
+       flap, the styles panel (200) and the lift tab (100) still sit over it. */
+    position: relative;
+    z-index: 31;
+    background: var(--bg);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -1727,6 +1836,8 @@
     padding: 8px 16px;
     border-bottom: 1px solid var(--border-subtle);
     background: var(--bg);
+    position: relative;
+    z-index: 31;   /* over the theme stack's slide, as .mobile-tabs */
   }
 
   .mobile-sub-bar::-webkit-scrollbar {
@@ -2462,6 +2573,9 @@
     border-right: none;
     border-bottom: none;
     max-width: none;
+    /* stacked, the 490 cap (cal.com's two-column card) clipped the calendar under the
+       month row to an empty block: the column runs to its own length and the stage scrolls */
+    max-height: none;
   }
   .calcom-left {
     width: 100%;

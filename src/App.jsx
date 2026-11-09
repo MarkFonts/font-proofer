@@ -1301,21 +1301,149 @@ function useMedia(query) {
    - zoom: CSS zoom on .stage-zoom, the one box round every mode's specimen, which pans
      sideways inside the stage (App.css). Its own key, so another app's zoom on the same
      origin is not this one's.
+     Under 100% the box is centred: the zoom's `wm-zoom` event writes --stage-z and
+     data-shrunk on it, read by App.css (the control owns its inline zoom/width/margins).
    - the faces sheet hides it (data-hidden, FaceTray) while it covers the corner.
+   - the marks over what is under them: `tone` (default) senses the surface under the marks
+     and flips the whole stack to the other theme's look over a surface of the other tone
+     (watchStackTone). Two looks kept behind ?marks= for comparison: `halo`, a page-coloured
+     blurred disc behind each mark; `blend`, mix-blend-mode: difference (Mark: it flickers
+     over text as it scrolls, and loses the HDR).
    Both scripts are idempotent and destroy cleanly, so StrictMode's double mount is fine. */
+const MARKS_LOOK = (v => v === 'blend' || v === 'halo' ? v : 'tone')(new URLSearchParams(window.location.search).get('marks'))
+
+/* watchStackTone: data-tone="light" | "dark" on the stack, from the SURFACE under its marks,
+   never from the theme. App.css gives the stack the light palette under light and the dark
+   one under dark, so over the white cal.com hero in dark the marks are ink and the active
+   one a full-ink mark; off the card, the dark look and its HDR swatch come back.
+   - the surface: for each mark's centre at its REST position (the stack's translate taken
+     out, so a stowed stack is sensed where it will come back), elementsFromPoint, top first;
+     the first element that paints a ground -- a background-color at alpha >= .5, an <img>, a
+     background-image url -- is the surface. Text paints no ground, so black display type on
+     the page is the page; the faces sheet's anchor and edge strip are skipped.
+   - luminance: WCAG relative luminance; a colour goes through a 1x1 canvas so oklch() and
+     color-mix() read as sRGB. An image is averaged once over 8x8 (cached), when it can be read.
+   - the vote: light at >= .5. Three of the four marks must agree to switch (two-two keeps the
+     tone), and never more than once per 120ms, so a boundary under the stack cannot flap.
+   - when: the stage's scroll, a resize, the zoom, the theme, the stage's specimen changing
+     (mode), an image loading -- rAF-throttled, one sense a frame at most. */
+function watchStackTone(stack) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 8
+  const cx = cv.getContext('2d', { willReadFrequently: true })
+  const lin = c => (c /= 255) <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  const lumOf = (r, g, b) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+  const colour = s => {
+    cx.clearRect(0, 0, 1, 1); cx.fillStyle = '#000'; cx.fillStyle = s; cx.fillRect(0, 0, 1, 1)
+    const d = cx.getImageData(0, 0, 1, 1).data
+    return { l: lumOf(d[0], d[1], d[2]), a: d[3] / 255 }
+  }
+  const imgs = new Map()   // src -> luminance | null (unreadable / transparent)
+  const imageLum = img => {
+    if (imgs.has(img.currentSrc || img.src)) return imgs.get(img.currentSrc || img.src)
+    if (!img.complete || !img.naturalWidth) return undefined
+    let l = null
+    try {
+      cx.clearRect(0, 0, 8, 8); cx.drawImage(img, 0, 0, 8, 8)
+      const d = cx.getImageData(0, 0, 8, 8).data
+      let s = 0, w = 0
+      for (let i = 0; i < d.length; i += 4) { const a = d[i + 3] / 255; s += lumOf(d[i], d[i + 1], d[i + 2]) * a; w += a }
+      l = w / 64 >= 0.5 ? s / w : null
+    } catch { l = null }   // cross-origin: unreadable
+    imgs.set(img.currentSrc || img.src, l)
+    return l
+  }
+  const bgImgs = new Map()   // url -> HTMLImageElement, loaded once for a background-image
+  const surfaceLum = el => {
+    if (el.tagName === 'IMG') { const l = imageLum(el); if (l != null) return l }
+    const cs = getComputedStyle(el)
+    const u = cs.backgroundImage.match(/url\(["']?([^"')]+)["']?\)/)
+    if (u) {
+      let im = bgImgs.get(u[1])
+      if (!im) { im = new Image(); im.onload = schedule; im.src = u[1]; bgImgs.set(u[1], im) }
+      const l = imageLum(im); if (l != null) return l
+    }
+    const c = colour(cs.backgroundColor)
+    return c.a >= 0.5 ? c.l : null
+  }
+  const lumAt = (x, y) => {
+    for (const el of document.elementsFromPoint(x, y)) {
+      if (stack.contains(el) || el.closest('.face-palette-anchor')) continue
+      const l = surfaceLum(el)
+      if (l != null) return l
+    }
+    return colour(getComputedStyle(document.body).backgroundColor).l
+  }
+  let tone = null, last = 0, raf = 0, later = 0
+  const sense = () => {
+    raf = 0
+    const S = stack.getBoundingClientRect()
+    const dx = S.left - stack.offsetLeft, dy = S.top - stack.offsetTop   // the translate, taken out
+    const marks = stack.querySelectorAll('.wm-theme .wm-icon-btn, .wm-zoom-toggle')
+    let light = 0, n = 0
+    marks.forEach(m => {
+      const r = m.getBoundingClientRect()
+      if (!r.width) return
+      n++
+      if (lumAt(r.left + r.width / 2 - dx, r.top + r.height / 2 - dy) >= 0.5) light++
+    })
+    if (!n) return
+    const want = tone == null ? (light * 2 > n ? 'light' : 'dark')
+      : light >= Math.min(3, n) ? 'light' : n - light >= Math.min(3, n) ? 'dark' : tone
+    if (want === tone) return
+    const wait = 120 - (performance.now() - last)
+    if (tone != null && wait > 0) { clearTimeout(later); later = setTimeout(schedule, wait); return }
+    tone = want; last = performance.now()
+    stack.dataset.tone = tone
+  }
+  function schedule() { if (!raf) raf = requestAnimationFrame(sense) }
+  const scroller = document.querySelector('main.preview-area')
+  const stage = document.querySelector('.stage-zoom')
+  const mo = new MutationObserver(schedule)
+  if (stage) mo.observe(stage, { childList: true })
+  scroller?.addEventListener('scroll', schedule, { passive: true })
+  scroller?.addEventListener('load', schedule, true)   // an image in the stage arriving
+  window.addEventListener('resize', schedule)
+  document.documentElement.addEventListener('wm-theme', schedule)
+  stack.addEventListener('wm-zoom', schedule)
+  schedule()
+  return () => {
+    cancelAnimationFrame(raf); clearTimeout(later); mo.disconnect()
+    scroller?.removeEventListener('scroll', schedule); scroller?.removeEventListener('load', schedule, true)
+    window.removeEventListener('resize', schedule)
+    document.documentElement.removeEventListener('wm-theme', schedule)
+    stack.removeEventListener('wm-zoom', schedule)
+    delete stack.dataset.tone
+  }
+}
+
 function ThemeStack() {
   const stackRef = useRef(null)
   const zoomRef = useRef(null)
   useEffect(() => {
+    const target = document.querySelector('.stage-zoom')
+    const onZoom = e => {
+      if (!target) return
+      const z = Number(e.detail) / 100
+      target.style.setProperty('--stage-z', String(z))
+      target.toggleAttribute('data-shrunk', z < 1)
+    }
+    // before mount: the control restores the stored zoom as it mounts, and says so
+    zoomRef.current.addEventListener('wm-zoom', onZoom)
     const zoom = window.wmZoom?.mount(zoomRef.current)
     const stack = window.wmThemeStack?.mount(stackRef.current)
-    return () => { stack?.destroy(); zoom?.destroy() }
+    const unTone = MARKS_LOOK === 'tone' ? watchStackTone(stackRef.current) : null
+    const el = zoomRef.current
+    return () => {
+      unTone?.()
+      stack?.destroy(); zoom?.destroy(); el.removeEventListener('wm-zoom', onZoom)
+      target?.style.removeProperty('--stage-z'); target?.removeAttribute('data-shrunk')
+    }
   }, [])
   return (
     <div
       ref={stackRef}
       id="theme-stack"
-      className="wm-theme-stack wm-theme-stack--vertical"
+      className={`wm-theme-stack wm-theme-stack--vertical marks-${MARKS_LOOK}`}
       data-hide="scroll swipe"
       data-scroller="main.preview-area"
       data-below=".mobile-tabs, .mobile-sub-bar"
@@ -1402,15 +1530,30 @@ function FaceTray({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd })
     tapRef.current = { id: face.id, timer: setTimeout(() => { tapRef.current = null; setOpen(false) }, TRAY_TAP_MS) }
   }
   const travel = TRAY_W - TRAY_PEEK
-  // The finger's x travel as the open fraction; let go and it snaps past a third.
-  const follow = (mx, active) => {
+  // The finger's x travel as the open fraction; let go and it snaps past a quarter (a third
+  // for a/b/c), or on a FLICK (D): leftward faster than 0.3px/ms opens whatever the distance,
+  // rightward closes. Velocity is read off the last 100ms of samples, not use-gesture's, and
+  // a pointercancel (use-gesture ends the drag on it as on pointerup) is a release at the
+  // last real position -- its own coordinates are not the finger's.
+  const samplesRef = useRef([])
+  const follow = (mx, active, event) => {
+    const now = performance.now(), s = samplesRef.current
+    if (active) { s.push({ mx, t: now }); while (s.length > 2 && now - s[1].t > 100) s.shift() }
+    else if (event?.type === 'pointercancel' && s.length) mx = s[s.length - 1].mx
     const p = Math.min(1, Math.max(0, (open ? 1 : 0) - mx / travel))
     if (active) { setDragP(p); return }
     setDragP(null)
-    setOpen(open ? p > 2 / 3 : p > 1 / 3)
+    const v = s.length > 1 ? (s[s.length - 1].mx - s[0].mx) / Math.max(1, s[s.length - 1].t - s[0].t) : 0
+    samplesRef.current = []
+    const cut = TRAY_TEASE === 'd' ? 1 / 4 : 1 / 3
+    if (TRAY_TEASE === 'd' && Math.abs(v) > 0.3) { setOpen(v < 0); return }
+    setOpen(open ? p > 1 - cut : p > cut)
   }
-  const bind = useDrag(({ first, tap, active, movement: [mx], event }) => {
-    if (first) tappedRef.current = false
+  // The press is the first sample (movement 0, timed back from elapsedTime): a fast flick's
+  // few moves can arrive coalesced into one event, and one sample has no speed.
+  const startSamples = (elapsedTime) => [{ mx: 0, t: performance.now() - elapsedTime }]
+  const bind = useDrag(({ first, tap, active, elapsedTime, movement: [mx], event }) => {
+    if (first) { tappedRef.current = false; samplesRef.current = startSamples(elapsedTime) }
     if (tap) {
       tappedRef.current = true
       const { open: was, face } = downRef.current ?? {}
@@ -1418,24 +1561,29 @@ function FaceTray({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd })
       else if (face) tapFace(face)
       return
     }
-    follow(mx, active)
+    follow(mx, active, event)
   }, { axis: 'x', filterTaps: true, pointer: { capture: false } })
-  // D's swipe zone (.face-tray-edge in App.css): the stage's right 34px, full height, shut
-  // only. A drag there is the sheet's once it has gone 8px and on the x axis; an upright one
-  // is the stage's scroll (pan-y). A tap is not the sheet's: the zone's click is handed to
-  // whatever is under it, so a card or a button at the edge still answers. The band over its
-  // right 10px is the tray itself and keeps the tap that opens.
+  // D's edge strip (.face-tray-edge in App.css): the stage's right 34px, full height, shut
+  // only, and EVERY touch that starts in it is the sheet's (touch-action: none, touchmove
+  // prevented). With pan-y there, a real finger's few px of dy started WebKit's scroll, which
+  // sent pointercancel, which ended the drag at a peek and it snapped back (Mark's iPhone,
+  // 2026-11-08). So the strip scrolls nothing. A drag past 8px on the x axis moves the sheet;
+  // a tap (under 8px, lifted inside 300ms) OPENS it, as the band does -- the strip no longer
+  // hands taps through to the preview under it.
   const edgeRef = useRef(null)
   const scrimDownRef = useRef(false)
-  const bindEdge = useDrag(({ tap, active, movement: [mx] }) => { if (!tap) follow(mx, active) },
-    { axis: 'x', threshold: 8, filterTaps: true, pointer: { capture: false } })
-  const passTap = (e) => {
-    const zone = edgeRef.current
-    zone.style.pointerEvents = 'none'
-    const under = document.elementFromPoint(e.clientX, e.clientY)
-    zone.style.pointerEvents = ''
-    under?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, clientX: e.clientX, clientY: e.clientY, detail: 1 }))
-  }
+  const bindEdge = useDrag(({ first, tap, active, elapsedTime, movement: [mx], event }) => {
+    if (first) { tappedRef.current = false; samplesRef.current = startSamples(elapsedTime) }
+    if (tap) { if (elapsedTime < TRAY_TAP_MS) setOpen(true); return }
+    follow(mx, active, event)
+  }, { axis: 'x', threshold: 8, filterTaps: true, tapsThreshold: 8, pointer: { capture: false } })
+  useEffect(() => {
+    const el = edgeRef.current
+    if (!el) return
+    const stop = e => e.preventDefault()
+    el.addEventListener('touchmove', stop, { passive: false })
+    return () => el.removeEventListener('touchmove', stop)
+  }, [open])
 
   const p = dragP ?? (open ? 1 : 0)
   const drag = bind()
@@ -1449,7 +1597,7 @@ function FaceTray({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd })
             onPointerDown={() => { scrimDownRef.current = true }}
             onClick={() => { if (scrimDownRef.current) close(); scrimDownRef.current = false }} />
         : open && <div className="face-tray-scrim" aria-hidden="true" onClick={close} />}
-      {TRAY_TEASE === 'd' && !open && <div ref={edgeRef} className="face-tray-edge" aria-hidden="true" {...bindEdge()} onClick={passTap} />}
+      {TRAY_TEASE === 'd' && !open && <div ref={edgeRef} className="face-tray-edge" aria-hidden="true" {...bindEdge()} />}
       <div
         ref={trayRef}
         className={`face-tray face-tray--${TRAY_TEASE}${open ? ' open' : ''}${dragP !== null ? ' face-tray--dragging' : ''}${nudge && !open ? ' face-tray--nudge' : ''}`}

@@ -202,8 +202,8 @@ grounds only with a one-time 16px nudge (C), and D, the one shipped (default): a
 side sheet, full stage height, 200px, a scrim over the stage, names hidden while shut, and
 a 10px band (5 was "so hard to touch") that cuts each "Rag" through the MIDDLE of the R --
 "not the edge" -- so there is letter texture in the sliver. A swipe left from anywhere
-along the right edge (a 34px strip that claims only horizontal drags) or a tap on the band
-opens it; tap the scrim, swipe right, or pick to close. The open tray's tiles are 51px
+along the right edge, or a tap anywhere in that 34px strip, opens it (the strip takes every
+touch, so taps there no longer reach the preview and the stage does not scroll from it); tap the scrim, swipe right, or pick to close. The open tray's tiles are 51px
 with "Rag" at the title role, not display: 55pt "would look weird, but it should look like
 something is there". A bottom bar at the lift tab's height was considered for two-face
 sets and not built ("no work i think").
