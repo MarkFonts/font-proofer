@@ -36,6 +36,14 @@ const OFFLINE_FONTS = [
 const OFFLINE_FONT_RE = new RegExp(
   `/assets/(${OFFLINE_FONTS.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})-[A-Za-z0-9_-]{8}\\.(ttf|otf|woff2?)(\\?.*)?$`)
 
+/* ROUTES SEARCH ENGINES MAY INDEX. Deny by default, like OFFLINE_FONTS: a client route is
+   in the sitemap and indexable only if its font is open-licensed and named here. Every
+   other route (a client's retail face, a beta, the next client) gets
+   <meta name="robots" content="noindex"> and stays out of sitemap.xml -- reachable by its
+   link, never in search. robots.txt must NOT disallow them, or Google cannot read the
+   noindex. */
+const INDEXED_FONTS = new Set(['calsans', 'calsansflex', 'geist', 'geistserif'])   // OFL
+
 const BASE = process.env.WORDPROOF_BASE ?? '/font-proofer/'
 const ROOT_BUILD = BASE === '/'
 const SITE_ORIGIN = ROOT_BUILD ? 'https://wordproof.app' : 'https://wordmark.nyc'
@@ -432,8 +440,10 @@ export default defineConfig({
           const title = `${fontDisplayName} — Wordproof`
           const imageUrl = `${SITE_ORIGIN}${SITE_BASE}/og/${fontSlug}.png`
           const pageUrl = `${SITE_ORIGIN}${SITE_BASE}/${clientSlug}/${fontSlug}/`
+          const robots = INDEXED_FONTS.has(fontSlug) ? '' : '\n    <meta name="robots" content="noindex" />'
           const html = base
             .replace(/\s*<meta property="og:url"[^>]*>/, '')   // the root's; this page writes its own below
+            .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />${robots}`)
             .replace('<title>Wordproof</title>', `<title>${title}</title>`)
             .replace(/(<meta property="og:title"[^>]*>)/, `<meta property="og:title" content="${title}" />`)
             .replace(/<meta property="og:image" [^>]+>/,
@@ -442,6 +452,20 @@ export default defineConfig({
               + `    <meta name="twitter:card" content="summary_large_image" />\n`
               + `    <meta name="twitter:image" content="${imageUrl}" />`)
           writeFileSync(`${dir}/index.html`, html)
+        }
+
+        // sitemap.xml + robots.txt for wordproof.app: the root and the INDEXED_FONTS routes
+        // from routes.config.js. Root build only; the
+        // /font-proofer/ test build is never served to a search engine.
+        if (ROOT_BUILD) {
+          const today = new Date().toISOString().slice(0, 10)
+          const urls = ['/', ...[...new Set(routes.filter(r => INDEXED_FONTS.has(r.fontSlug)).map(r => `/${r.clientSlug}/${r.fontSlug}/`))]]
+          writeFileSync('dist/sitemap.xml',
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            + urls.map(u => `  <url><loc>${SITE_ORIGIN}${u}</loc><lastmod>${today}</lastmod></url>`).join('\n')
+            + '\n</urlset>\n')
+          writeFileSync('dist/robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${SITE_ORIGIN}/sitemap.xml\n`)
         }
 
         // Generate OG images for all routes
