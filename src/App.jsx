@@ -86,7 +86,8 @@ function ClientLogo({ slug, clientLabel }) {
 }
 
 // ── URL route parsing ────────────────────────────────────────────────────────
-const BASE = '/font-proofer'
+// '' at wordproof.app's root, '/font-proofer' in the default (test) build: follows vite.config.js `base`.
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
 const SLUG_REDIRECTS = { calsansui: 'calsans', calsans2: 'calsans' }
 function parseRoute() {
   const params = new URLSearchParams(window.location.search)
@@ -1843,6 +1844,17 @@ export default function App() {
       if (dropLevel && first) setParaStyles(prev => ({ ...prev, [dropLevel]: { ...prev[dropLevel], face: first.id } }))
     })
   }, [loadFonts, dropLevel])
+
+  // Installed PWA, desktop Chrome/Edge: "Open With → Wordproof" on a font file hands the
+  // files here (manifest file_handlers). Same path as a plain drop: they replace the set.
+  useEffect(() => {
+    if (!('launchQueue' in window)) return
+    window.launchQueue.setConsumer(async params => {
+      if (!params.files?.length) return
+      const files = await Promise.all(params.files.map(h => h.getFile()))
+      loadFonts(await groupFiles(files), false)
+    })
+  }, [loadFonts])
 
   // ⌥ is read off the drag itself, live: dragover repeats, and a set to the same value
   // does not render, so the overlay re-words only when ⌥ goes down or up.

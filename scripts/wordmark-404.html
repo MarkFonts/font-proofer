@@ -2,9 +2,13 @@
 <html>
 <head>
 <script>
+  // wordmark.nyc's site-wide 404 (deploy.yml copies it there). The font proofer moved to
+  // wordproof.app: any /font-proofer/... path wordmark.nyc has no forwarder file for lands
+  // here and goes to the same path on wordproof.app.
   var path = window.location.pathname;
-  if (path.startsWith('/font-proofer/')) {
-    window.location.replace('/font-proofer/?route=' + encodeURIComponent(path));
+  if (path === '/font-proofer' || path.startsWith('/font-proofer/')) {
+    window.location.replace('https://wordproof.app' + (path.slice('/font-proofer'.length) || '/')
+      + window.location.search + window.location.hash);
   }
 </script>
 </head>

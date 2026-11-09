@@ -18,7 +18,7 @@ A clean font proofing tool for sharing with clients. Upload a font (including va
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) v18+
-- A [GitHub](https://github.com) account (deploy is automatic via GitHub Actions → GitHub Pages)
+- A [GitHub](https://github.com) account (deploy is automatic via GitHub Actions → Cloudflare Pages)
 
 ---
 
@@ -45,10 +45,12 @@ git push -u origin main
 
 ---
 
-## Step 3 — Deploy (GitHub Pages, automatic)
+## Step 3 — Deploy (Cloudflare Pages, automatic)
 
 Deploy is fully automated via GitHub Actions. On every push to `main`:
-- `.github/workflows/deploy.yml` runs `npm run build` and copies `dist/` into the **`wordmark`** repo's `font-proofer/` folder, which GitHub Pages serves (SPA fallback via `404.html`). The site lives under the wordmark Pages site at `/font-proofer/`.
+- `.github/workflows/deploy.yml` builds with `FONT_PROOFER_BASE=/` and deploys `dist/` to the Cloudflare Pages project **`wordproof`**, served at **https://wordproof.app** (needs the repo secret `CLOUDFLARE_API_TOKEN`, Account › Cloudflare Pages › Edit). Once wordproof.app serves the new build, it rewrites the **`wordmark`** repo's `font-proofer/` folder as forwarders (`scripts/write-forwarders.mjs`) and copies `scripts/wordmark-404.html`, so every old wordmark.nyc/font-proofer/… link lands on the same path at wordproof.app.
+- A plain `npm run build` still builds at `/font-proofer/`. That is on purpose: wm-primitives' `consumers.yml` builds this repo and serves it at that path for the behaviour tests that gate every primitive dispatch (`calbuild --bump` included).
+- The root build is a PWA (vite-plugin-pwa, see `vite.config.js`). Icons: `node scripts/make-pwa-icons.mjs` after changing `public/favicon.svg`.
 - `.github/workflows/bump-font.yml` watches `src/fonts/*.ttf`: when a versioned font is pushed it renames it to the canonical name and records the version in `font-versions.json`.
 
 So you just push to `main` (Step 2) and the site updates itself in ~a minute.
@@ -85,7 +87,7 @@ Leave as-is — clients drag & drop their own copy of the font. Good for sending
 
 ## Updating the site
 
-Any `git push` to `main` automatically rebuilds and re-deploys via the `deploy.yml` GitHub Action (build → push `dist/` to the `wordmark` repo → GitHub Pages).
+Any `git push` to `main` automatically rebuilds and re-deploys via the `deploy.yml` GitHub Action (build → Cloudflare Pages at wordproof.app → forwarders in the `wordmark` repo).
 
 ```bash
 git add .
