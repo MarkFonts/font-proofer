@@ -47,6 +47,8 @@ git push -u origin main
 
 ## Step 3 — Deploy (Cloudflare Pages, automatic)
 
+**Full deploy guide: [DEPLOY.md](DEPLOY.md)** (the two builds, secrets, PWA and client-font rules, adding a route).
+
 Deploy is fully automated via GitHub Actions. On every push to `main`:
 - `.github/workflows/deploy.yml` builds with `WORDPROOF_BASE=/` and deploys `dist/` to the Cloudflare Pages project **`wordproof`**, served at **https://wordproof.app** (needs the repo secret `CLOUDFLARE_API_TOKEN`, Account › Cloudflare Pages › Edit). Once wordproof.app serves the new build, it rewrites the **`wordmark`** repo's `font-proofer/` folder as forwarders (`scripts/write-forwarders.mjs`) and copies `scripts/wordmark-404.html`, so every old wordmark.nyc/font-proofer/… link lands on the same path at wordproof.app.
 - A plain `npm run build` still builds at `/font-proofer/`. That is on purpose: wm-primitives' `consumers.yml` builds this repo and serves it at that path for the behaviour tests that gate every primitive dispatch (`calbuild --bump` included).
