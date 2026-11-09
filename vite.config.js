@@ -428,6 +428,16 @@ export default defineConfig({
       async closeBundle() {
         // Generate per-route HTML with correct OG tags
         const base = readFileSync('dist/index.html', 'utf-8')
+        /* ONE INSTALLABLE APP PER FONT ROUTE. iOS "Add to Home Screen" (and Chrome's install)
+           opens the manifest's start_url, never the page you were on -- with one root
+           manifest, installing from /calcom/calsansflex/ gave you the empty root. So each
+           route page links its own manifest: start_url and id are the route, and the home
+           screen label is the font. The root keeps the root manifest. */
+        const MANIFEST_LINK = '<link rel="manifest" href="/manifest.webmanifest">'
+        const rootManifest = ROOT_BUILD && existsSync('dist/manifest.webmanifest')
+          ? JSON.parse(readFileSync('dist/manifest.webmanifest', 'utf-8')) : null
+        if (ROOT_BUILD && (!rootManifest || !base.includes(MANIFEST_LINK)))
+          throw new Error('og-routes: the PWA manifest or its <link> is missing; per-route apps cannot be written')
         for (const { clientSlug, fontSlug } of routes) {
           const dir = `dist/${clientSlug}/${fontSlug}`
           mkdirSync(dir, { recursive: true })
@@ -451,7 +461,34 @@ export default defineConfig({
               + `    <meta property="og:url" content="${pageUrl}" />\n`
               + `    <meta name="twitter:card" content="summary_large_image" />\n`
               + `    <meta name="twitter:image" content="${imageUrl}" />`)
-          writeFileSync(`${dir}/index.html`, html)
+          let page = html
+          if (rootManifest) {
+            const route = `/${clientSlug}/${fontSlug}/`
+            writeFileSync(`${dir}/manifest.webmanifest`, JSON.stringify({
+              ...rootManifest,
+              id: route,
+              start_url: route,
+              name: title,
+              short_name: fontDisplayName,
+            }))
+            page = page
+              .replace(MANIFEST_LINK, `<link rel="manifest" href="${route}manifest.webmanifest">`)
+              .replace('<meta name="apple-mobile-web-app-title" content="Wordproof" />',
+                `<meta name="apple-mobile-web-app-title" content="${fontDisplayName}" />`)
+          }
+          writeFileSync(`${dir}/index.html`, page)
+        }
+
+        /* A CLIENT FOLDER IS NOT AN APP. /calcom/, /weltkern/ ... have no page of their own;
+           without one they fell back to the root page and its manifest, so you could install
+           an empty proofer from them. Each gets the root page with no manifest link and
+           noindex. */
+        if (ROOT_BUILD) {
+          for (const clientSlug of new Set(routes.map(r => r.clientSlug))) {
+            writeFileSync(`dist/${clientSlug}/index.html`, base
+              .replace(MANIFEST_LINK, '')
+              .replace('<meta charset="UTF-8" />', '<meta charset="UTF-8" />\n    <meta name="robots" content="noindex" />'))
+          }
         }
 
         // sitemap.xml + robots.txt for wordproof.app: the root and the INDEXED_FONTS routes
