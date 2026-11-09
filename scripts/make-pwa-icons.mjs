@@ -8,7 +8,7 @@ import { Resvg } from '@resvg/resvg-js'
 
 const BG = '#242424', FG = '#ffffff'
 const src = readFileSync('public/favicon.svg', 'utf-8')
-const [, , , vw, vh] = src.match(/viewBox="([\d.\s-]+)"/)[1].split(/\s+/).map(Number).reduce((a, n) => [...a, n], [0])
+const [, , vw, vh] = src.match(/viewBox="([^"]+)"/)[1].trim().split(/\s+/).map(Number)
 const inner = src
   .replace(/^[\s\S]*?<svg[^>]*>/, '')
   .replace(/<\/svg>\s*$/, '')
