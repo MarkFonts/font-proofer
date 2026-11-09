@@ -24,9 +24,34 @@ import '../shared/src/space.css'
 import '../shared/src/editRail.css' // canonical edit-rail affordance (wm-primitives)
 import '../shared/src/scrollbar.css' // house 6px scrollbar (wm-primitives)
 import '../shared/src/toggleGroup.css' // house Toggle Group (wm-primitives)
+import '../shared/src/button-sets.css' // 06 Menu, the toast's buttons (wm-primitives)
+import '../shared/src/toast.css'       // the house toast (wm-primitives)
+import { toast } from '../shared/src/toast.js'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>,
 )
+
+/* A NEW VERSION, WHILE THE APP IS OPEN. The service worker takes over as soon as a new
+   deploy is fetched (skipWaiting + clientsClaim, vite.config.js), and that fires
+   controllerchange here. The page still runs the old code, so say so and offer the
+   reload. wasControlled skips the very first install, when there is no old version.
+   An installed app can stay open for days without a navigation, which is when browsers
+   check for a new worker, so it also checks on coming back to the foreground and hourly. */
+if ('serviceWorker' in navigator) {
+  const wasControlled = !!navigator.serviceWorker.controller
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!wasControlled) return
+    toast({
+      id: 'update',
+      title: 'New version available',
+      line: 'Reload to update. Dropped-in fonts need adding again.',
+      action: { label: 'Reload', mark: 'restart_alt', onClick: () => location.reload() },
+    })
+  })
+  const check = () => navigator.serviceWorker.getRegistration().then(r => r?.update()).catch(() => {})
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check() })
+  setInterval(check, 60 * 60 * 1000)
+}
