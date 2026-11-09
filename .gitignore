@@ -46,8 +46,10 @@ node_modules/
 dist/
 .DS_Store
 
-# Claude Code
+# Claude Code: personal CLAUDE.md files stay local; .claude/CLAUDE.md is the shared
+# agent brief (imports DEPLOY.md) and is committed.
 CLAUDE.md
+!.claude/CLAUDE.md
 public/_dial*.html
 
 # Screenshots dropped at the root while comparing against a reference
