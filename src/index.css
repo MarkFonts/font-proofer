@@ -84,6 +84,9 @@
 :root {
   /* House UI font token — shared primitives read it (e.g. GlyphPicker chrome). */
   --ui-font: 'Face', system-ui, sans-serif;
+  /* The toast (wm-primitives) rests under the theme switch on desktop: it sits at
+     top 20px and is 32px tall. Phones put the toast at the bottom, where nothing is fixed. */
+  --toast-top: 52px;
   --bg: #242424;
   --bg-elevated: #2e2e2e;
   --bg-hover: #383838;
