@@ -35,6 +35,25 @@
   margin-bottom: 4px;
   opacity: 0.7;
 }
+/* "New since your last visit" (whatsNew in App.jsx): the redrawn glyphs, in the font. */
+.whats-new {
+  margin-bottom: var(--spacing-04, 12px);
+  padding-bottom: var(--spacing-04, 12px);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.whats-new-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-02, 6px);
+}
+.whats-new-glyphs {
+  margin: var(--spacing-02, 6px) 0;
+  font-size: var(--type-body-size, 1rem);
+  line-height: var(--type-body-lead, 24px);
+  overflow-wrap: anywhere;
+}
 
 /* ── Drop overlay ────────────────────────────────────────────────────────── */
 .drop-overlay {
