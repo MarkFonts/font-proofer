@@ -14,6 +14,28 @@ import AXIS_REGISTRY from './src/axisRegistry.json' with { type: 'json' }
    -- keeps the old /font-proofer/ subpath by default, so none of that had to change.
    The PWA is on only for the root build: a service worker scoped to a test server's
    subpath would be noise. */
+/* FONTS THE INSTALLED APP MAY KEEP. Deny by default: a face is saved for offline use only
+   if it is named here, so a client's retail font (TWK, Weltkern, Ernest, the next one) is
+   never written into anyone's app storage -- it is fetched like any web page asset and
+   that is all. Only open-licensed faces go on this list: OFL (name ID 13 says so, or for
+   Cal Sans, the family's own license) and Apache for Material Symbols, the UI icons.
+   Entries are the hashed asset's name stem as Vite writes it ('[wght]' becomes '_wght_').
+   Fonts a visitor drops in are read from their disk, never fetched, so never cached. */
+const OFFLINE_FONTS = [
+  'CalSansVF', 'CalSansFlexVF', 'CalSans-Bold',                          // OFL
+  'Geist_wght_', 'Geist-Italic_wght_', 'GeistMono_wght_', 'GeistMono-Italic_wght_',
+  'GeistSerifVF',                                                         // OFL
+  'InterVariable', 'InterVariable-Italic',                                // OFL
+  'GoogleSansFlex-VariableFont_GRAD_ROND_opsz_slnt_wdth_wght',            // OFL
+  'TikTokSans-VariableFont_opsz_slnt_wdth_wght',                          // OFL
+  'MaterialSymbolsOutlined',                                              // Apache 2.0
+]
+// <stem>-<8-char Vite hash>.<ext>, the stem exact: 'InterVariable' cannot match the italic.
+// A RegExp, not a function: workbox writes urlPattern into sw.js as source, and a function
+// that closed over this list would reach the service worker without it.
+const OFFLINE_FONT_RE = new RegExp(
+  `/assets/(${OFFLINE_FONTS.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})-[A-Za-z0-9_-]{8}\\.(ttf|otf|woff2?)(\\?.*)?$`)
+
 const BASE = process.env.FONT_PROOFER_BASE ?? '/font-proofer/'
 const ROOT_BUILD = BASE === '/'
 const SITE_ORIGIN = ROOT_BUILD ? 'https://wordproof.app' : 'https://wordmark.nyc'
@@ -290,9 +312,9 @@ export default defineConfig({
   plugins: [
     react(),
     /* THE PWA. Installable from wordproof.app, works offline once opened.
-       Precache is the app shell only (JS, CSS, HTML, icons). Fonts are 6 MB+ and most
-       visitors open one route, so each face is cached the first time it is fetched
-       (CacheFirst; a font file's name changes when its version does). OG images never.
+       Precache is the app shell only (JS, CSS, HTML, icons) and never a font. Open-licensed
+       faces (OFFLINE_FONTS) are cached the first time they are fetched (CacheFirst; a font
+       file's name changes when its version does); client faces never are. OG images never.
        A new deploy (a wm-primitives bump included) is picked up on the next launch with
        no prompt (skipWaiting below). public/_headers keeps sw.js uncached so that
        check is never stale. */
@@ -343,7 +365,8 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/_dial/, /^\/og\//],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         runtimeCaching: [{
-          urlPattern: ({ url }) => /\.(ttf|otf|woff2?|ttc)$/i.test(url.pathname),
+          // OFFLINE_FONTS only. Any other font falls through to the network, uncached.
+          urlPattern: OFFLINE_FONT_RE,
           handler: 'CacheFirst',
           options: {
             cacheName: 'wordproof-fonts',
