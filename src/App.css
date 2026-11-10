@@ -529,6 +529,105 @@
   container-name: preview;
 }
 
+/* ── The stage's zoom (the phone's theme stack) ─────────────────────────── */
+/* .stage-zoom wraps every mode's specimen inside .preview-area. Without the stack it is no
+   box at all, so the desktop stage is exactly what it was. With it (.has-theme-stack, set by
+   App.jsx under the stack's own query) it is the zoom control's target: zoomControl.js puts
+   CSS zoom on it and pins its 100% width, so the specimen grows right and down and nothing
+   reflows. height: 100% keeps every mode's own height chain (the UI board's and the booking
+   shell's height: 100%, the rest's min-height: 100%) resolving against the stage as before;
+   flowing modes overflow it downwards and the stage scrolls them as it always did.
+   THE PAN STAYS IN THE STAGE. The stage scrolls on both axes, so a zoomed specimen pans
+   sideways inside it; the document never gets wider, or mobile Chromium widens the layout
+   viewport and the fixed stack drifts right with it (wm-primitives G80). */
+.stage-zoom { display: contents; }
+.has-theme-stack .stage-zoom { display: block; height: 100%; --stage-z: 1; }   /* --stage-z: ThemeStack overrides it inline */
+.has-theme-stack .preview-area { overflow-x: auto; }
+/* UNDER 100% the page sits in the middle of the stage, not hugging its left edge.
+   zoomControl.js owns the box's inline zoom, width and margins, so this moves it with
+   translate: ThemeStack writes --stage-z (the zoom, 0.5 for 50%) and data-shrunk while it is
+   below 1. The box keeps its 100% width W and is drawn x z, so half the freed width,
+   W(1 - z)/2 on screen, is (1 - z)/(2z) of W before the zoom. Only while shrunk: a
+   translate makes the box a containing block for anything fixed inside it. Above 100% the
+   pan is unchanged, left-anchored. */
+.has-theme-stack .stage-zoom[data-shrunk] {
+  translate: calc(100% * (1 - var(--stage-z, 1)) / (2 * var(--stage-z, 1))) 0;
+}
+/* the palette's anchor stays on the stage's visible right edge however far it pans: sticky
+   on the inline axis too (it is a direct child of the scroller, as on the block axis).
+   Clipped on the inline axis only: the shut faces sheet waits translated past the stage's
+   right edge (200px less its 10px band), and unclipped that overhang was scrollable
+   overflow -- the stage panned 190px past the specimen at every zoom, into an empty strip. */
+.has-theme-stack .face-palette-anchor { left: 0; overflow-x: clip; overflow-y: visible; }
+
+/* THE MARKS' GROUND, two options behind ?marks= (ThemeStack, App.jsx) so Mark can flip them on
+   his phone. The stack is ink with no ground (wm-primitives G76), so a light mark vanished over
+   the cal.com hero card in dark, and a dark one over black display type in light.
+   halo (default): a soft page-coloured disc behind each mark -- the page at 75% over an 8px blur
+   of what is under it, its edge feathered by a radial mask, so each mark floats on its own
+   patch of page and the column never joins into a bar. Behind the mark (z -1 in the button's
+   own layer), so the active mark's HDR swatch is drawn over it untouched. */
+.marks-halo > .wm-theme .wm-icon-btn,
+.marks-halo .wm-zoom-toggle { position: relative; isolation: isolate; }
+.marks-halo > .wm-theme .wm-icon-btn::before,
+.marks-halo .wm-zoom-toggle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bg, #242424) 75%, transparent);
+  -webkit-backdrop-filter: blur(var(--spacing-03, 8px));
+  backdrop-filter: blur(var(--spacing-03, 8px));
+  -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent);
+  mask-image: radial-gradient(closest-side, #000 62%, transparent);
+  pointer-events: none;
+}
+/* blend: no ground. The stack is drawn white and composited with difference, so every mark
+   inverts against whatever is under it: white over the dark page, black over the white card.
+   mix-blend-mode has to sit on the stack itself (it is fixed, so its own stacking context:
+   a mark blending inside it would only blend with the stack's own transparent box), so the
+   active mark goes through the blend too -- its HDR swatch is composited in an SDR blend
+   group, so blend loses the HDR. */
+.marks-blend { mix-blend-mode: difference; --text-rgb: 255, 255, 255; --text: #fff; }
+/* tone (the default): the stack takes the look of the theme that matches the SURFACE under
+   it, set by watchStackTone (App.jsx) as data-tone. The stack's colours are all read through
+   these few tokens (the marks' inks through --text-rgb, the zoom's rule, readout and lozenge
+   through --text / --text-muted / --text-dim / --border), so restating them on the stack
+   flips it whole; the values are index.css's two palettes. Dark tone needs nothing on the
+   active mark: in dark theme it is icon.css's HDR swatch, untouched; in light theme it is
+   icon.css's full-ink mark, now in white ink (no HDR: icon.css's light gate drops the
+   swatch, and the swatch is an inline url a host cannot re-apply -- see the primitive note).
+   Light tone unwinds the swatch as icon.css's light gate does, on the stack only. The flip
+   eases over --dur-fast (icon.css's own 90ms is the rollover's; this is a change of ground). */
+.marks-tone .wm-icon { --icon-dur: var(--dur-fast, 140ms); }
+.marks-tone[data-tone="light"] {
+  color-scheme: light;
+  --text: #111111;
+  --text-rgb: 17, 17, 17;
+  --text-muted: rgba(17, 17, 17, 0.55);
+  --text-dim: rgba(17, 17, 17, 0.35);
+  --border: #c4d8eb;
+  --bg: #f5faff;
+}
+.marks-tone[data-tone="dark"] {
+  color-scheme: dark;
+  --text: #ffffff;
+  --text-rgb: 255, 255, 255;
+  --text-muted: #888888;
+  --text-dim: #555555;
+  --border: #3a3a3a;
+  --bg: #242424;
+}
+.marks-tone[data-tone="light"] .active > .wm-icon {
+  --icon-hdr: 0;
+  color: rgba(var(--text-rgb, 17, 17, 17), calc(var(--ink-full, 1) - (var(--ink-full, 1) - var(--ink-faint, .38)) * var(--confirm-off, 0)));
+  background-image: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  dynamic-range-limit: standard;
+}
+
 /* ── Face palette ────────────────────────────────────────────────────────── */
 /* FacePalette (App.jsx) says when it shows. Bottom right of the STAGE, not the viewport: on
    a phone the sidebar sits under the preview and a fixed box would land on it. So the
@@ -870,6 +969,270 @@
 .face-coin-flying [data-role][data-coin-halo],
 .face-coin-flying [data-role][data-coin-halo] * { color: var(--stage-page, var(--bg, #242424)); }
 
+/* ── Face tray (FaceTray in App.jsx): the palette on a phone ──────────────── */
+/* Only the phone render adds these classes (FacePalette swaps at max-width: 768px), so the
+   desktop palette never meets them. Hung off .face-palette-anchor like the palette: bottom
+   right of the visible stage, and clipped by the stage's overflow -- which is what hides the
+   shut tray's other 155px past the right edge.
+   ONE TRANSFORM: --tray-p is the open fraction (FaceTray sets it, 0 shut, 1 open, the
+   finger's position while it drags), and the tray sits (1 - p) x (width - peek) to the right.
+   Snapping is the transition; a drag turns it off so the tray stays under the finger.
+   ON THE LINE: a tile is 51 (17 units): the "Rag" on a title line (30) over the name on a
+   label line (15), centred, so 3 above and 3 below. 6 between tiles and round the column,
+   except on the left: the tiles' own left edges are the sliver, so nothing pads them. */
+.face-tray {
+  --tray-p: 0;
+  --tray-w: 160px;
+  --tray-peek: 5px;
+  --tray-ease: cubic-bezier(0.2, 0, 0, 1);
+  position: absolute;
+  right: 0;
+  bottom: var(--spacing-04, 12px);
+  box-sizing: border-box;
+  width: var(--tray-w);
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--spacing-02, 6px);
+  padding: var(--spacing-02, 6px) var(--spacing-02, 6px) var(--spacing-02, 6px) 0;
+  isolation: isolate;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transform: translateX(calc((1 - var(--tray-p)) * (var(--tray-w) - var(--tray-peek))));
+  transition: transform var(--dur-layout, 300ms) var(--tray-ease);
+}
+/* Its ground comes in as it opens, so the shut sliver is the tiles and nothing else. */
+.face-tray::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--radius, 6px) 0 0 var(--radius, 6px);
+  background: var(--bg, #242424);
+  opacity: var(--tray-p);
+  transition: opacity var(--dur-layout, 300ms) var(--tray-ease);
+}
+/* The grab zone: shut, the tray reaches 24px in from the edge -- its 5 and 19 more. */
+.face-tray:not(.open)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: calc(24px - var(--tray-peek));
+}
+/* Catches the tap outside and nothing else: it does not darken the stage. Bottom-aligned on
+   the anchor and a screen tall, so the stage's own overflow cuts it to the visible stage. */
+.face-tray-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100dvh;
+  background: transparent;
+}
+/* A tile is the panel look's tile at a phone's size: surface ground, quiet ink, the active
+   one the ink-on-page pill (the HDR ground in dark comes with .face-tile.active::before). */
+.face-tray .face-tile {
+  flex: none;
+  width: 100%;
+  height: 51px;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0 var(--spacing-04, 12px);
+  color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62));
+  background: var(--surface, var(--bg-elevated, #2e2e2e));
+  touch-action: pan-y;
+}
+.face-tray .face-tile::before { border-radius: inherit; }
+.face-tray .face-tile.active { color: var(--bg, #242424); }
+.face-tray .face-tile.active .face-tile-name { color: inherit; }
+.face-tray .face-tile--add { color: rgba(var(--text-rgb, 232, 232, 232), var(--ink-faint, .38)); }
+.face-tray-rag {
+  font-size: var(--type-title-size, 1.625rem);
+  line-height: var(--lead-title, var(--type-title-lead, 30px));
+}
+/* A: the tiles peek. Shut, the "Rag" rides 11px left of its 12px inset, so its first stroke
+   is inside the 5px that shows; it slides home as the tray opens. */
+.face-tray--a .face-tray-rag {
+  transform: translateX(calc((1 - var(--tray-p)) * -11px));
+  transition: transform var(--dur-layout, 300ms) var(--tray-ease);
+}
+/* B: a rail with marks. The sliver's width, the stack's height and a unit over at each end
+   (so its round caps clear the tiles' corners), quiet ink; a page-colour dot (one unit) at
+   each face's tile centre (FaceTray sets top), the active one full ink at 5. */
+.face-tray-rail {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: var(--tick, 3px);
+  bottom: var(--tick, 3px);
+  width: var(--tray-peek);
+  border-radius: 999px;
+  /* Opaque: the quiet rung laid over the page, so the tiles under it never show through. */
+  background: linear-gradient(rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62)), rgba(var(--text-rgb, 232, 232, 232), var(--ink-quiet, .62))), var(--bg, #242424);
+  opacity: calc(1 - var(--tray-p));
+  transition: opacity var(--dur-layout, 300ms) var(--tray-ease);
+  pointer-events: none;
+}
+.face-tray-mark {
+  position: absolute;
+  left: 50%;
+  width: var(--tick, 3px);
+  height: var(--tick, 3px);
+  translate: -50% -50%;
+  border-radius: 999px;
+  background: var(--bg, #242424);
+}
+.face-tray-mark.active {
+  width: var(--tray-peek);
+  height: var(--tray-peek);
+  background: rgba(var(--text-rgb, 232, 232, 232), var(--ink-full, 1));
+}
+/* C: grounds only. Shut, every tile but the active one is veiled at the faint rung and no
+   letters show; open, the veils lift and the letters come in. */
+.face-tray-veil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: rgba(var(--text-rgb, 232, 232, 232), var(--ink-faint, .38));
+  opacity: calc(1 - var(--tray-p));
+  transition: opacity var(--dur-layout, 300ms) var(--tray-ease);
+}
+.face-tray-tile.active .face-tray-veil { display: none; }
+.face-tray--c :is(.face-tile-rag, .face-tile-name, .wm-icon) {
+  opacity: var(--tray-p);
+  transition: opacity var(--dur-layout, 300ms) var(--tray-ease);
+}
+/* C's one-time nudge (FaceTray): out to 16 and back, each way on the snap's ease. */
+.face-tray--nudge { --tray-peek: 16px; }
+
+/* D: a side sheet (the default). The visible stage's full height -- 100cqh of the stage,
+   made a size container below, hung up from the anchor that is its bottom edge, so it is
+   glued to the stage in the same layout pass while the rail animates the stage's height (a
+   measured height lagged it by up to 53px) -- 200 wide, flush right, on the
+   surface the panel palette's tiles use. Shut, its left 10px is a continuous surface band
+   down the whole stage. Straight left edge; the Material sheet's shadow comes in with the
+   open fraction, and the stage under it is scrimmed at the same rate (.face-tray-scrim--d).
+   Tiles stack from the top, 12 in, 6 apart. SHUT, EACH TILE SLIDES 12 LEFT so its own left
+   edge is the band, and its "Rag" slides further, by --rag-shift (FaceTray measures it per
+   tile: the R's advance centre minus the 5 that is the band's middle), so the 10px cuts
+   the R through its middle -- bowl into leg. The "+" mark is cut through its upright the
+   same way; the family name stays out of the band until it opens. Each tile clips on its left only, so what slides past the band never paints on
+   the stage. Opening, letters and tiles slide home on the open fraction, A's technique. */
+.face-tray--d {
+  --tray-w: 200px;
+  --tray-peek: 10px;          /* Mark, on the phone: 5 was "so hard to touch". The inline axis is free */
+  bottom: 0;
+  height: 100cqh;
+  padding: var(--spacing-04, 12px);
+}
+/* The stage is already the "preview" container (inline-size); with the sheet in it, it is
+   one on both axes, so 100cqh is its visible height. Its height comes from the flex column
+   at this width, never from its content, so the size containment changes nothing else. */
+@media (max-width: 768px) {
+  .preview-area:has(> .face-palette-anchor .face-tray--d) { container-type: size; }
+  /* THE ANCHOR IS A REAL BOX WITH D: the stage's visible box (sticky at its top, 100cqh,
+     a negative margin as tall so it takes no flow space), clipped on both axes. The parked
+     sheet waits 190px past the stage's right edge, and that overhang must not widen the
+     stage's scroll width. overflow-x: clip with overflow-y: visible on the old zero-height
+     anchor did that in Chromium, but iOS WebKit clipped both axes of the 0px box and the
+     band and its swipe vanished (2026-11-08). Clipping a box the stage's own size needs no
+     split. The box itself takes no touches; the tray and the strip do, and the scrim does
+     only while open (its own rule). */
+  .face-palette-anchor:has(> .face-tray--d) {
+    top: 0;
+    height: calc(100cqh + var(--stage-foot, 0px));   /* to the stage's real foot, padding included */
+    margin-bottom: calc(-100cqh - var(--stage-foot, 0px));
+    overflow: hidden;
+    overflow: clip;
+    pointer-events: none;
+  }
+  .face-palette-anchor > :is(.face-tray--d, .face-tray-edge) { pointer-events: auto; }
+  /* the box already reaches the real foot, so the sheet, strip and scrim sit on its bottom */
+  .face-palette-anchor:has(> .face-tray--d) > :is(.face-tray--d, .face-tray-edge, .face-tray-scrim--d) { bottom: 0; }
+}
+/* D's swipe zone is not the tray's ::before (which took every tap in it) but its own strip,
+   .face-tray-edge, a sibling under the tray: the stage's right edge, full height, the band
+   and 24px more. touch-action: none, and the shut band too: every touch that starts there
+   is the sheet's. It was pan-y, and on an iPhone a real finger's few px of dy started the
+   stage's scroll, WebKit sent pointercancel, and the sheet peeked and sprang back. The cost
+   is that the stage does not scroll from its right 34px. A tap on it opens, like the band.
+   Shut only; the band (the tray) is over its right 10px. */
+.face-tray--d:not(.open)::before { content: none; }
+/* Shut, the zone and the band go under the theme stack (fixed, z-index 30): its marks and
+   zoom dial overlap the zone's left 22px, and a drag on the dial is the dial's. Nothing else
+   in the stage sits between 29 and 50. Dragged or open, the anchor is back at 50 and the
+   sheet slides over the stack, which FaceTray hides while it is covered. */
+.face-palette-anchor:has(> .face-tray--d:not(.open, .face-tray--dragging)) { z-index: 29; }
+.face-tray-edge {
+  --tray-peek: 10px;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: calc(var(--tray-peek) + 24px);
+  height: 100cqh;
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+.face-tray--d:not(.open),
+.face-tray--d:not(.open) .face-tile { touch-action: none; }
+.face-tray--d::after {
+  border-radius: 0;
+  background: var(--surface, var(--bg-elevated, #2e2e2e));
+  opacity: 1;
+  box-shadow: -2px 0 12px rgb(0 0 0 / calc(var(--tray-shadow, .18) * var(--tray-p)));
+  transition: box-shadow var(--dur-layout, 300ms) var(--tray-ease);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .face-tray--d::after { --tray-shadow: .5; }
+}
+:root[data-theme="dark"] .face-tray--d::after { --tray-shadow: .5; }
+.face-tray--d .face-tray-tile {
+  --rag-shift: -21px;         /* until FaceTray has measured the R (or the "+") */
+  translate: calc((1 - var(--tray-p)) * -1 * var(--spacing-04, 12px)) 0;
+  clip-path: inset(-6px -6px -9px calc(var(--tray-p) * -4px));
+  transition: translate var(--dur-layout, 300ms) var(--tray-ease), color var(--dur-fast, 140ms) ease;
+}
+.face-tray--d :is(.face-tray-rag, .face-tile--add .wm-icon) {
+  transform: translateX(calc((1 - var(--tray-p)) * var(--rag-shift)));
+  transition: transform var(--dur-layout, 300ms) var(--tray-ease);
+}
+/* The name is not in the band: cut through its middle it left legible scraps ("S", "te")
+   that read as labels and crowded the R's slice. It comes in with the open fraction. */
+.face-tray--d .face-tile-name {
+  opacity: var(--tray-p);
+  transition: opacity var(--dur-layout, 300ms) var(--tray-ease), color var(--dur-fast, 140ms) ease;
+}
+/* D's scrim is seen: ink at 32% over the stage, in with the open fraction. Always mounted
+   so it fades out too; it takes taps only while the sheet is open. */
+.face-tray-scrim--d {
+  background: rgba(var(--text-rgb, 17, 17, 17), .32);
+  background: color-mix(in srgb, var(--ink, #111111) 32%, transparent);
+  opacity: var(--tray-p);
+  pointer-events: none;
+  transition: opacity var(--dur-layout, 300ms) var(--tray-ease);
+}
+.face-tray-scrim--d.open { pointer-events: auto; }
+/* In dark the ink is white, and a white scrim fogs the stage instead of dimming it; dark
+   dims with black, as the sheet's shadow does, a step heavier so it reads on a dark page. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .face-tray-scrim--d { background: rgb(0 0 0 / .48); }
+}
+:root[data-theme="dark"] .face-tray-scrim--d { background: rgb(0 0 0 / .48); }
+
+.face-tray--dragging,
+/* :is takes its most specific argument, and D's "+" mark is .face-tile--add .wm-icon: listed
+   so this beats D's transform rule (0,3,0). Without it D's letters kept their 300ms ease
+   under the finger and every move restarted it -- the parallax that lagged and jumped. */
+.face-tray--dragging :is(.face-tray-rag, .face-tray-rail, .face-tray-veil, .face-tray-tile, .face-tile-rag, .face-tile-name, .wm-icon, .face-tile--add .wm-icon),
+.face-tray--dragging::after,
+.face-tray-scrim--dragging { transition: none; }
+
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
   display: flex;
@@ -1176,6 +1539,41 @@
   letter-spacing: 0;                   /* a glyph's U+ code is a code, not a caps run */
 }
 
+/* Glyphs on a phone: the previewed glyph on top, the grid under it, one column of page.
+   GlyphPicker's 'side' layout is a row (280px detail + grid) and has NO breakpoint of its
+   own, so on a 390px screen the 48px stage padding + 280px detail + 24px gap left the grid
+   0px (it sat at x=352 as one 56px column). Same 768px edge as the rest of the phone rules.
+   The detail is PINNED at the stage's top while the grid scrolls under it (Mark: it freezes
+   the preview). The stage is the scroller; nothing between it and .gp clips, so sticky
+   works. It carries the stage's own ground and sits above the cells so none shows through,
+   and the page has no top padding (the panel's own 12px stands in for it) so nothing peeks
+   above it. Its inline flex-basis (280px) is a HEIGHT once the column flips, hence
+   !important. Its height is 219px (73 x 3): the glyph left, its U+ readout / copy / search
+   right. */
+@media (max-width: 768px) {
+  .preview-glyphs { padding: 0 var(--spacing-04, 12px) var(--spacing-04, 12px); }
+  .preview-glyphs .gp { flex-direction: column; gap: 0; }
+  .preview-glyphs .gp-side {
+    flex: 0 0 219px !important;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg, #111);
+    align-self: stretch;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    column-gap: var(--spacing-04, 12px);
+    height: 219px;
+    overflow: hidden;
+    /* right: the theme stack floats over the stage's edge down this far, keep the readout
+       clear of it. left: the ASC / CAP / X / BASE / DESC labels hang left of the glyph's rules. */
+    padding: var(--spacing-04, 12px) var(--spacing-07, 32px);
+  }
+  .preview-glyphs .gp-specimen { --gp-spec: min(33cqw, 120px); font-size: var(--gp-spec); }
+  .preview-glyphs .gp-groups { flex: none; overflow: visible; }
+}
+
 /* ── Type Scale mode ─────────────────────────────────────────────────────── */
 .preview-scale {
   padding: 32px 48px 64px;
@@ -1388,6 +1786,13 @@
     order: 1;
     flex-shrink: 0;
     border-bottom: 1px solid var(--border-subtle);
+    /* over the theme stack (fixed, z-index 30, wm-primitives): hiding or coming back it
+       translates off the top edge, and without a ground and a layer above 30 its marks
+       crossed the tabs for the 180ms of the slide. 31 is the least that covers it; the
+       flap, the styles panel (200) and the lift tab (100) still sit over it. */
+    position: relative;
+    z-index: 31;
+    background: var(--bg);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -1431,6 +1836,8 @@
     padding: 8px 16px;
     border-bottom: 1px solid var(--border-subtle);
     background: var(--bg);
+    position: relative;
+    z-index: 31;   /* over the theme stack's slide, as .mobile-tabs */
   }
 
   .mobile-sub-bar::-webkit-scrollbar {
@@ -1535,15 +1942,10 @@
     margin: 2px 2px;
   }
 
-  #theme-toggle {
-    position: static;
-    order: 3;
-    align-self: flex-end;
-    margin: 6px 12px;
-    opacity: 1;
-    z-index: auto;
-    flex-shrink: 0;
-  }
+  /* No theme row here any more. #theme-toggle took a 56px row of its own between the chips
+     and the stage (15-25% of a phone's stage); at this width the switch is the vertical
+     theme stack instead (ThemeStack in App.jsx, .wm-theme-stack--vertical), fixed top right
+     over the stage, so the stage runs up to the tab strip (or the chips under it). */
 
   .preview-area {
     order: 4;
@@ -1562,66 +1964,151 @@
     overflow-y: auto;
     flex-direction: column;
     border-right: none;
-    border-top: 1px solid var(--border-subtle);
+    /* THE FLAP'S ROW IS STAGE. The rail rides 45px up over the stage (the stage grows by
+       the same 45 in the flex column), and the clip cuts the rail to a tab: the flap's 2/3
+       at the top, full width from the flap's foot down. Beside the flap nothing of the rail
+       paints or takes a tap -- clip-path clips hit-testing too -- so the preview's ground,
+       content and the zoom column run down to the flap's foot. The rail's top edge line is
+       the flap's (::before/::after on .mobile-sidebar-handle), drawn only beside it.
+       The tab's top corners follow the flap's 15px radius -- a square tab left a square of
+       rail ground outside each rounded corner (Mark, phone, dark). polygon() because it is
+       the one clip that takes calc() against 100vw everywhere (path() is px-only, shape()
+       is too new for the phones): each quarter arc is 9 chords, at most 0.06px off the
+       circle, a fifth of a device pixel at 3x. And the rail's ground starts at the flap's
+       foot -- the row above it is transparent -- so no rail ground sits behind the flap's
+       antialiased corners either. (A scroller's background stays put as it scrolls.) */
+    margin-top: calc(var(--tick, 3px) - var(--spacing-08, 48px));
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(var(--bg), var(--bg)) 0 45px / 100% 100% no-repeat;
+    clip-path: polygon(
+      calc(50% - 100vw / 3) 45px,
+      calc(50% - 100vw / 3) 15px,
+      calc(50% - 100vw / 3 + 0.228px) 12.395px,
+      calc(50% - 100vw / 3 + 0.905px) 9.87px,
+      calc(50% - 100vw / 3 + 2.01px) 7.5px,
+      calc(50% - 100vw / 3 + 3.509px) 5.358px,
+      calc(50% - 100vw / 3 + 5.358px) 3.509px,
+      calc(50% - 100vw / 3 + 7.5px) 2.01px,
+      calc(50% - 100vw / 3 + 9.87px) 0.905px,
+      calc(50% - 100vw / 3 + 12.395px) 0.228px,
+      calc(50% - 100vw / 3 + 15px) 0px,
+      calc(50% + 100vw / 3 - 15px) 0px,
+      calc(50% + 100vw / 3 - 12.395px) 0.228px,
+      calc(50% + 100vw / 3 - 9.87px) 0.905px,
+      calc(50% + 100vw / 3 - 7.5px) 2.01px,
+      calc(50% + 100vw / 3 - 5.358px) 3.509px,
+      calc(50% + 100vw / 3 - 3.509px) 5.358px,
+      calc(50% + 100vw / 3 - 2.01px) 7.5px,
+      calc(50% + 100vw / 3 - 0.905px) 9.87px,
+      calc(50% + 100vw / 3 - 0.228px) 12.395px,
+      calc(50% + 100vw / 3) 15px,
+      calc(50% + 100vw / 3) 45px,
+      100% 45px, 100% 100%, 0 100%, 0 45px);
     transition: max-height var(--dur-layout, 300ms) cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .sidebar.mobile-collapsed {
     max-height: 0 !important;
-    border-top-color: transparent;
+    margin-top: 0;
     overflow: hidden;
   }
 
-  .mobile-sidebar-handle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    /* PINNED TO THE TOP OF THE TRAY. The handle is the first child of .sidebar, and on
-       mobile .sidebar IS the scroller (42vh, overflow-y: auto) -- so it scrolled away with
-       the content, and the one control that closes the tray was gone exactly when you had
-       scrolled far enough to want it. Sticky keeps it against the top edge.
-       It needs its own background: sticky elements do not get one for free, and rows
-       sliding under a transparent bar read as a rendering fault. --bg is the sidebar's own
-       (see .sidebar), so the bar is the tray rather than a strip laid over it. */
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    background: var(--bg);
-    /* Symmetric, and on the scale. 6px over / 2px under was pinching a chevron_L (12x7)
-       into a ~15px bar -- the mark sat low in its own bar and the paragraph above ran
-       right into it. The medium step either side gives the chevron its own air and makes
-       the bar read as a bar rather than as a gap between two things. */
-    padding: var(--spacing-04, 12px) 0;
-    border: none;
-    cursor: pointer;
-    color: var(--text-dim);
-    flex-shrink: 0;
-  }
-  .mobile-sidebar-handle:hover { color: var(--text); }
-
+  /* THE FLAP. One shape for both rail states -- the handle (rail open, pinned to the rail's
+     top) and the lift tab (rail closed, fixed to the screen bottom) -- so the control reads
+     as the same object in two places. 2/3 of the window, centred: the right sixth beside it
+     stays clear for the theme stack's zoom column, which runs down the stage's right edge
+     (~33px wide, centred 28.5px in). 45px: Mark asked for a seventh off 51 (43.7), and 45
+     is the nearest height on the 3px line (15 lines). Top corners round, bottom corners
+     square where the flap meets the rail or the screen edge. */
+  .mobile-sidebar-handle,
   .mobile-sidebar-lift-tab {
     display: flex;
     align-items: center;
     justify-content: center;
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    min-height: 52px;
-    min-width: 200px;
+    width: calc(100vw * 2 / 3);
+    height: 45px;
+    padding: 0;
     background: var(--bg-elevated);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border);
     border-bottom: none;
-    border-radius: 16px 16px 0 0;
-    z-index: 100;
+    border-radius: 15px 15px 0 0; /* no radius token at this size; 15 = 5 lines */
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.12);
     cursor: pointer;
     color: var(--text-dim);
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.12);
   }
+
+  .mobile-sidebar-handle {
+    /* No wrapper: the flap itself is the sticky flex child, centred by auto margins, so the
+       sixths either side are plain rail -- nothing of the flap paints or takes taps there. */
+    margin: 0 auto;
+    /* PINNED TO THE TOP OF THE TRAY. The handle is the first child of .sidebar, and on
+       mobile .sidebar IS the scroller (42vh, overflow-y: auto) -- so it scrolled away with
+       the content, and the one control that closes the tray was gone exactly when you had
+       scrolled far enough to want it. Sticky keeps it against the top edge. */
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    flex-shrink: 0;
+  }
+  /* The rail's top edge, beside the flap only: the sixth either side of the flap's foot,
+     ending at the flap's outer edge (past its 1px side border), never under the flap. */
+  .mobile-sidebar-handle::before,
+  .mobile-sidebar-handle::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    width: calc(100vw / 6);
+    height: 1px;
+    background: var(--border-subtle);
+    pointer-events: none;
+  }
+  .mobile-sidebar-handle::before { right: calc(100% + 1px); }
+  .mobile-sidebar-handle::after { left: calc(100% + 1px); }
+
+  .mobile-sidebar-lift-tab {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    /* The chevron clears the iPhone home indicator: the inset is added under it, so the
+       flap's own 45px stays the visible bar and the extra runs down to the screen edge. */
+    height: calc(45px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 100;
+  }
+  .mobile-sidebar-handle:hover,
   .mobile-sidebar-lift-tab:hover { color: var(--text); }
+
+  /* The stage's foot: what the flap covers of it, held as scroll room so the last content
+     scrolls out from under the flap. Open, the flap's 45 (48 less a tick) -- the rail rides
+     that far up over the stage; closed, the 45, a tick and a 12 of air, plus the
+     home-indicator inset. --stage-foot is read back by the faces sheet (D), which runs past
+     the padding to the stage's real foot. */
+  .preview-area {
+    --stage-foot: calc(var(--spacing-08, 48px) - var(--tick, 3px));
+    padding-bottom: var(--stage-foot);
+  }
+  .layout:has(.sidebar.mobile-collapsed) .preview-area {
+    --stage-foot: calc(var(--spacing-08, 48px) + var(--spacing-04, 12px)
+      + env(safe-area-inset-bottom, 0px));
+  }
+  /* The faces sheet hangs off the palette anchor, which a sticky inset holds at the stage's
+     CONTENT foot -- the padding's top -- and 100cqh is the content box. Both short by the
+     foot, so the sheet, its swipe strip and its scrim run on past it to the stage's real
+     foot: beside the open flap, the flap's own foot. */
+  .face-tray--d,
+  .face-tray-edge {
+    bottom: calc(-1 * var(--stage-foot, 0px));
+    height: calc(100cqh + var(--stage-foot, 0px));
+  }
+  .face-tray-scrim--d { bottom: calc(-1 * var(--stage-foot, 0px)); }
+  /* Glyphs overflows .stage-zoom (height: 100%) rather than growing it, and a scroller's
+     padding lands after its in-flow child, not after overflow -- so the stage's foot never
+     reached the glyph grid's last row, which ended under the flap. It carries the foot. */
+  .preview-glyphs { padding-bottom: calc(var(--spacing-04, 12px) + var(--stage-foot, 0px)); }
 
   .sidebar-logo,
   .sidebar-mode-section,
@@ -2086,6 +2573,9 @@
     border-right: none;
     border-bottom: none;
     max-width: none;
+    /* stacked, the 490 cap (cal.com's two-column card) clipped the calendar under the
+       month row to an empty block: the column runs to its own length and the stage scrolls */
+    max-height: none;
   }
   .calcom-left {
     width: 100%;

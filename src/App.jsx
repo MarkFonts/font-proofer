@@ -18,6 +18,12 @@ import {
   PARA_STYLE_DEFAULTS, fitOptionsFor,
   loadSpecimen, specimenChunks, SpecimenNav,
 } from '../shared/index' // wm-primitives (git submodule)
+// The phone's theme + zoom stack (GESTURES.md §12-13): plain scripts, imported for their
+// effect -- each defines window.wmZoom / window.wmThemeStack, mounted by hand in ThemeStack.
+import '../shared/src/zoomControl.js'
+import '../shared/src/zoomControl.css'
+import '../shared/src/dialHandle.css'
+import '../shared/src/themeStack.js'
 import { useIosFocusGuardRef } from './useIosFocusGuardRef'
 // Lazy chunk — the ~40-component UI board only loads when the UI tab is opened
 const UiPreview = lazy(() => import('../shared/src/UiKitBoard')) // wm-primitives UiKitBoard
@@ -1005,6 +1011,13 @@ function coinTarget(x, y) {
 function FacePalette({ faces, look, activeFaceId, assignedId, onPick, onPickAll, onAdd, onRemove, onDropFace, onSpring }) {
   const [alt, setAlt] = useState(false)
   const inputRef = useRef(null)
+  const [phone, setPhone] = useState(() => window.matchMedia(PHONE_QUERY).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(PHONE_QUERY)
+    const on = () => setPhone(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
   useEffect(() => {
     const down = (e) => setAlt(e.key === 'Alt')
     const up = (e) => { if (e.key === 'Alt') setAlt(false) }
@@ -1115,16 +1128,26 @@ function FacePalette({ faces, look, activeFaceId, assignedId, onPick, onPickAll,
 
   const shown = faces.length >= 2 || (faces.length === 1 && alt)
   const removable = alt && faces.length >= 2
+  const fileInput = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept=".ttf,.otf,.woff,.woff2,.ttc"
+      multiple
+      style={{ display: 'none' }}
+      onChange={e => { const files = [...e.target.files]; e.target.value = ''; onAdd(files) }}
+    />
+  )
+  // A phone gets the tray instead, both looks, and only at two faces: there is no ⌥ to reveal one.
+  if (phone) return faces.length >= 2 && (
+    <div className="face-palette-anchor">
+      {fileInput}
+      <FaceTray faces={faces} activeFaceId={activeFaceId} assignedId={assignedId} onPick={onPick} onPickAll={onPickAll} onAdd={() => inputRef.current?.click()} />
+    </div>
+  )
   return (
     <div className="face-palette-anchor">
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".ttf,.otf,.woff,.woff2,.ttc"
-        multiple
-        style={{ display: 'none' }}
-        onChange={e => { const files = [...e.target.files]; e.target.value = ''; onAdd(files) }}
-      />
+      {fileInput}
       {/* The goo: blur every ground, then cut the blurred alpha at a steep threshold, so
           grounds that come within a blur of each other bridge and round into one. */}
       <svg className="face-coin-defs" width="0" height="0" aria-hidden="true">
@@ -1225,6 +1248,407 @@ function FaceCoin({ coin }) {
   )
 }
 
+/* FaceTray: the palette on a phone (FACES.md, "Phones: a drawer, not a floating palette").
+   A tray of the faces the link ships with, plus the same + the palette has. At ≤768px the
+   stage is short and a floating palette sat on its text, so the tiles go in a tray on the
+   stage's right edge, collapsed to a 5px sliver that says something is there. Hung off the
+   palette's own anchor, so it sits where the palette did: bottom right of the visible stage.
+   Open: a column of 51px tiles (17 units), "Rag" at the title role over the family name.
+   Four collapsed looks to compare, ?tray=a|b|c|d (default d):
+     A  the first 5px of each tile -- its ground and the clipped leading edge of its "Rag"
+        (the letters ride 11px further left while collapsed, so an R's stem is inside the 5)
+     B  a quiet-ink rail the stack's height, a page-colour dot per face, the active one full ink
+     C  the tiles' grounds only, active ink, the rest faint; once per load it nudges out
+     D  a side sheet: the stage's full height, 200 wide, scrimmed stage when open; shut, a 5px
+        surface band whose tiles show a slice through the MIDDLE of each "Rag"'s R (measured
+        per tile, below) and of the "+"'s upright
+   No coin and no hold on a phone: a tap is enough.
+
+   THE GESTURE'S PROMISE (GESTURES.md has the rail's; this is the first page-level one):
+   - Opens: a drag that starts on the sliver or within 24px of the right edge beside it
+     (the 5px sliver and 19px of grab zone, App.css) and goes left. The tray follows the finger; let go past a third
+     of its travel and it snaps open, short of that it goes back. A tap on the sliver opens it.
+   - Closes: the same drag the other way (let go past a third and it shuts), a tap on the
+     stage outside it (a transparent scrim catches that tap, and only that), or a face picked.
+   - Cancels: a gesture that is clearly vertical belongs to the stage's scroll (touch-action
+     pan-y; the browser's pointercancel ends the drag and the tray snaps to the nearer end).
+     Under 3px of movement is a tap, never a drag.
+   - A tap on a face picks it (onPick, the scope rule) and the tray closes TRAY_TAP_MS later;
+     a second tap inside that window is the double (onPickAll), as on desktop. The + opens
+     the file picker, on the native click so iOS counts it as the user's.
+   - No pointer capture is asked for (GESTURES.md §0); moves are read off the window. */
+const PHONE_QUERY = '(max-width: 768px)'
+// The vertical theme stack's gate (wm-primitives GESTURES.md §13): the phone layout, or any
+// touch-first screen. Wider than PHONE_QUERY on purpose -- a coarse tablet gets the stack too.
+const STACK_QUERY = '(max-width: 768px), (pointer: coarse)'
+function useMedia(query) {
+  const [on, setOn] = useState(() => window.matchMedia(query).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(query)
+    const f = () => setOn(mq.matches)
+    f(); mq.addEventListener('change', f)
+    return () => mq.removeEventListener('change', f)
+  }, [query])
+  return on
+}
+/* ThemeStack: the phone's theme switch -- the three marks and the zoom's mark top to bottom,
+   fixed top right over the stage, no bar (wm-primitives .wm-theme-stack--vertical, G76-G81).
+   It replaces the row #theme-toggle took on a phone, so the stage runs up to the tab strip.
+   - rest: under the tab strip, and under the chip row in the modes that have one (data-below:
+     the script rests it 6px under the lowest match), so it sits on the stage's top-right
+     corner and never on a tab or a chip.
+   - scroll: only the stage's (data-scroller); the Typography rail scrolling does not stow it.
+   - zoom: CSS zoom on .stage-zoom, the one box round every mode's specimen, which pans
+     sideways inside the stage (App.css). Its own key, so another app's zoom on the same
+     origin is not this one's.
+     Under 100% the box is centred: the zoom's `wm-zoom` event writes --stage-z and
+     data-shrunk on it, read by App.css (the control owns its inline zoom/width/margins).
+   - the faces sheet hides it (data-hidden, FaceTray) while it covers the corner.
+   - the marks over what is under them: `tone` (default) senses the surface under the marks
+     and flips the whole stack to the other theme's look over a surface of the other tone
+     (watchStackTone). Two looks kept behind ?marks= for comparison: `halo`, a page-coloured
+     blurred disc behind each mark; `blend`, mix-blend-mode: difference (Mark: it flickers
+     over text as it scrolls, and loses the HDR).
+   Both scripts are idempotent and destroy cleanly, so StrictMode's double mount is fine. */
+const MARKS_LOOK = (v => v === 'blend' || v === 'halo' ? v : 'tone')(new URLSearchParams(window.location.search).get('marks'))
+
+/* watchStackTone: data-tone="light" | "dark" on the stack, from the SURFACE under its marks,
+   never from the theme. App.css gives the stack the light palette under light and the dark
+   one under dark, so over the white cal.com hero in dark the marks are ink and the active
+   one a full-ink mark; off the card, the dark look and its HDR swatch come back.
+   - the surface: for each mark's centre at its REST position (the stack's translate taken
+     out, so a stowed stack is sensed where it will come back), elementsFromPoint, top first;
+     the first element that paints a ground -- a background-color at alpha >= .5, an <img>, a
+     background-image url -- is the surface. Text paints no ground, so black display type on
+     the page is the page; the faces sheet's anchor and edge strip are skipped.
+   - luminance: WCAG relative luminance; a colour goes through a 1x1 canvas so oklch() and
+     color-mix() read as sRGB. An image is averaged once over 8x8 (cached), when it can be read.
+   - the vote: light at >= .5. Three of the four marks must agree to switch (two-two keeps the
+     tone), and never more than once per 120ms, so a boundary under the stack cannot flap.
+   - when: the stage's scroll, a resize, the zoom, the theme, the stage's specimen changing
+     (mode), an image loading -- rAF-throttled, one sense a frame at most. */
+function watchStackTone(stack) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 8
+  const cx = cv.getContext('2d', { willReadFrequently: true })
+  const lin = c => (c /= 255) <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  const lumOf = (r, g, b) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+  const colour = s => {
+    cx.clearRect(0, 0, 1, 1); cx.fillStyle = '#000'; cx.fillStyle = s; cx.fillRect(0, 0, 1, 1)
+    const d = cx.getImageData(0, 0, 1, 1).data
+    return { l: lumOf(d[0], d[1], d[2]), a: d[3] / 255 }
+  }
+  const imgs = new Map()   // src -> luminance | null (unreadable / transparent)
+  const imageLum = img => {
+    if (imgs.has(img.currentSrc || img.src)) return imgs.get(img.currentSrc || img.src)
+    if (!img.complete || !img.naturalWidth) return undefined
+    let l = null
+    try {
+      cx.clearRect(0, 0, 8, 8); cx.drawImage(img, 0, 0, 8, 8)
+      const d = cx.getImageData(0, 0, 8, 8).data
+      let s = 0, w = 0
+      for (let i = 0; i < d.length; i += 4) { const a = d[i + 3] / 255; s += lumOf(d[i], d[i + 1], d[i + 2]) * a; w += a }
+      l = w / 64 >= 0.5 ? s / w : null
+    } catch { l = null }   // cross-origin: unreadable
+    imgs.set(img.currentSrc || img.src, l)
+    return l
+  }
+  const bgImgs = new Map()   // url -> HTMLImageElement, loaded once for a background-image
+  const surfaceLum = el => {
+    if (el.tagName === 'IMG') { const l = imageLum(el); if (l != null) return l }
+    const cs = getComputedStyle(el)
+    const u = cs.backgroundImage.match(/url\(["']?([^"')]+)["']?\)/)
+    if (u) {
+      let im = bgImgs.get(u[1])
+      if (!im) { im = new Image(); im.onload = schedule; im.src = u[1]; bgImgs.set(u[1], im) }
+      const l = imageLum(im); if (l != null) return l
+    }
+    const c = colour(cs.backgroundColor)
+    return c.a >= 0.5 ? c.l : null
+  }
+  const lumAt = (x, y) => {
+    for (const el of document.elementsFromPoint(x, y)) {
+      if (stack.contains(el) || el.closest('.face-palette-anchor')) continue
+      const l = surfaceLum(el)
+      if (l != null) return l
+    }
+    return colour(getComputedStyle(document.body).backgroundColor).l
+  }
+  let tone = null, last = 0, raf = 0, later = 0
+  const sense = () => {
+    raf = 0
+    const S = stack.getBoundingClientRect()
+    const dx = S.left - stack.offsetLeft, dy = S.top - stack.offsetTop   // the translate, taken out
+    const marks = stack.querySelectorAll('.wm-theme .wm-icon-btn, .wm-zoom-toggle')
+    let light = 0, n = 0
+    marks.forEach(m => {
+      const r = m.getBoundingClientRect()
+      if (!r.width) return
+      n++
+      if (lumAt(r.left + r.width / 2 - dx, r.top + r.height / 2 - dy) >= 0.5) light++
+    })
+    if (!n) return
+    const want = tone == null ? (light * 2 > n ? 'light' : 'dark')
+      : light >= Math.min(3, n) ? 'light' : n - light >= Math.min(3, n) ? 'dark' : tone
+    if (want === tone) return
+    const wait = 120 - (performance.now() - last)
+    if (tone != null && wait > 0) { clearTimeout(later); later = setTimeout(schedule, wait); return }
+    tone = want; last = performance.now()
+    stack.dataset.tone = tone
+  }
+  function schedule() { if (!raf) raf = requestAnimationFrame(sense) }
+  const scroller = document.querySelector('main.preview-area')
+  const stage = document.querySelector('.stage-zoom')
+  const mo = new MutationObserver(schedule)
+  if (stage) mo.observe(stage, { childList: true })
+  scroller?.addEventListener('scroll', schedule, { passive: true })
+  scroller?.addEventListener('load', schedule, true)   // an image in the stage arriving
+  window.addEventListener('resize', schedule)
+  document.documentElement.addEventListener('wm-theme', schedule)
+  stack.addEventListener('wm-zoom', schedule)
+  schedule()
+  return () => {
+    cancelAnimationFrame(raf); clearTimeout(later); mo.disconnect()
+    scroller?.removeEventListener('scroll', schedule); scroller?.removeEventListener('load', schedule, true)
+    window.removeEventListener('resize', schedule)
+    document.documentElement.removeEventListener('wm-theme', schedule)
+    stack.removeEventListener('wm-zoom', schedule)
+    delete stack.dataset.tone
+  }
+}
+
+function ThemeStack() {
+  const stackRef = useRef(null)
+  const zoomRef = useRef(null)
+  useEffect(() => {
+    const target = document.querySelector('.stage-zoom')
+    const onZoom = e => {
+      if (!target) return
+      const z = Number(e.detail) / 100
+      target.style.setProperty('--stage-z', String(z))
+      target.toggleAttribute('data-shrunk', z < 1)
+    }
+    // before mount: the control restores the stored zoom as it mounts, and says so
+    zoomRef.current.addEventListener('wm-zoom', onZoom)
+    const zoom = window.wmZoom?.mount(zoomRef.current)
+    const stack = window.wmThemeStack?.mount(stackRef.current)
+    const unTone = MARKS_LOOK === 'tone' ? watchStackTone(stackRef.current) : null
+    const el = zoomRef.current
+    return () => {
+      unTone?.()
+      stack?.destroy(); zoom?.destroy(); el.removeEventListener('wm-zoom', onZoom)
+      target?.style.removeProperty('--stage-z'); target?.removeAttribute('data-shrunk')
+    }
+  }, [])
+  return (
+    <div
+      ref={stackRef}
+      id="theme-stack"
+      className={`wm-theme-stack wm-theme-stack--vertical marks-${MARKS_LOOK}`}
+      data-hide="scroll swipe"
+      data-scroller="main.preview-area"
+      data-below=".mobile-tabs, .mobile-sub-bar"
+    >
+      <ThemeSwitch look="marks" />
+      <div
+        ref={zoomRef}
+        className="wm-zoom wm-zoom--down"
+        data-collapse=""
+        data-capture=""
+        data-target=".stage-zoom"
+        data-key="font-proofer-zoom"
+      />
+    </div>
+  )
+}
+const TRAY_TEASE = (v => v === 'a' || v === 'b' || v === 'c' ? v : 'd')(new URLSearchParams(window.location.search).get('tray'))
+const TRAY_W = TRAY_TEASE === 'd' ? 200 : 160   // --tray-w in App.css: the open tray, padding included
+const TRAY_PEEK = TRAY_TEASE === 'd' ? 10 : 5   // --tray-peek: what shows when it is shut
+const TRAY_TILE = 51        // a tile: 17 units, the display line, over the 44px touch floor
+const TRAY_GAP = 6          // between tiles, two units
+const TRAY_TAP_MS = 300     // a second tap inside this is the double; the tray closes after it
+const TRAY_NUDGE_AFTER = 600, TRAY_NUDGE_HOLD = 500
+let trayNudged = false      // C's nudge, once per page load
+function FaceTray({ faces, activeFaceId, assignedId, onPick, onPickAll, onAdd }) {
+  const [open, setOpen] = useState(false)
+  const [dragP, setDragP] = useState(null)    // the open fraction while a finger is down
+  const [nudge, setNudge] = useState(false)
+  const downRef = useRef(null)                // { open, face } at the press
+  const tapRef = useRef(null)                 // { id, timer } after a face tap
+  const tappedRef = useRef(false)             // the last gesture was a tap: its click may act
+  const trayRef = useRef(null)
+  useEffect(() => () => clearTimeout(tapRef.current?.timer), [])
+  // D: each tile's letters are shifted so the 10px band cuts the R's middle: the R's advance centre, read
+  // off the laid-out text (a Range over its first character, so the Ra kern is kept), minus
+  // the band's own middle. Re-read whenever a "Rag" changes size -- the face loading in, a
+  // size override -- since that is when the R moves.
+  useLayoutEffect(() => {
+    const tray = trayRef.current
+    if (TRAY_TEASE !== 'd' || !tray) return
+    const measure = () => {
+      for (const tile of tray.querySelectorAll('.face-tray-tile')) {
+        const pad = parseFloat(getComputedStyle(tile).paddingLeft)
+        const rag = tile.querySelector('.face-tray-rag')
+        const mark = rag ?? tile.querySelector('.wm-icon')   // the "+" is cut through its upright
+        const left = mark.getBoundingClientRect().left
+        let mid = mark.getBoundingClientRect().width / 2
+        if (rag) {
+          const r = document.createRange()
+          r.setStart(rag.firstChild, 0); r.setEnd(rag.firstChild, 1)
+          const b = r.getBoundingClientRect()
+          mid = b.left + b.width / 2 - left
+        }
+        tile.style.setProperty('--rag-shift', `${(TRAY_PEEK / 2 - pad - mid).toFixed(2)}px`)
+      }
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    for (const el of tray.querySelectorAll('.face-tray-rag')) ro.observe(el)
+    return () => ro.disconnect()
+  }, [faces])
+  useEffect(() => {
+    if (TRAY_TEASE !== 'c' || trayNudged || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    // Latched when it fires, not when it is scheduled: StrictMode's mount-unmount-mount would spend it.
+    let t = setTimeout(() => { trayNudged = true; setNudge(true); t = setTimeout(() => setNudge(false), TRAY_NUDGE_HOLD) }, TRAY_NUDGE_AFTER)
+    return () => clearTimeout(t)
+  }, [])
+
+  // The theme stack (top right) is under the open sheet's corner: the host's hide (G81) while
+  // the sheet is open or being dragged out, cleared on close. Never touches data-stowed.
+  const covering = open || (dragP ?? 0) > 0
+  useEffect(() => {
+    const stack = document.getElementById('theme-stack')
+    if (!stack) return
+    stack.toggleAttribute('data-hidden', covering)
+    return () => stack.removeAttribute('data-hidden')
+  }, [covering])
+  const close = () => { clearTimeout(tapRef.current?.timer); tapRef.current = null; setOpen(false) }
+  const tapFace = (face) => {
+    const prev = tapRef.current
+    clearTimeout(prev?.timer)
+    if (prev?.id === face.id) { tapRef.current = null; onPickAll(face); setOpen(false); return }
+    onPick(face)
+    tapRef.current = { id: face.id, timer: setTimeout(() => { tapRef.current = null; setOpen(false) }, TRAY_TAP_MS) }
+  }
+  const travel = TRAY_W - TRAY_PEEK
+  // The finger's x travel as the open fraction; let go and it snaps past a quarter (a third
+  // for a/b/c), or on a FLICK (D): leftward faster than 0.3px/ms opens whatever the distance,
+  // rightward closes. Velocity is read off the last 100ms of samples, not use-gesture's, and
+  // a pointercancel (use-gesture ends the drag on it as on pointerup) is a release at the
+  // last real position -- its own coordinates are not the finger's.
+  const samplesRef = useRef([])
+  const follow = (mx, active, event) => {
+    const now = performance.now(), s = samplesRef.current
+    if (active) { s.push({ mx, t: now }); while (s.length > 2 && now - s[1].t > 100) s.shift() }
+    else if (event?.type === 'pointercancel' && s.length) mx = s[s.length - 1].mx
+    const p = Math.min(1, Math.max(0, (open ? 1 : 0) - mx / travel))
+    if (active) { setDragP(p); return }
+    setDragP(null)
+    const v = s.length > 1 ? (s[s.length - 1].mx - s[0].mx) / Math.max(1, s[s.length - 1].t - s[0].t) : 0
+    samplesRef.current = []
+    const cut = TRAY_TEASE === 'd' ? 1 / 4 : 1 / 3
+    if (TRAY_TEASE === 'd' && Math.abs(v) > 0.3) { setOpen(v < 0); return }
+    setOpen(open ? p > 1 - cut : p > cut)
+  }
+  // The press is the first sample (movement 0, timed back from elapsedTime): a fast flick's
+  // few moves can arrive coalesced into one event, and one sample has no speed.
+  const startSamples = (elapsedTime) => [{ mx: 0, t: performance.now() - elapsedTime }]
+  const bind = useDrag(({ first, tap, active, elapsedTime, movement: [mx], event }) => {
+    if (first) { tappedRef.current = false; samplesRef.current = startSamples(elapsedTime) }
+    if (tap) {
+      tappedRef.current = true
+      const { open: was, face } = downRef.current ?? {}
+      if (!was) setOpen(true)
+      else if (face) tapFace(face)
+      return
+    }
+    follow(mx, active, event)
+  }, { axis: 'x', filterTaps: true, pointer: { capture: false } })
+  // D's edge strip (.face-tray-edge in App.css): the stage's right 34px, full height, shut
+  // only, and EVERY touch that starts in it is the sheet's (touch-action: none, touchmove
+  // prevented). With pan-y there, a real finger's few px of dy started WebKit's scroll, which
+  // sent pointercancel, which ended the drag at a peek and it snapped back (Mark's iPhone,
+  // 2026-11-08). So the strip scrolls nothing. A drag past 8px on the x axis moves the sheet;
+  // a tap (under 8px, lifted inside 300ms) OPENS it, as the band does -- the strip no longer
+  // hands taps through to the preview under it.
+  const edgeRef = useRef(null)
+  const scrimDownRef = useRef(false)
+  const bindEdge = useDrag(({ first, tap, active, elapsedTime, movement: [mx], event }) => {
+    if (first) { tappedRef.current = false; samplesRef.current = startSamples(elapsedTime) }
+    if (tap) { if (elapsedTime < TRAY_TAP_MS) setOpen(true); return }
+    follow(mx, active, event)
+  }, { axis: 'x', threshold: 8, filterTaps: true, tapsThreshold: 8, pointer: { capture: false } })
+  useEffect(() => {
+    const el = edgeRef.current
+    if (!el) return
+    const stop = e => e.preventDefault()
+    el.addEventListener('touchmove', stop, { passive: false })
+    return () => el.removeEventListener('touchmove', stop)
+  }, [open])
+
+  const p = dragP ?? (open ? 1 : 0)
+  const drag = bind()
+  return (
+    <>
+      {TRAY_TEASE === 'd'
+        // Closes only on a click whose press began on it: WebKit (and iOS's tap adjustment)
+        // can land the click of the tap that OPENED the sheet a few px off the 10px band,
+        // on this scrim that has just come live, and it shut again at once.
+        ? <div className={`face-tray-scrim face-tray-scrim--d${open ? ' open' : ''}${dragP !== null ? ' face-tray-scrim--dragging' : ''}`} style={{ '--tray-p': p }} aria-hidden="true"
+            onPointerDown={() => { scrimDownRef.current = true }}
+            onClick={() => { if (scrimDownRef.current) close(); scrimDownRef.current = false }} />
+        : open && <div className="face-tray-scrim" aria-hidden="true" onClick={close} />}
+      {TRAY_TEASE === 'd' && !open && <div ref={edgeRef} className="face-tray-edge" aria-hidden="true" {...bindEdge()} />}
+      <div
+        ref={trayRef}
+        className={`face-tray face-tray--${TRAY_TEASE}${open ? ' open' : ''}${dragP !== null ? ' face-tray--dragging' : ''}${nudge && !open ? ' face-tray--nudge' : ''}`}
+        style={{ '--tray-p': p }}
+        role="toolbar"
+        aria-label="Faces"
+        {...drag}
+        onPointerDown={e => {
+          downRef.current = { open, face: faces.find(f => f.id === e.target.closest('[data-face-id]')?.dataset.faceId) }
+          drag.onPointerDown(e)
+        }}
+      >
+        {TRAY_TEASE === 'b' && (
+          <div className="face-tray-rail" aria-hidden="true">
+            {faces.map((face, i) => (
+              <span key={face.id} className={`face-tray-mark${face.id === activeFaceId ? ' active' : ''}`} style={{ top: TRAY_GAP / 2 + i * (TRAY_TILE + TRAY_GAP) + TRAY_TILE / 2 }} />
+            ))}
+          </div>
+        )}
+        {faces.map(face => (
+          <button
+            key={face.id}
+            data-face-id={face.id}
+            className={`face-tile face-tray-tile${face.id === activeFaceId ? ' active' : ''}${face.id === assignedId ? ' assigned' : ''}`}
+            aria-pressed={face.id === activeFaceId}
+            tabIndex={open ? 0 : -1}
+            // Touch picks in the gesture above; this is the keyboard's (a click with no detail).
+            onClick={e => { if (e.detail === 0) { onPick(face); close() } }}
+          >
+            {TRAY_TEASE === 'c' && <span className="face-tray-veil" aria-hidden="true" />}
+            <span className="face-tile-rag face-tray-rag" data-nosnap style={{ fontFamily: `"${face.fontFace.family}"` }}>Rag</span>
+            <span className="face-tile-name">
+              {face.familyLabel}
+              {(face.italicFontFace || face.axes.some(a => a.tag === 'ital')) && <Icon name="format_italic" size={12} />}
+            </span>
+          </button>
+        ))}
+        <button
+          className="face-tile face-tile--add face-tray-tile wm-icon-btn"
+          title="Add fonts to the set"
+          tabIndex={open ? 0 : -1}
+          onClick={e => { if (e.detail === 0 || (tappedRef.current && downRef.current?.open)) { close(); onAdd() } }}
+        >
+          {TRAY_TEASE === 'c' && <span className="face-tray-veil" aria-hidden="true" />}
+          <Icon name="add" size={24} />
+        </button>
+      </div>
+    </>
+  )
+}
+
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const { clientSlug, fontSlug } = parseRoute()
@@ -1286,16 +1710,19 @@ export default function App() {
   // assume; UiKitBoard uses it to rest row 0 clear of the toggle on load, same as before
   // there was any full-height board to worry about overlapping it.
   const [uiTopInset, setUiTopInset] = useState(0)
+  // The phone's theme stack replaces #theme-toggle (ThemeStack). It floats over the board,
+  // as it floats over every mode, and hides on a scroll, so the board's row 0 rests at 0.
+  const themeStack = useMedia(STACK_QUERY)
   useLayoutEffect(() => {
     if (mode !== 'ui') return
     const el = document.getElementById('theme-toggle')
-    if (!el) return
+    if (!el) { setUiTopInset(0); return }
     const measure = () => setUiTopInset(el.getBoundingClientRect().bottom + 16)
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [mode])
+  }, [mode, themeStack])
 
   // Cal.com preview state
   // A/B screenshot mode. Derived from the hash alone; re-evaluated on hashchange. The hash
@@ -1408,6 +1835,16 @@ export default function App() {
 
   // Typography controls
   const [fontSize, setFontSize] = useState(200)
+  // Big Word on a phone is sized to the stage, not to `fontSize`: bigFit is the largest
+  // whole px at which the text fits the stage's width and visible height (the fit effect
+  // under previewStyle). It is only the DEFAULT -- a drag on the size slider sets bigManual
+  // and `fontSize` rules until ↺ or the next edit of the text. Desktop never fits.
+  const phone = useMedia(PHONE_QUERY)
+  const [bigFit, setBigFit] = useState(null)
+  const [bigManual, setBigManual] = useState(false)
+  const phoneBig = phone && mode === 'big'
+  const fitsBig = phoneBig && !bigManual
+  const bigSize = fitsBig && bigFit ? bigFit : fontSize
   const [letterSpacing, setLetterSpacing] = useState(0)
   const [lineHeight, setLineHeight] = useState(1.1)
 
@@ -1915,7 +2352,7 @@ export default function App() {
   const previewStyle = {
     fontFamily: fontFace ? `"${fontFace.family}"` : 'serif',
     fontStyle,
-    fontSize: `${fontSize}px`,
+    fontSize: `${bigSize}px`,
     letterSpacing: `${letterSpacing}em`,
     lineHeight: lineHeight,
     fontVariationSettings,
@@ -1927,6 +2364,61 @@ export default function App() {
     wordBreak: 'break-word',
     transition: 'font-variation-settings 0.15s ease',
   }
+
+  // ── Big Word fits the phone's stage ────────────────────────────────────────
+  // One probe, no search: a hidden copy of the editor (its own inline style, so face, axes,
+  // tracking, leading and features all match; its own <div>/<br> children, so typed line
+  // breaks count) is set unwrapped at a trial size, and the size scales by how far the
+  // widest line and the total height miss the stage. Width is linear in size except where
+  // opsz 'auto' redraws the glyphs, so it re-probes at the answer: at most 3 layouts, per
+  // fit, never per frame. The probe sits on <body>, outside .stage-zoom, so the theme
+  // stack's zoom never enters the sum. 1px of width is held back so a rounding miss can
+  // never rewrap the line. Capped to the size slider's range.
+  const fitBigRef = useRef(null)
+  useLayoutEffect(() => {
+    const stage = previewAreaRef.current
+    if (!fitsBig || !fontName || !stage) { fitBigRef.current = null; return }
+    const fit = () => {
+      const ed = bigEditorRef.current
+      if (!ed?.parentElement || !ed.textContent.trim()) return
+      const pad = getComputedStyle(ed.parentElement)
+      const availW = stage.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight) - 1
+      const availH = stage.clientHeight - parseFloat(pad.paddingTop) - parseFloat(pad.paddingBottom)
+      if (availW <= 0 || availH <= 0) return
+      const probe = ed.cloneNode(true)
+      probe.removeAttribute('contenteditable')
+      probe.removeAttribute('class')
+      Object.assign(probe.style, {
+        position: 'fixed', left: '0', top: '0', visibility: 'hidden', pointerEvents: 'none',
+        width: 'max-content', whiteSpace: 'pre', transition: 'none', fontWeight: getComputedStyle(ed).fontWeight,
+      })
+      document.body.appendChild(probe)
+      let size = 100
+      for (let i = 0; i < 3; i++) {
+        probe.style.fontSize = `${size}px`
+        const r = probe.getBoundingClientRect()
+        if (!r.width || !r.height) { probe.remove(); return }
+        const next = Math.max(8, Math.min(400, Math.floor(size * Math.min(availW / r.width, availH / r.height))))
+        if (next === size) break
+        size = next
+      }
+      probe.remove()
+      setBigFit(size)
+    }
+    fitBigRef.current = fit
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(stage)
+    let live = true
+    document.fonts?.ready.then(() => { if (live) fit() }).catch(() => {})
+    document.fonts?.addEventListener('loadingdone', fit)
+    return () => {
+      live = false
+      ro.disconnect()
+      document.fonts?.removeEventListener('loadingdone', fit)
+      fitBigRef.current = null
+    }
+  }, [fitsBig, fontName, fontFace, fontStyle, fontVariationSettings, letterSpacing, lineHeight, proofFeatureSettings, axisValues.opsz])
 
   // ── Active style for sidebar controls in paragraph/scale mode ────────────
   const effectiveParaStyle = mode === 'paragraph'
@@ -2382,9 +2874,9 @@ export default function App() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
-      className={`layout ${isDragging ? 'dragging' : ''}`}
+      className={`layout ${isDragging ? 'dragging' : ''}${themeStack ? ' has-theme-stack' : ''}`}
     >
-      <ThemeSwitch look="marks" id="theme-toggle" />
+      {themeStack ? <ThemeStack /> : <ThemeSwitch look="marks" id="theme-toggle" />}
       {/* Drop overlay */}
       {isDragging && (
         <div className="drop-overlay">
@@ -2753,7 +3245,7 @@ export default function App() {
                     paraStyles[effectiveParaStyle].align !== DEFAULT_PARA_STYLES[effectiveParaStyle].align ||
                     paraStyles[effectiveParaStyle].swissRag || paraStyles[effectiveParaStyle].hyphenate ||
                     paraStyles[effectiveParaStyle].face != null
-                  : fontSize !== 200 || letterSpacing !== 0 || lineHeight !== 1.1 || textAlign !== 'left'
+                  : (phoneBig ? bigManual : fontSize !== 200) || letterSpacing !== 0 || lineHeight !== 1.1 || textAlign !== 'left'
                 // Fitting counts as typography: a rag or a spent budget is a change to
                 // the setting, so it lights the reset and clears with it. The rag and the
                 // alignment are the STYLE's now and are counted above; the bands here are
@@ -2776,6 +3268,7 @@ export default function App() {
                         }))
                       } else {
                         setFontSize(200)
+                        setBigManual(false)
                         setLetterSpacing(0)
                         setLineHeight(1.1)
                         setTextAlign('left')
@@ -2935,11 +3428,11 @@ export default function App() {
           ) : (
             <SliderRow variant="track"
               label="size"
-              value={fontSize}
+              value={bigSize}
               min={8}
               max={400}
               step={1}
-              onChange={setFontSize}
+              onChange={v => { setFontSize(v); if (phoneBig) setBigManual(true) }}
             />
           )}
           {effectiveParaStyle ? (
@@ -3125,7 +3618,7 @@ export default function App() {
                   ? vercelRoles[effectiveVercelRole].size
                   : effectiveParaStyle
                   ? paraStyles[effectiveParaStyle].size
-                  : fontSize
+                  : bigSize
                 // What opsz auto renders: the browser takes the optical size from font-size in CSS px
                 // and clamps it to the axis. Unpinning writes THAT number, not the size -- 200px on an
                 // 8-45 axis is opsz 45 (wm-primitives#9).
@@ -3263,6 +3756,11 @@ export default function App() {
           }}
           onSpring={() => setParaStylesPanelOpen(true)}
         />
+        {/* .stage-zoom: the theme stack's zoom target, round every mode's specimen and
+            nothing else (the face palette's anchor stays outside it). One box that never
+            remounts, because zoomControl.js resolves its target once. No box on desktop
+            (display: contents) -- it only becomes one under .has-theme-stack (App.css). */}
+        <div className="stage-zoom">
         {!fontName && (
           <div className="empty-state">
             <img src={logoGif} alt="Logo" className="empty-logo" />
@@ -3327,7 +3825,9 @@ export default function App() {
               spellCheck={false}
               className="editable-big edit-rail"
               style={previewStyle}
-              onInput={e => setBigText(e.currentTarget.textContent)}
+              /* an edit hands the size back to the fit (phone), and re-fits now: a typed line
+                 break leaves textContent as it was, so no state change would catch it */
+              onInput={e => { setBigText(e.currentTarget.textContent); setBigManual(false); fitBigRef.current?.() }}
             />
           </div>
         )}
@@ -3503,6 +4003,7 @@ export default function App() {
             />
           </div>
         )}
+        </div>
       </main>
 
       {/* Cal.com roles popover */}
