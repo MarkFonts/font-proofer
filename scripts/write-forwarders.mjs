@@ -37,10 +37,19 @@ const page = to => `<!DOCTYPE html>
 </html>
 `
 
-for (const d of dirsWithIndex(dist)) {
-  const rel = relative(dist, d).split('\\').join('/')
-  const to = rel ? `/${rel}/` : '/'
+const write = (rel, to) => {
   mkdirSync(join(out, rel), { recursive: true })
   writeFileSync(join(out, rel, 'index.html'), page(to))
-  console.log(`font-proofer${to} -> ${ORIGIN}${to}`)
+  console.log(`font-proofer/${rel ? rel + '/' : ''} -> ${ORIGIN}${to}`)
 }
+
+for (const d of dirsWithIndex(dist)) {
+  const rel = relative(dist, d).split('\\').join('/')
+  write(rel, rel ? `/${rel}/` : '/')
+}
+
+// Old slugs (App.jsx SLUG_REDIRECTS) that Google still crawls. Without a page here they
+// reach the 404 forwarder, which works for people but returns a 404 status to Google;
+// a page of their own reads as a redirect and goes straight to the current route.
+const LEGACY = { 'calcom/calsans2': '/calcom/calsans/', 'calcom/calsansui': '/calcom/calsans/' }
+for (const [rel, to] of Object.entries(LEGACY)) write(rel, to)
