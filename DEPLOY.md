@@ -30,6 +30,7 @@ curl -s https://wordproof.app/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'
 |---|---|
 | `CLOUDFLARE_API_TOKEN` | Account › Cloudflare Pages › Edit. Deploys to the `wordproof` project. Mark creates and rotates it; an agent never handles the value. |
 | `WORDMARK_DEPLOY_TOKEN2` | Pushes the forwarders into `MarkFonts/wordmark`. |
+| `SLACK_WEBHOOK_<CLIENT>` | Optional, one per client (`SLACK_WEBHOOK_VERCEL`): a Slack incoming webhook for that client's channel. A font shipped with `ship-font.py` is announced there once it's live. No secret, no post. |
 
 The Cloudflare account ID is written into `deploy.yml`; it's an identifier, not a credential.
 
@@ -69,6 +70,22 @@ WORDPROOF_BASE=/ npm run build && WORDPROOF_BASE=/ npx vite preview
 1. Put the font in `src/fonts/` and add `{ clientSlug, fontSlug }` to `src/routes.config.js`.
 2. It deploys with its own installable app, OG image, and page. It's `noindex` and its font is never cached offline, unless you decide otherwise.
 3. Only for an open-licensed face: add its slug to `INDEXED_FONTS`, and its hashed asset stem to `OFFLINE_FONTS` (`[wght]` is written `_wght_`).
+
+## Shipping a new build of a font
+
+A route's link is meant to always show the latest build, so a client never asks which file is current. When a font that's already here has a new export:
+
+```bash
+python3 scripts/ship-font.py <new.ttf> <client/font>          # dry run: what changed
+python3 scripts/ship-font.py <new.ttf> <client/font> --push   # ships it
+```
+
+It diffs the new file against the one on `main` by glyph name (outlines, advance widths, GSUB, GPOS; hinting ignored), then puts the font, `src/fonts/changes/<font>.json` and `font-versions.json` in one commit on `main` through the GitHub API. That commit is the deploy. The JSON drives two things:
+
+- **The badge:** the first visit after a ship shows "New since your last visit: v1.001 → v1.003" in the sidebar footer, with the redrawn glyphs drawn in the font. It's remembered per browser (`wp-seen:<route>` in localStorage). A first-time visitor sees it only for a week after the ship.
+- **The Slack post:** `deploy.yml` posts to `SLACK_WEBHOOK_<CLIENT>` after wordproof.app serves the new bundle.
+
+It only replaces fonts the app already has. A new face goes through `npm run font:add`.
 
 ## wordmark.nyc
 

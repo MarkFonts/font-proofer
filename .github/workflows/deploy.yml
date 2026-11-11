@@ -115,6 +115,39 @@ jobs:
           echo "::error::10 minutes after the deploy, wordproof.app serves ${got:-nothing}; this run built $want. Pushed is not shipped."
           exit 1
 
+      # A font shipped by scripts/ship-font.py (its commit writes src/fonts/changes/<font>.json)
+      # is announced in that client's Slack channel, and only now that wordproof.app serves it,
+      # so the link in the message never opens the old build. Needs an incoming-webhook secret
+      # named after the route's client: SLACK_WEBHOOK_VERCEL for vercel/geistserif. No secret,
+      # no post. Pushes only: a manual re-run must not announce the same build twice.
+      - name: Find a font this push shipped
+        id: shipped
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          f=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}" --jq '.files[].filename' \
+              | grep -E '^src/fonts/changes/[^/]+\.json$' | head -1 || true)
+          if [ -z "$f" ]; then echo "no font shipped in this push"; exit 0; fi
+          echo "file=$f" >> "$GITHUB_OUTPUT"
+          echo "client=$(jq -r '.route | split("/")[0] | ascii_upcase' "$f")" >> "$GITHUB_OUTPUT"
+      - name: Tell the client's Slack channel
+        if: steps.shipped.outputs.file != ''
+        env:
+          WEBHOOK: ${{ secrets[format('SLACK_WEBHOOK_{0}', steps.shipped.outputs.client)] }}
+          FILE: ${{ steps.shipped.outputs.file }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "no SLACK_WEBHOOK_${{ steps.shipped.outputs.client }} secret, so no post"; exit 0
+          fi
+          jq '{text: (
+                "\(.file | sub("\\.[a-z0-9]+$"; "")) \(.version) is live on Wordproof: "
+                + ([.glyphs[] | select(length == 1)] | .[:12] | join(" "))
+                + (if (.glyphs | length) > 12 then " …" else "" end)
+                + " (\(.glyphs | length) glyphs redrawn)\nhttps://wordproof.app/\(.route)/")}' "$FILE" \
+            | curl -fsS -X POST -H 'Content-Type: application/json' --data @- "$WEBHOOK"
+          echo "posted to Slack for ${{ steps.shipped.outputs.client }}" >> "$GITHUB_STEP_SUMMARY"
+
       # wordmark.nyc/font-proofer/ becomes forwarders, one per route, plus the site-wide
       # 404.html for every other /font-proofer/ path (scripts/write-forwarders.mjs).
       - name: Push the forwarders to wordmark

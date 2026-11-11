@@ -177,6 +177,25 @@ import ROUTES from './routes.config.js'
 import { VercelNewProjectPreview, VercelDocsPreview, VercelMarketplacePreview } from './VercelPreviews.jsx'
 
 const fontModules = import.meta.glob('/src/fonts/*.{ttf,otf,woff,woff2}', { eager: true, query: '?url', import: 'default' })
+// What each route's font changed in its last ship: scripts/ship-font.py writes one per font.
+const FONT_CHANGES = Object.values(import.meta.glob('/src/fonts/changes/*.json', { eager: true, import: 'default' }))
+/* "New since your last visit": shown on the first visit after each ship of this route's
+   font, then remembered in this browser. Someone who has never been here only hears about
+   a ship from the last week. Decided here, once per page load, not in App: App mounts more
+   than once on load, and the second mount would read back its own "seen" and hide it. */
+const WHATS_NEW = (() => {
+  const { clientSlug, fontSlug } = parseRoute()
+  const ch = FONT_CHANGES.find(c => c.route === `${clientSlug}/${fontSlug}`.toLowerCase())
+  if (!ch) return null
+  let seen = null
+  try {
+    seen = localStorage.getItem(`wp-seen:${ch.route}`)
+    localStorage.setItem(`wp-seen:${ch.route}`, ch.shipped)
+  } catch {}
+  if (seen === ch.shipped) return null
+  if (!seen && Date.now() - Date.parse(ch.shipped) > 7 * 864e5) return null
+  return ch
+})()
 // A bundled file by its exact name: { url, filename }, or null.
 const bundledFont = (filename) => {
   const entry = filename && Object.entries(fontModules).find(([path]) => path.endsWith('/' + filename))
@@ -1658,6 +1677,8 @@ export default function App() {
   // The route's own entry: the faces it ships besides its font, its palette look per
   // preview, the levels it opens with (routes.config.js).
   const routeEntry = ROUTES.find(r => r.clientSlug === clientSlug?.toLowerCase() && r.fontSlug === fontSlug?.toLowerCase())
+
+  const [whatsNew, setWhatsNew] = useState(WHATS_NEW)   // see WHATS_NEW
 
   // Font loading
   const [fontName, setFontName] = useState(null)
@@ -3701,6 +3722,27 @@ export default function App() {
         )}
         {/* Copyright footer */}
         <div className="sidebar-footer">
+          {whatsNew && (
+            <div className="whats-new" role="status">
+              <div className="whats-new-head">
+                <span>New since your last visit: v{whatsNew.previous} → v{whatsNew.version}</span>
+                <button className="wm-icon-btn" aria-label="Dismiss" title="Dismiss" onClick={() => setWhatsNew(null)}>
+                  <Icon name="close" size={12} />
+                </button>
+              </div>
+              {/* The redrawn glyphs, drawn in the font itself. Single characters only:
+                  glyph names (a.ss02) and combining marks say nothing at this size. */}
+              <div className="whats-new-glyphs" style={{ fontFamily: previewStyle.fontFamily }}>
+                {whatsNew.glyphs.filter(g => [...g].length === 1 && !/\p{M}/u.test(g)).slice(0, 18).join(' ')}
+              </div>
+              <div>
+                {[whatsNew.glyphs.length && `${whatsNew.glyphs.length} glyphs redrawn`,
+                  whatsNew.added.length && `${whatsNew.added.length} added`,
+                  whatsNew.spacing.length && 'spacing',
+                  whatsNew.kerning && 'kerning'].filter(Boolean).join(' · ')}
+              </div>
+            </div>
+          )}
           {fontVersion && <div className="font-version">v{fontVersion}</div>}
           {clientSlug && clientSlug !== 'wordmark'
             ? `\u00A9${new Date().getFullYear()} ${clientLabel}, courtesy of WORDMARK. Please do not distribute without approval and understanding of IP holder.`
