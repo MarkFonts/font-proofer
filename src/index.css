@@ -12,6 +12,35 @@
    evening when App.jsx was imported before index.css -- see DIAL.md §6. */
 @import '../shared/src/icon.css';
 
+/* Google's class, so a pasted <span class="material-symbols-outlined">key</span> is a house
+   mark: the .wm-icon base (icon.css) -- its face (wm-primitives' subset), axes and rest ink. */
+@layer wm.icon {
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;   /* token-lint: allow -- Icon's default size, which sets opsz 20 */
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    user-select: none;
+    font-variation-settings:
+      'FILL' var(--icon-fill, 0),
+      'wght' var(--icon-wght, 300),
+      'GRAD' var(--icon-grad, 50),
+      'opsz' var(--icon-opsz, 20);
+  }
+}
+
 @font-face {
   font-family: "Inter";
   src: url("./fonts/InterVariable.woff2") format("woff2");

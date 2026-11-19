@@ -3161,3 +3161,67 @@
   position: absolute; top: 4px; right: 4px; width: 4px; height: 4px;
   border-radius: 50%; background: currentColor; opacity: .55;
 }
+
+/* ── Lock gate (a locked client preview, before its passphrase) ─────────── */
+/* The whole stage is one flat panel; the preview does not exist behind it. Key over an
+   underline, nothing else. Sizes on the 3px line. */
+.lock-gate {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--bg-elevated, #2e2e2e);
+}
+.lock-gate-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.lock-gate-key {
+  color: var(--text-muted, #888888);
+  --icon-opsz: 24;
+  font-size: var(--type-title-size, 24px);
+}
+.lock-gate-key--busy { animation: lock-gate-pulse 900ms ease-in-out infinite; }
+.lock-gate-input {
+  width: 240px;
+  height: 33px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--text-muted, #888888);
+  border-radius: 0;
+  background: none;
+  outline: none;
+  color: var(--text, #e8e8e8);
+  font-family: 'Face', system-ui, sans-serif;
+  font-size: 16px;   /* token-lint: allow -- 16px or iOS zooms the page on focus */
+  text-align: center;
+  caret-color: var(--text, #e8e8e8);
+}
+.lock-gate-input:focus { border-bottom-color: var(--text, #e8e8e8); }
+.lock-gate-form--miss .lock-gate-input {
+  animation: lock-gate-shake 360ms ease-in-out, lock-gate-miss 900ms ease-out;
+}
+.lock-gate-dev {
+  margin: 0;
+  color: var(--text-dim, #555555);
+  font-size: var(--type-ui-size, 0.75rem);
+}
+@keyframes lock-gate-pulse { 50% { opacity: 0.35; } }
+@keyframes lock-gate-shake {
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+@keyframes lock-gate-miss {
+  0%, 40% { border-bottom-color: var(--signal-ink, #eeff41); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lock-gate-key--busy { animation: none; opacity: 0.6; }
+  .lock-gate-form--miss .lock-gate-input { animation: lock-gate-miss 900ms ease-out; }
+}

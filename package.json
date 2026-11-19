@@ -10,6 +10,7 @@
     "postinstall": "patch-package",
     "lint:tokens": "node shared/scripts/lint-tokens.mjs",
     "font:add": "node scripts/add-font.mjs",
+    "lock:harvey": "node scripts/lock-preview.mjs harvey",
     "registry:sync": "node scripts/sync-axis-registry.mjs"
   },
   "dependencies": {
