@@ -118,8 +118,8 @@ function toDisplayName(slug) {
 }
 
 // ── Hash ↔ mode mapping ───────────────────────────────────────────────────────
-const HASH_TO_MODE = { '#big': 'big', '#paragraph': 'paragraph', '#glyphs': 'glyphs', '#type-scale': 'scale', '#calcom': 'calcom', '#coss': 'coss', '#ui': 'ui', '#new-project': 'vercelNew', '#docs': 'vercelDocs', '#marketplace': 'vercelMarket' }
-const MODE_TO_HASH = { big: '#big', paragraph: '#paragraph', glyphs: '#glyphs', scale: '#type-scale', calcom: '#calcom', coss: '#coss', ui: '#ui', vercelNew: '#new-project', vercelDocs: '#docs', vercelMarket: '#marketplace' }
+const HASH_TO_MODE = { '#big': 'big', '#paragraph': 'paragraph', '#glyphs': 'glyphs', '#type-scale': 'scale', '#calcom': 'calcom', '#coss': 'coss', '#ui': 'ui', '#new-project': 'vercelNew', '#docs': 'vercelDocs', '#marketplace': 'vercelMarket', '#harvey': 'harvey' }
+const MODE_TO_HASH = { big: '#big', paragraph: '#paragraph', glyphs: '#glyphs', scale: '#type-scale', calcom: '#calcom', coss: '#coss', ui: '#ui', vercelNew: '#new-project', vercelDocs: '#docs', vercelMarket: '#marketplace', harvey: '#harvey' }
 
 // ── A/B screenshot mode ──────────────────────────────────────────────────────
 // Reachable only by hash: ...#calcom#abtest is variant A (Inter), ...#calcom#abtest=b is
@@ -154,12 +154,14 @@ function axisDefaults(axes) {
   return out
 }
 
-function resolveInitialMode(isCalcom, isVercel) {
+function resolveInitialMode(isCalcom, isVercel, isHarvey) {
   if (isCalcom && abVariantFromHash(window.location.hash)) return 'calcom'
   const fromHash = HASH_TO_MODE[modeFragment(window.location.hash)]
   if (fromHash === 'calcom' || fromHash === 'coss') return isCalcom ? fromHash : 'paragraph'
   if (VERCEL_MODES.has(fromHash)) return isVercel ? fromHash : 'paragraph'
-  return fromHash ?? 'paragraph'
+  if (fromHash === 'harvey') return isHarvey ? fromHash : 'paragraph'
+  // The Harvey route opens on its preview: the thread is the proof.
+  return fromHash ?? (isHarvey ? 'harvey' : 'paragraph')
 }
 
 // ── Font fuzzy matching ──────────────────────────────────────────────────────
@@ -175,6 +177,34 @@ import calSansFlexUrl from '../shared/fonts/CalSansFlexVF.ttf?url'
 // the glob below, so a second face needs no import of its own.
 import ROUTES from './routes.config.js'
 import { VercelNewProjectPreview, VercelDocsPreview, VercelMarketplacePreview } from './VercelPreviews.jsx'
+// Client previews that ship LOCKED (scripts/lock-preview.mjs): an encrypted .bin per preview,
+// fetched only when its tab is opened and opened with the passphrase typed there. The glob
+// keeps a missing file from breaking the build (a fresh lock is picked up by the dev server).
+import * as ReactAll from 'react'
+import * as jsxRuntime from 'react/jsx-runtime'
+const LOCKED = import.meta.glob('/src/locked/*.bin', { eager: true, query: '?url', import: 'default' })
+const lockedUrl = name => Object.entries(LOCKED).find(([p]) => p.endsWith(`/${name}.bin`))?.[1] ?? null
+// "WPL1" | u32 iterations | salt 16 | iv 12 | AES-256-GCM. The passphrase is the key; a wrong
+// one fails GCM's tag and throws. Nothing here knows what the right one is.
+async function openLocked(bytes, pass) {
+  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  if (String.fromCharCode(...bytes.subarray(0, 4)) !== 'WPL1') throw new Error('not a locked preview')
+  const iterations = v.getUint32(4)
+  if (iterations < 100000 || iterations > 5000000) throw new Error('bad iterations')
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey'])
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: bytes.subarray(8, 24), iterations }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt'])
+  const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes.subarray(24, 36) }, key, bytes.subarray(36)))
+  const len = new DataView(plain.buffer).getUint32(0)
+  const header = JSON.parse(new TextDecoder().decode(plain.subarray(4, 4 + len)))
+  const blob = plain.subarray(4 + len)
+  // The module is CommonJS with React left out; it gets the app's own (one React, working hooks).
+  const mod = { exports: {} }
+  const deps = { react: ReactAll, 'react/jsx-runtime': jsxRuntime }
+  new Function('require', 'module', 'exports', header.js)(id => deps[id], mod, mod.exports)
+  return { header, blob, Preview: mod.exports[header.export] }
+}
+// The scenario toggle's names (the prototype's own control labels); the copy is in the lock.
+const HARVEY_SCENARIOS = [{ id: 1, label: 'Long response' }, { id: 2, label: 'Thinking response' }, { id: 3, label: 'Response with suggestions' }]
 
 const fontModules = import.meta.glob('/src/fonts/*.{ttf,otf,woff,woff2}', { eager: true, query: '?url', import: 'default' })
 // A bundled file by its exact name: { url, filename }, or null.
@@ -241,9 +271,13 @@ function parseWeightSlant(filename) {
   return { weight, italic }
 }
 
-function getFamilyStyles(slug) {
+function getFamilyStyles(slug, files) {
   const needle = normalize(slug)
+  // A route that names its files (routes.config.js `files`) takes exactly those, so a
+  // family whose siblings share its name (Harvey Serif Text Beta 14 beside Text Beta) is
+  // not pooled with them by the slug.
   const entries = Object.entries(fontModules).filter(([path]) => {
+    if (files) return files.includes(path.split('/').pop())
     const n = normalize(path.split('/').pop().replace(/\.[^.]+$/, ''))
     return n.includes(needle) || needle.includes(n)
   })
@@ -343,6 +377,22 @@ const DEFAULT_VERCEL_ROLES = {
   meta:      { size: 13, tracking: 0,     leading: 1.54, axisOverrides: { wght: 400 }, face: null },
   badge:     { size: 11, tracking: 0.02,  leading: 1.8,  axisOverrides: { wght: 500 }, face: null },
   code:      { size: 13, tracking: 0,     leading: 1.54, axisOverrides: { wght: 400 }, face: null },
+}
+
+// ── Harvey (the assistant thread) type role model ────────────────────────────
+// One mode, three scenarios (HARVEY_SCENARIOS), one role set across them. Defaults are the
+// client prototype's computed styles: the voice at 16/24, headings at its bold weight
+// (Medium), chrome at 14/20. `weight` is a static face's style key (null = the face's
+// default); a variable face takes the wght in axisOverrides. Faces: the route's font, until
+// the unlock adds the locked faces and assigns them the roles its header names.
+const HARVEY_ROLE_LABELS = { body: 'Body', heading: 'Heading', prompt: 'Prompt', stamp: 'Stamp', followup: 'Follow-up', ui: 'UI' }
+const DEFAULT_HARVEY_ROLES = {
+  body:     { size: 16, tracking: 0, leading: 1.5,       weight: null,     axisOverrides: { wght: 400 }, face: null },
+  heading:  { size: 16, tracking: 0, leading: 1.5,       weight: 'medium', axisOverrides: { wght: 500 }, face: null },
+  prompt:   { size: 16, tracking: 0, leading: 1.5,       weight: null,     axisOverrides: { wght: 400 }, face: null },
+  stamp:    { size: 16, tracking: 0, leading: 1.5,       weight: 'medium', axisOverrides: { wght: 500 }, face: null },
+  followup: { size: 16, tracking: 0, leading: 1.5,       weight: null,     axisOverrides: { wght: 400 }, face: null },
+  ui:       { size: 14, tracking: 0, leading: 20 / 14,   weight: null,     axisOverrides: { wght: 400 }, face: null },
 }
 
 // ── Paragraph style model ────────────────────────────────────────────────────
@@ -660,6 +710,37 @@ function extractFontFromTTC(buffer, fontOffset) {
 
 // ── Slider row component ─────────────────────────────────────────────────────
 // SliderRow now imported from wm-primitives as AxisSlider (see import above).
+
+// ── Lock gate ────────────────────────────────────────────────────────────────
+// What a locked preview's tab shows: the stage is one flat panel, a key, an underline. No
+// label, no placeholder, no button, no message: Enter submits, a wrong passphrase shakes the
+// line in the signal ink and clears it. The preview itself does not exist until it opens.
+function LockGate({ onUnlock, ready }) {
+  const [busy, setBusy] = useState(false)
+  const [miss, setMiss] = useState(0)
+  const inputRef = useRef(null)
+  useEffect(() => { inputRef.current?.focus() }, [miss])
+  const submit = async (e) => {
+    e.preventDefault()
+    const pass = inputRef.current?.value
+    if (!pass || busy) return
+    setBusy(true)
+    const ok = await onUnlock(pass).catch(() => false)
+    if (ok) return
+    setBusy(false)
+    if (inputRef.current) inputRef.current.value = ''
+    setMiss(n => n + 1)
+  }
+  return (
+    <div className="lock-gate">
+      <form key={miss} className={`lock-gate-form${miss ? ' lock-gate-form--miss' : ''}`} onSubmit={submit}>
+        <span className={`material-symbols-outlined lock-gate-key${busy ? ' lock-gate-key--busy' : ''}`} aria-hidden="true">key</span>
+        <input ref={inputRef} className="lock-gate-input" type="password" autoComplete="off" aria-label="Password" disabled={busy} />
+      </form>
+      {!ready && import.meta.env.DEV && <p className="lock-gate-dev">Not locked yet: run npm run lock:harvey</p>}
+    </div>
+  )
+}
 
 // ── Mode button ──────────────────────────────────────────────────────────────
 function ModeBtn({ active, onClick, children }) {
@@ -1655,6 +1736,7 @@ export default function App() {
   const clientLabel = clientSlug ? toDisplayName(clientSlug) : null
   const isCalcom = clientSlug?.toLowerCase() === 'calcom'
   const isVercel = clientSlug?.toLowerCase() === 'vercel'
+  const isHarvey = clientSlug?.toLowerCase() === 'harvey'
   // The route's own entry: the faces it ships besides its font, its palette look per
   // preview, the levels it opens with (routes.config.js).
   const routeEntry = ROUTES.find(r => r.clientSlug === clientSlug?.toLowerCase() && r.fontSlug === fontSlug?.toLowerCase())
@@ -1701,7 +1783,7 @@ export default function App() {
   const [fit, setFit] = useState(FIT_DEFAULTS)   // paragraph line fitting (flattersatz.js)
   // Justify is an ALIGNMENT; Swiss Rag is a rag treatment that rides on any of the
   // other three. Only one fitting mode can be live, so it is derived, never stored.
-  const [mode, setMode] = useState(() => resolveInitialMode(isCalcom, isVercel)) // 'big' | 'paragraph' | 'glyphs' | 'scale' | 'calcom' | 'coss' | 'vercelNew' | 'vercelDocs' | 'vercelMarket'
+  const [mode, setMode] = useState(() => resolveInitialMode(isCalcom, isVercel, isHarvey)) // 'big' | 'paragraph' | 'glyphs' | 'scale' | 'calcom' | 'coss' | 'vercelNew' | 'vercelDocs' | 'vercelMarket' | 'harvey'
   const setModeRef = useRef(mode)   // the mode the set was last made for (declared faces' availability)
 
   // UI tab: the board fills the whole preview area, so it can pan its top row up under
@@ -1752,6 +1834,12 @@ export default function App() {
   const [activeCossRole, setActiveCossRole] = useState(null)
   const [vercelRoles, setVercelRoles] = useState(DEFAULT_VERCEL_ROLES)
   const [activeVercelRole, setActiveVercelRole] = useState(null)
+  const [harveyRoles, setHarveyRoles] = useState(DEFAULT_HARVEY_ROLES)
+  const [activeHarveyRole, setActiveHarveyRole] = useState(null)
+  const [harveyScenario, setHarveyScenario] = useState(1)   // 1 long, 2 thinking, 3 suggestions
+  // The opened lock: { Preview, ... } for the page session, in memory only (a reload locks again).
+  const [harveyLock, setHarveyLock] = useState(null)
+  const harveyBinRef = useRef(null)   // the fetched .bin, so a retry does not fetch again
 
   // Text content
   const [bigText, setBigText] = useState(SAMPLE_BIG)
@@ -1801,6 +1889,7 @@ export default function App() {
   // Coss roles panel
   const [cossPanelOpen, setCossPanelOpen] = useState(false)
   const [vercelPanelOpen, setVercelPanelOpen] = useState(false)
+  const [harveyPanelOpen, setHarveyPanelOpen] = useState(false)
 
   // Mobile sidebar collapse
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true)
@@ -1900,6 +1989,8 @@ export default function App() {
   const cossPanelPopoverRef = useRef(null)
   const vercelPanelBtnRef = useRef(null)
   const vercelPanelPopoverRef = useRef(null)
+  const harveyPanelBtnRef = useRef(null)
+  const harveyPanelPopoverRef = useRef(null)
   const scaleRowRefs = useRef({})
   const scalePairRefs = useRef({})
   const scalePanelBtnRef = useRef(null)
@@ -1980,10 +2071,10 @@ export default function App() {
       italicMatch = null
     } else {
       // Static family: every weight is a style of one face (a family has two or more).
-      const styles = getFamilyStyles(fontSlug)
+      const styles = getFamilyStyles(fontSlug, routeEntry?.files)
       if (styles.length >= 2) routeStyles = styles
-      matched = matchFont(fontSlug)
-      italicMatch = matchItalicFont(fontSlug)
+      matched = routeEntry?.files ? bundledFont(routeEntry.files[0]) : matchFont(fontSlug)
+      italicMatch = routeEntry?.files ? null : matchItalicFont(fontSlug)
     }
     if (!matched && !routeStyles.length) return
 
@@ -2001,9 +2092,15 @@ export default function App() {
       // face is named from its key, as a bundled family is from its slug.
       const declared = []
       for (const d of routeEntry?.faces ?? []) {
-        const roman = bundledFont(d.file)
-        if (!roman) { console.warn(`wordproof: ${d.file} is not in src/fonts; ${d.key} is left out`); continue }
-        const built = await buildFace({ family: null, styles: [{ key: 'regular', label: 'Regular', weightClass: 400, roman, italic: bundledFont(d.italic) }] }, { baseName: toDisplayName(d.key) })
+        // `files` is a static family: its weights and their italics, one face (Harvey Serif
+        // Text Beta). `label` names a face whose own name table is empty or unreadable.
+        const famStyles = d.files ? getFamilyStyles(d.key, d.files) : []
+        const roman = d.files ? null : bundledFont(d.file)
+        if (!roman && famStyles.length < 1) { console.warn(`wordproof: ${d.file ?? d.files} is not in src/fonts; ${d.key} is left out`); continue }
+        const built = await buildFace(famStyles.length
+          ? { family: d.label ?? d.key, styles: famStyles.map(st => ({ key: st.key, label: st.label, weightClass: WEIGHT_CLASS_OF_WORD[st.key] ?? 400, roman: st.roman, italic: st.italic })) }
+          : { family: null, styles: [{ key: 'regular', label: 'Regular', weightClass: 400, roman, italic: bundledFont(d.italic) }] },
+          { baseName: d.label ?? toDisplayName(d.key) })
         declared.push({ key: d.key, previews: d.previews ?? null, face: built })
       }
       const set = [face, ...declared.filter(d => inPreview(d, setModeRef.current)).map(d => d.face)]
@@ -2022,7 +2119,7 @@ export default function App() {
         const ids = list => Object.fromEntries(list.filter(([, k]) => set.includes(byKey[k])).map(([key, k]) => [key, byKey[k].id]))
         setScopeFaces({
           ...(levelsOk && { levelFaces: ids(levels) }),
-          ...(rolesOk && { vercelFaces: ids(roles) }),
+          ...(rolesOk && { [isHarvey ? 'harveyFaces' : 'vercelFaces']: ids(roles) }),
         })
       }
       activateFace(face)
@@ -2081,7 +2178,7 @@ export default function App() {
   const paraStylesRef = useRef(paraStyles)
   paraStylesRef.current = paraStyles
   const scopesRef = useRef(null)   // the steps' and roles' faces, read the same way
-  scopesRef.current = { scaleFaces, calcomRoles, cossRoles, vercelRoles }
+  scopesRef.current = { scaleFaces, calcomRoles, cossRoles, vercelRoles, harveyRoles }
   const FACE_HISTORY_CAP = 50
   const facesOf = (styles) => Object.fromEntries(Object.entries(styles).map(([k, st]) => [k, st.face]))
   const faceSnapshot = () => ({
@@ -2092,6 +2189,7 @@ export default function App() {
     calcomFaces: facesOf(scopesRef.current.calcomRoles),
     cossFaces: facesOf(scopesRef.current.cossRoles),
     vercelFaces: facesOf(scopesRef.current.vercelRoles),
+    harveyFaces: facesOf(scopesRef.current.harveyRoles),
   })
   // Give back the URLs of any of these faces that neither the set nor an entry can reach.
   const releaseFaces = (list) => {
@@ -2152,12 +2250,13 @@ export default function App() {
   // face id (a snapshot's), or nothing to null them all. A global pick and a new set both
   // start from here; only a scoped pick builds on it.
   const withFaces = (ids = {}) => prev => Object.fromEntries(Object.entries(prev).map(([k, st]) => [k, { ...st, face: ids[k] ?? null }]))
-  const setScopeFaces = ({ levelFaces, stepFaces, calcomFaces, cossFaces, vercelFaces } = {}) => {
+  const setScopeFaces = ({ levelFaces, stepFaces, calcomFaces, cossFaces, vercelFaces, harveyFaces } = {}) => {
     setParaStyles(withFaces(levelFaces))
     setScaleFaces(stepFaces ?? {})
     setCalcomRoles(withFaces(calcomFaces))
     setCossRoles(withFaces(cossFaces))
     setVercelRoles(withFaces(vercelFaces))
+    setHarveyRoles(withFaces(harveyFaces))
   }
   // The A/B hash on the calcom route: A is Inter, B the route's font at AB_CALSANS_AXES,
   // each a global pick (no undo entry: the hash is not an edit). Set on load and on
@@ -2196,6 +2295,7 @@ export default function App() {
     setCalcomRoles(release)
     setCossRoles(release)
     setVercelRoles(release)
+    setHarveyRoles(release)
     setScaleFaces(prev => Object.fromEntries(Object.entries(prev).filter(([, id]) => !ids.has(id))))
   }
   // A declared face is in the set only in its previews (routes.config.js). Moving to a mode
@@ -2444,6 +2544,7 @@ export default function App() {
   const effectiveCalcomRole = mode === 'calcom' ? activeCalcomRole : null
   const effectiveCossRole = mode === 'coss' ? activeCossRole : null
   const effectiveVercelRole = VERCEL_MODES.has(mode) ? activeVercelRole : null
+  const effectiveHarveyRole = mode === 'harvey' && harveyLock ? activeHarveyRole : null
   const effectiveScaleStep = mode === 'scale' ? activeScaleStep : null
   // The face the selected scope names: a ¶ level's, a selected scale step's, a selected
   // Cal.com or booking role's. Null when it inherits, or when nothing is selected.
@@ -2452,6 +2553,7 @@ export default function App() {
     : effectiveCalcomRole ? calcomRoles[effectiveCalcomRole].face
     : effectiveCossRole ? cossRoles[effectiveCossRole].face
     : effectiveVercelRole ? vercelRoles[effectiveVercelRole].face
+    : effectiveHarveyRole ? harveyRoles[effectiveHarveyRole].face
     : null
   // The axis sliders, named instances and Roman/Italic follow the scope's face the same way
   // (FACES.md: the sliders show the axes of whichever face the scope uses). `otherFace` is
@@ -2486,6 +2588,7 @@ export default function App() {
     if (effectiveCalcomRole) { setRoleFace(setCalcomRoles, effectiveCalcomRole, face.id); return }
     if (effectiveCossRole) { setRoleFace(setCossRoles, effectiveCossRole, face.id); return }
     if (effectiveVercelRole) { setRoleFace(setVercelRoles, effectiveVercelRole, face.id); return }
+    if (effectiveHarveyRole) { setRoleFace(setHarveyRoles, effectiveHarveyRole, face.id); return }
     activateFace(face)
     setScopeFaces()
   }
@@ -2542,6 +2645,78 @@ export default function App() {
       lineHeight: r.leading,
       fontSynthesis: 'none',
     }
+  }
+
+  // A Harvey role, and the steps off it the mock asks for (the locked module): `scale` and
+  // `leading` for the chrome's 12px labels and 16px composer, `strong` for its 500 buttons
+  // (a static face's next style up, a variable face's wght + 100), `plain` for the stamp
+  // face at regular (the thinking line), `italic` for the spaces' monograms (the face's
+  // paired italic, else a variable face's slnt). Never synthesized: a face without the
+  // style draws the roman.
+  const harveyRoleStyle = (role, v = {}) => {
+    const r = harveyRoles[role] ?? harveyRoles.body
+    const rd = faceReads(r)
+    const keys = Object.keys(rd.weightFamilies)
+    let key = keys.includes(r.weight) ? r.weight : keys.length ? defaultStyleKey(keys.map(k => ({ key: k }))) : null
+    const merged = { ...rd.axisValues }
+    const wghtAx = rd.axes.find(a => a.tag === 'wght')
+    if (v.plain) {   // the thinking line: the stamp's face at the voice's regular weight
+      key = keys.length ? defaultStyleKey(keys.map(k => ({ key: k }))) : null
+      if (wghtAx) merged.wght = Math.max(wghtAx.min, Math.min(wghtAx.max, 400))
+    }
+    if (v.strong) {
+      if (key) key = keys[Math.min(keys.length - 1, keys.indexOf(key) + 1)]
+      else if (wghtAx) merged.wght = Math.min(wghtAx.max, (merged.wght ?? wghtAx.defaultVal) + 100)
+    }
+    const slnt = rd.axes.find(a => a.tag === 'slnt')
+    const italic = !!v.italic && rd.hasItalic
+    if (v.italic && !rd.hasItalic && slnt) merged.slnt = slnt.min
+    return {
+      ...faceFontStyle({ ...rd, wght: merged.wght }, merged, key),
+      fontStyle: italic ? 'italic' : 'normal',
+      fontSize: `${+(r.size * (v.scale ?? 1)).toFixed(2)}px`,
+      letterSpacing: `${r.tracking}em`,
+      lineHeight: v.leading ?? r.leading,
+      fontSynthesis: 'none',
+    }
+  }
+
+  // The Thread UI's lock. A wrong passphrase throws inside openLocked (GCM) and this answers
+  // false; the right one adds the module's CSS, builds its faces from the decrypted bytes
+  // (blob URLs into the same loader a drop uses; a woff2's axes come from the header, since
+  // the browser cannot read its tables) and gives them the roles the header names.
+  const unlockHarvey = async (pass) => {
+    const url = lockedUrl('harvey')
+    if (!url) return false
+    harveyBinRef.current ??= await fetch(url, { cache: import.meta.env.DEV ? 'no-store' : 'default' })
+      .then(r => r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))).then(b => new Uint8Array(b))
+      .catch(() => null)
+    if (!harveyBinRef.current) return false
+    let lock
+    try { lock = await openLocked(harveyBinRef.current, pass) } catch { return false }
+    const { header, blob } = lock
+    if (header.css) {
+      const style = document.createElement('style')
+      style.dataset.locked = 'harvey'
+      style.textContent = header.css
+      document.head.appendChild(style)
+    }
+    const source = e => {
+      if (!e) return null
+      fontAxesData[e.filename] = { axes: e.axes ?? [], instances: [], chars: null }
+      return { url: URL.createObjectURL(new Blob([blob.subarray(e.off, e.off + e.len)], { type: e.filename.endsWith('.woff2') ? 'font/woff2' : 'font/ttf' })), filename: e.filename }
+    }
+    const added = []
+    for (const f of header.faces ?? []) {
+      const face = await buildFace({ family: null, styles: [{ key: 'regular', label: 'Regular', weightClass: 400, roman: source(f.roman), italic: source(f.italic) }] }, { baseName: f.label })
+      added.push({ key: f.key, previews: null, face })
+    }
+    declaredFacesRef.current = [...declaredFacesRef.current, ...added]
+    setFaceSet([...facesRef.current, ...added.map(d => d.face)])
+    const byKey = Object.fromEntries(added.map(d => [d.key, d.face.id]))
+    setHarveyRoles(prev => Object.fromEntries(Object.entries(prev).map(([k, st]) => [k, header.roles?.[k] && byKey[header.roles[k]] ? { ...st, face: byKey[header.roles[k]] } : st])))
+    setHarveyLock(lock)
+    return true
   }
 
   const cossRoleStyle = (role) => {
@@ -2859,6 +3034,19 @@ export default function App() {
   }, [vercelPanelOpen])
 
   useEffect(() => {
+    if (!harveyPanelOpen) return
+    const handler = (e) => {
+      if (
+        harveyPanelBtnRef.current?.contains(e.target) ||
+        harveyPanelPopoverRef.current?.contains(e.target)
+      ) return
+      setHarveyPanelOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [harveyPanelOpen])
+
+  useEffect(() => {
     if (!scaleStepsPanelOpen) return
     const handler = (e) => {
       if (
@@ -2895,6 +3083,7 @@ export default function App() {
         {isVercel && VERCEL_PREVIEWS.map(([m, icon, label]) => (
           <button key={m} className={`mobile-tab ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}><Icon name={icon} /> {label}</button>
         ))}
+        {isHarvey && <button className={`mobile-tab ${mode === 'harvey' ? 'active' : ''}`} onClick={() => setMode('harvey')}><Icon name="forum" /> Thread UI</button>}
         <button className={`mobile-tab ${mode === 'big' ? 'active' : ''}`} onClick={() => setMode('big')}><Icon name="insert_text" /> Big Word</button>
         <button className={`mobile-tab ${mode === 'paragraph' ? 'active' : ''}`} onClick={() => setMode('paragraph')}><Icon name="format_paragraph" /> Paragraph</button>
         <button className={`mobile-tab ${mode === 'ui' ? 'active' : ''}`} onClick={() => setMode('ui')}><Icon name="calendar_month" /> UI</button>
@@ -3134,6 +3323,23 @@ export default function App() {
                 )}
               </div>
             ))}
+            {isHarvey && (
+              <div className="mode-btn-row">
+                <ModeBtn active={mode === 'harvey'} onClick={() => setMode('harvey')}>
+                  <Icon name="forum" /> Thread UI
+                </ModeBtn>
+                {fontName && mode === 'harvey' && harveyLock && (
+                  <button
+                    ref={harveyPanelBtnRef}
+                    className={`align-btn styles-toggle-btn ${harveyPanelOpen ? 'active' : ''}`}
+                    title="Type roles panel"
+                    onClick={() => setHarveyPanelOpen(p => !p)}
+                  >
+                    <Icon name="discover_tune" />
+                  </button>
+                )}
+              </div>
+            )}
             <ModeBtn active={mode === 'big'} onClick={() => setMode('big')}>
               <Icon name="insert_text" /> Big Word
             </ModeBtn>
@@ -3223,8 +3429,71 @@ export default function App() {
 
         <div className="sidebar-divider" />
 
+        {/* Harvey: the scenario first, then the scoped role's typography. The role's
+            face picks its weight (a static family's styles; a variable face's wght is
+            on the axes below), and size, tracking and leading are the role's own. With
+            no role scoped there is nothing to set: tap a role in the thread. */}
+        {mode === 'harvey' && harveyLock && (() => {
+          const role = effectiveHarveyRole
+          const r = role && harveyRoles[role]
+          const rFace = r && (faces.find(f => f.id === r.face) ?? activeFace)
+          const rStyles = rFace?.styles ?? NO_STYLES
+          const rWeight = r && (rStyles.some(st => st.key === r.weight) ? r.weight : defaultStyleKey(rStyles))
+          const setRole = (field, value) => setHarveyRoles(prev => ({ ...prev, [role]: { ...prev[role], [field]: value } }))
+          const d = role && DEFAULT_HARVEY_ROLES[role]
+          const dirty = r && (r.size !== d.size || r.tracking !== d.tracking || r.leading !== d.leading || r.weight !== d.weight)
+          return (
+            <div className="sidebar-section">
+              <div className="roman-italic-toggle harvey-scenario" role="group" aria-label="Scenario">
+                {HARVEY_SCENARIOS.map(sc => (
+                  <button
+                    key={sc.id}
+                    className={`roman-italic-btn${harveyScenario === sc.id ? ' active' : ''}`}
+                    aria-label={sc.label}
+                    aria-pressed={harveyScenario === sc.id}
+                    title={sc.label}
+                    onClick={() => setHarveyScenario(sc.id)}
+                  >{sc.id}</button>
+                ))}
+              </div>
+              {role && (<>
+                <div className="typography-header">
+                  <div className="section-label">
+                    Typography
+                    <button className="section-label-exit" onClick={() => setActiveHarveyRole(null)} title="Back to master">
+                      {HARVEY_ROLE_LABELS[role]} ×
+                    </button>
+                  </div>
+                  <div className="align-group">
+                    <button
+                      className={`align-btn ${dirty ? 'active' : 'reset-clean'}`}
+                      title="Reset typography"
+                      style={dirty ? {} : { pointerEvents: 'none' }}
+                      onClick={() => setHarveyRoles(prev => ({ ...prev, [role]: { ...prev[role], size: d.size, tracking: d.tracking, leading: d.leading, weight: d.weight } }))}
+                    ><Icon name="settings_backup_restore" /></button>
+                  </div>
+                </div>
+                {rStyles.length >= 2 && (
+                  <span className="wm-select-wrap">
+                    <select className="wm-select" value={rWeight ?? ''} onChange={e => setRole('weight', e.target.value)} title="Style">
+                      {rStyles.map(st => <option key={st.key} value={st.key}>{st.label}</option>)}
+                    </select>
+                    <Chevron dir={-1} width={12} height={7} />
+                  </span>
+                )}
+                <SliderRow variant="track" label="size" value={r.size} min={8} max={72} step={1}
+                  onChange={v => setRole('size', v)} />
+                <SliderRow variant="track" label="tracking" value={r.tracking} min={-0.2} max={0.5} step={0.001}
+                  onChange={v => setRole('tracking', v)} display={r.tracking.toFixed(3)} />
+                <SliderRow variant="track" label="leading" value={r.leading} min={0.6} max={3} step={0.01}
+                  onChange={v => setRole('leading', v)} display={r.leading.toFixed(2)} />
+              </>)}
+            </div>
+          )
+        })()}
+
         {/* Typography controls */}
-        {mode !== 'calcom' && !VERCEL_MODES.has(mode) && (
+        {mode !== 'calcom' && !VERCEL_MODES.has(mode) && mode !== 'harvey' && (
         <div className="sidebar-section">
           <div className="typography-header">
             <div className="section-label">
@@ -3533,6 +3802,11 @@ export default function App() {
                       {VERCEL_ROLE_LABELS[effectiveVercelRole]} ×
                     </button>
                   )}
+                  {effectiveHarveyRole && (
+                    <button className="section-label-exit" onClick={() => setActiveHarveyRole(null)} title="Back to master">
+                      {HARVEY_ROLE_LABELS[effectiveHarveyRole]} ×
+                    </button>
+                  )}
                 </div>
                 {(() => {
                   const axesDirty = effectiveScaleStep
@@ -3547,6 +3821,8 @@ export default function App() {
                     ? JSON.stringify(cossRoles[effectiveCossRole].axisOverrides) !== JSON.stringify(DEFAULT_COSS_ROLES[effectiveCossRole].axisOverrides)
                     : effectiveVercelRole
                     ? JSON.stringify(vercelRoles[effectiveVercelRole].axisOverrides) !== JSON.stringify(DEFAULT_VERCEL_ROLES[effectiveVercelRole].axisOverrides)
+                    : effectiveHarveyRole
+                    ? JSON.stringify(harveyRoles[effectiveHarveyRole].axisOverrides) !== JSON.stringify(DEFAULT_HARVEY_ROLES[effectiveHarveyRole].axisOverrides)
                     : variationAxes.some(a => axisValues[a.tag] !== axisDefaults(variationAxes)[a.tag])
                   return (
                     <button
@@ -3583,6 +3859,11 @@ export default function App() {
                             ...prev,
                             [effectiveVercelRole]: { ...prev[effectiveVercelRole], axisOverrides: { ...DEFAULT_VERCEL_ROLES[effectiveVercelRole].axisOverrides } }
                           }))
+                        } else if (effectiveHarveyRole) {
+                          setHarveyRoles(prev => ({
+                            ...prev,
+                            [effectiveHarveyRole]: { ...prev[effectiveHarveyRole], axisOverrides: { ...DEFAULT_HARVEY_ROLES[effectiveHarveyRole].axisOverrides } }
+                          }))
                         } else {
                           // The same defaults the font loaded with (axisDefaults): opsz parked on
                           // 'auto', not the font's own default. Reset used to hand back the fvar
@@ -3605,6 +3886,8 @@ export default function App() {
                   ? (cossRoles[effectiveCossRole].axisOverrides[axis.tag] ?? controlBase[axis.tag] ?? axis.defaultVal)
                   : effectiveVercelRole
                   ? (vercelRoles[effectiveVercelRole].axisOverrides[axis.tag] ?? controlBase[axis.tag] ?? axis.defaultVal)
+                  : effectiveHarveyRole
+                  ? (harveyRoles[effectiveHarveyRole].axisOverrides[axis.tag] ?? controlBase[axis.tag] ?? axis.defaultVal)
                   : (mode === 'scale' && axis.tag === 'opsz')
                   ? (() => { const v = scaleAxisOverrides[TAILWIND_SCALE[0].key]?.opsz ?? 'auto'; return TAILWIND_SCALE.every(s => (scaleAxisOverrides[s.key]?.opsz ?? 'auto') === v) ? v : 'auto' })()
                   : (axisValues[axis.tag] ?? axis.defaultVal)
@@ -3616,6 +3899,8 @@ export default function App() {
                   ? cossRoles[effectiveCossRole].size
                   : effectiveVercelRole
                   ? vercelRoles[effectiveVercelRole].size
+                  : effectiveHarveyRole
+                  ? harveyRoles[effectiveHarveyRole].size
                   : effectiveParaStyle
                   ? paraStyles[effectiveParaStyle].size
                   : bigSize
@@ -3658,6 +3943,11 @@ export default function App() {
                         setVercelRoles(prev => ({
                           ...prev,
                           [effectiveVercelRole]: { ...prev[effectiveVercelRole], axisOverrides: { ...prev[effectiveVercelRole].axisOverrides, [axis.tag]: v } }
+                        }))
+                      } else if (effectiveHarveyRole) {
+                        setHarveyRoles(prev => ({
+                          ...prev,
+                          [effectiveHarveyRole]: { ...prev[effectiveHarveyRole], axisOverrides: { ...prev[effectiveHarveyRole].axisOverrides, [axis.tag]: v } }
                         }))
                       } else if (mode === 'scale' && axis.tag === 'opsz') {
                         setScaleAxisOverrides(prev => {
@@ -3752,7 +4042,7 @@ export default function App() {
             pushFaceHistory()
             if (level) setParaStyles(prev => ({ ...prev, [level]: { ...prev[level], face: face.id } }))
             else if (step) setScaleFaces(prev => ({ ...prev, [step]: face.id }))
-            else setRoleFace(mode === 'coss' ? setCossRoles : VERCEL_MODES.has(mode) ? setVercelRoles : setCalcomRoles, role, face.id)
+            else setRoleFace(mode === 'coss' ? setCossRoles : VERCEL_MODES.has(mode) ? setVercelRoles : mode === 'harvey' ? setHarveyRoles : setCalcomRoles, role, face.id)
           }}
           onSpring={() => setParaStylesPanelOpen(true)}
         />
@@ -3788,6 +4078,12 @@ export default function App() {
           const Preview = { vercelNew: VercelNewProjectPreview, vercelDocs: VercelDocsPreview, vercelMarket: VercelMarketplacePreview }[mode]
           return <Preview key={activeFaceId} roleStyle={vercelRoleStyle} activeRole={activeVercelRole} onRoleClick={setActiveVercelRole} />
         })()}
+
+        {fontName && mode === 'harvey' && (
+          harveyLock
+            ? <harveyLock.Preview key={activeFaceId} roleStyle={harveyRoleStyle} activeRole={activeHarveyRole} onRoleClick={setActiveHarveyRole} scenario={harveyScenario} />
+            : <LockGate onUnlock={unlockHarvey} ready={!!lockedUrl('harvey')} />
+        )}
 
         {fontName && mode === 'ui' && (
           /* --ui-font is the HOST's interface face ('Face', Cal Sans) and the board's tabs,
@@ -4167,6 +4463,60 @@ export default function App() {
                     }),
                   ],
                   selected: activeVercelRole === key,
+                }
+              })}
+            />
+          </div>
+        )
+      })()}
+
+      {harveyPanelOpen && mode === 'harvey' && harveyLock && (() => {
+        const rect = harveyPanelBtnRef.current?.getBoundingClientRect()
+        if (!rect) return null
+        return (
+          <div
+            ref={harveyPanelPopoverRef}
+            className="para-styles-panel"
+            style={{
+              top: rect.bottom + 8,
+              left: rect.left,
+              '--caret-x': `${rect.width / 2}px`,
+            }}
+          >
+            {/* the same list, over the Harvey roles */}
+            <StyleScopeList
+              inline
+              mode="single"
+              className="ssd-list--dense"
+              onSelect={key => { setActiveHarveyRole(prev => prev === key ? null : key); setHarveyPanelOpen(false) }}
+              rows={Object.entries(HARVEY_ROLE_LABELS).map(([key, label]) => {
+                const r = harveyRoles[key]
+                const rd = faceReads(r)
+                const own = ownFace(r.face)
+                return {
+                  id: key,
+                  label,
+                  labelStyle: {
+                    ...faceFontStyle(rd),
+                    fontSize: `${Math.min(r.size, 22)}px`,
+                    fontOpticalSizing: 'none',
+                    fontSynthesis: 'none',
+                    lineHeight: 1.3,
+                  },
+                  chips: [
+                    ...(own ? [{ text: own.familyLabel, kind: 'local' }] : []),
+                    { text: `${r.size}px`, kind: 'size' },
+                    { text: nbMinus(r.tracking < 0 ? r.tracking.toFixed(2) : r.tracking.toFixed(3)), kind: 'size' },
+                    ...rd.axes.map(axis => {
+                      const val = rd.axisValues[axis.tag] ?? axis.defaultVal
+                      const isLocal = axis.tag in r.axisOverrides
+                      return {
+                        text: `${axis.tag} ${val === 'auto' ? 'A ' : nbMinus(Number.isInteger(val) ? val : val.toFixed(1))}`,
+                        kind: isLocal ? 'local' : 'axis',
+                      }
+                    }),
+                  ],
+                  selected: activeHarveyRole === key,
                 }
               })}
             />

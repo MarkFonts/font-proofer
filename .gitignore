@@ -54,3 +54,7 @@ public/_dial*.html
 
 # Screenshots dropped at the root while comparing against a reference
 CleanShot *.png
+
+# Client sources that must never be public (the Harvey Thread UI mock and its two client
+# fonts). Only the encrypted build of them, src/locked/*.bin, is committed. See private/harvey/README.md.
+private/

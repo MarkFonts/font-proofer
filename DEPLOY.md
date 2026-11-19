@@ -70,6 +70,16 @@ WORDPROOF_BASE=/ npm run build && WORDPROOF_BASE=/ npx vite preview
 2. It deploys with its own installable app, OG image, and page. It's `noindex` and its font is never cached offline, unless you decide otherwise.
 3. Only for an open-licensed face: add its slug to `INDEXED_FONTS`, and its hashed asset stem to `OFFLINE_FONTS` (`[wght]` is written `_wght_`).
 
+## Locked previews
+
+A preview a client hasn't released can ship encrypted. `/harvey/harveyserif`'s "Thread UI" tab is the first.
+
+- **What ships:** `src/locked/<name>.bin`, one AES-256-GCM file (key from PBKDF2-SHA-256 of a passphrase). It holds the preview's module, CSS, and the fonts only that preview needs. The browser fetches it when the tab is opened and decrypts it with what the visitor types. There is no password check in the code: a wrong passphrase fails to decrypt.
+- **What never ships or gets committed:** the readable source, in `private/<name>/` (gitignored). This repo is public. Back that folder up to a private repo (`MarkFonts/harvey` for Harvey); it exists nowhere else.
+- **To change the preview or the passphrase:** edit `private/<name>/`, then run `npm run lock:<name>` and type the passphrase at the hidden prompt. Commit the new `.bin`. The passphrase is Mark's; an agent never asks for it, types it, or stores it.
+- **Builds without `private/`** (CI, a fresh clone) ship the committed `.bin` as is. No secret is needed in CI.
+- **It hides, it doesn't guard.** The file is public, so a short passphrase can be guessed offline, and anyone with the passphrase can read everything. The route, the tab's name, and the role names stay readable in the open bundle.
+
 ## wordmark.nyc
 
 - `wordmark.nyc/font-proofer/…` is forwarders only, rewritten on every deploy. Don't edit them by hand in the wordmark repo; change `scripts/write-forwarders.mjs` or `scripts/wordmark-404.html` here.

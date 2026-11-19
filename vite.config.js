@@ -98,7 +98,15 @@ function fileToDisplayName(file) {
     .trim()
 }
 
+// A route that names its files (routes.config.js `files`) is drawn from its Regular, not
+// from whichever file the slug matches closest (every Harvey Serif cut matches 'harveyserif').
+const routeFile = fontSlug => {
+  const files = routes.find(r => r.fontSlug === fontSlug && r.files)?.files
+  return files && (files.find(f => /regular/i.test(f) && !/italic/i.test(f)) ?? files[0])
+}
+
 function findFontFile(fontSlug) {
+  if (routeFile(fontSlug)) return routeFile(fontSlug)
   const needle = normalize(fontSlug)
   const files = listFontFiles()
   const nameOf = f => normalize(f.replace(/\.[^.]+$/, ''))
