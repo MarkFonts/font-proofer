@@ -118,6 +118,20 @@ function toDisplayName(slug) {
 }
 
 // ── Hash ↔ mode mapping ───────────────────────────────────────────────────────
+/** The live selection inside `el` as [start, end] character offsets into its text, or
+ *  null when the selection is elsewhere. Return splits a paragraph block here. */
+function selectionOffsets(el) {
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return null
+  const r = sel.getRangeAt(0)
+  if (!el.contains(r.startContainer) || !el.contains(r.endContainer)) return null
+  const at = (node, off) => {
+    const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(node, off)
+    return pre.toString().length
+  }
+  return [at(r.startContainer, r.startOffset), at(r.endContainer, r.endOffset)]
+}
+
 const HASH_TO_MODE = { '#big': 'big', '#paragraph': 'paragraph', '#glyphs': 'glyphs', '#type-scale': 'scale', '#calcom': 'calcom', '#coss': 'coss', '#ui': 'ui', '#new-project': 'vercelNew', '#docs': 'vercelDocs', '#marketplace': 'vercelMarket', '#harvey': 'harvey' }
 const MODE_TO_HASH = { big: '#big', paragraph: '#paragraph', glyphs: '#glyphs', scale: '#type-scale', calcom: '#calcom', coss: '#coss', ui: '#ui', vercelNew: '#new-project', vercelDocs: '#docs', vercelMarket: '#marketplace', harvey: '#harvey' }
 
@@ -2946,11 +2960,22 @@ export default function App() {
     }
     if (e.key === 'Enter') {
       e.preventDefault()
+      // Return splits the block at the caret: the text before it stays, the text after
+      // it becomes a new paragraph. (It used to append an empty block and leave the
+      // text whole, so a Return mid-paragraph changed nothing.) A selection is replaced
+      // by the break. Shift+Return does the same -- blocks are the only line-break model
+      // here; the fitter has no hard break inside a block.
+      const el = blockRefs.current[id]
+      const text = el?.textContent ?? ''
+      const [s, end] = (el && selectionOffsets(el)) ?? [text.length, text.length]
+      const head = text.slice(0, s), tail = text.slice(end)
+      if (el) el.textContent = head   // the blur that follows commits this, not the whole text
       const newId = String(Date.now())
       setBlocks(prev => {
         const idx = prev.findIndex(b => b.id === id)
         const next = [...prev]
-        next.splice(idx + 1, 0, { id: newId, type: 'p', text: '' })
+        next[idx] = { ...next[idx], text: head }
+        next.splice(idx + 1, 0, { id: newId, type: 'p', text: tail })
         return next
       })
       requestAnimationFrame(() => {
