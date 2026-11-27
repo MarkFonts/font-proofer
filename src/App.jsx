@@ -220,7 +220,10 @@ async function openLocked(bytes, pass) {
 // The scenario toggle's names (the prototype's own control labels); the copy is in the lock.
 const HARVEY_SCENARIOS = [{ id: 1, label: 'Long response' }, { id: 2, label: 'Thinking response' }, { id: 3, label: 'Response with suggestions' }]
 
-const fontModules = import.meta.glob('/src/fonts/*.{ttf,otf,woff,woff2}', { eager: true, query: '?url', import: 'default' })
+// Spectral VF lives in the submodule (shared/fonts), like Cal Sans, but it is a specimen with
+// an italic, so it joins the glob and is matched and paired like any file in src/fonts. A
+// glob, not an import: a checkout whose shared/ predates the face still builds.
+const fontModules = import.meta.glob(['/src/fonts/*.{ttf,otf,woff,woff2}', '/shared/fonts/SpectralVF*.ttf'], { eager: true, query: '?url', import: 'default' })
 // A bundled file by its exact name: { url, filename }, or null.
 const bundledFont = (filename) => {
   const entry = filename && Object.entries(fontModules).find(([path]) => path.endsWith('/' + filename))

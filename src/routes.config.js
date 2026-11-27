@@ -18,6 +18,10 @@ export default [
   // Aileron (Sora Sagano, CC0, 2014) joined into a variable font from its three masters;
   // opsz only adds spacing (+40 units at 8, none at 32). The URL is /wordmark/aileronVF.
   { clientSlug: 'wordmark', fontSlug: 'aileronvf' },
+  // Spectral (Production Type, OFL) joined into a roman and an italic variable font from its
+  // three masters per style, wght 200-800. A work in progress, named "Spectral VF" for now;
+  // the files are in shared/fonts (wm-primitives). Not indexed until it is released.
+  { clientSlug: 'wordmark', fontSlug: 'spectralvf' },
   { clientSlug: 'weltkern', fontSlug: 'kloten'       },
   { clientSlug: 'weltkern', fontSlug: 'lausannemono' },
   { clientSlug: 'weltkern', fontSlug: 'paquis'       },
