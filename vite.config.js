@@ -42,7 +42,8 @@ const OFFLINE_FONT_RE = new RegExp(
    <meta name="robots" content="noindex"> and stays out of sitemap.xml -- reachable by its
    link, never in search. robots.txt must NOT disallow them, or Google cannot read the
    noindex. */
-const INDEXED_FONTS = new Set(['calsans', 'calsansflex', 'geist', 'geistserif'])   // OFL
+const INDEXED_FONTS = new Set(['calsans', 'calsansflex', 'geist', 'geistserif',   // OFL
+  'aileronvf'])                                                          // CC0
 
 const BASE = process.env.WORDPROOF_BASE ?? '/font-proofer/'
 const ROOT_BUILD = BASE === '/'
