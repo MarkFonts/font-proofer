@@ -15,6 +15,9 @@
 //   roles:   { [role]: faceKey }, the same for the client's preview roles (Vercel's, Harvey's)
 export default [
   { clientSlug: 'claudetype', fontSlug: 'ernest' },
+  // Aileron (Sora Sagano, CC0, 2014) joined into a variable font from its three masters;
+  // opsz only adds spacing (+40 units at 8, none at 32). The URL is /wordmark/aileronVF.
+  { clientSlug: 'wordmark', fontSlug: 'aileronvf' },
   { clientSlug: 'weltkern', fontSlug: 'kloten'       },
   { clientSlug: 'weltkern', fontSlug: 'lausannemono' },
   { clientSlug: 'weltkern', fontSlug: 'paquis'       },
