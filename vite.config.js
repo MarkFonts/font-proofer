@@ -60,7 +60,7 @@ const SITE_BASE = BASE.replace(/\/$/, '')
    faces genuinely live there. Rather than move them all, shared/fonts is a second source
    dir for the few faces that are ours: resolve through fontPath(), enumerate through
    listFontFiles(), and nothing else in the build has to know. */
-const SHARED_FACES = ['CalSansVF.ttf', 'CalSansFlexVF.ttf']
+const SHARED_FACES = ['CalSansVF.ttf', 'CalSansFlexVF.ttf', 'SpectralVF[wght].ttf', 'SpectralVF-Italic[wght].ttf']
 const fontPath = file =>
   existsSync(`src/fonts/${file}`) ? `src/fonts/${file}` : `shared/fonts/${file}`
 const listFontFiles = () => [
@@ -72,6 +72,7 @@ const SPECIAL_SLUG_NAMES = {
   calsans: 'Cal Sans',
   calsansflex: 'Cal Sans Flex',
   switzerland2038: 'Switzerland 2038',
+  spectralvf: 'Spectral VF',   // the working name, VF kept on purpose
 }
 
 // Trailing weight/style words to drop from a display name (e.g. "Foo Regular" -> "Foo")
