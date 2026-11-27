@@ -1,6 +1,6 @@
 # Deploying Wordproof
 
-Wordproof (this repo, still named `font-proofer`) is live at **https://wordproof.app**, an installable PWA on Cloudflare Pages. This page is the whole deploy story. Read it before touching `vite.config.js`, `.github/workflows/deploy.yml`, `index.html`, or `routes.config.js`.
+Wordproof (this repo, still named `font-proofer`) is live at **https://wordproof.app**, an installable PWA on Cloudflare Pages. This page is the whole deploy story. Read it before touching `vite.config.js`, `.github/workflows/deploy.yml`, `index.html`, `routes.config.js`, or `functions/`.
 
 ## How a deploy happens
 
@@ -69,6 +69,16 @@ WORDPROOF_BASE=/ npm run build && WORDPROOF_BASE=/ npx vite preview
 1. Put the font in `src/fonts/` and add `{ clientSlug, fontSlug }` to `src/routes.config.js`.
 2. It deploys with its own installable app, OG image, and page. It's `noindex` and its font is never cached offline, unless you decide otherwise.
 3. Only for an open-licensed face: add its slug to `INDEXED_FONTS`, and its hashed asset stem to `OFFLINE_FONTS` (`[wght]` is written `_wght_`).
+
+## Forgiving route URLs
+
+Pages paths are case-sensitive and every route page is in a lowercase folder. `functions/_middleware.js`, a Pages Function, 301s any other spelling of a route to that folder, so the link opens the route's own page and its own link-preview image instead of falling through to the root: `/calcom/CalSansFlex`, `/wordmark/aileronVF`, `/calcom/calsans-vf`, `/wordmark/aileron`.
+
+- It matches the client and the font ignoring case and `-`, `_`, `.`, spaces, and for the font a trailing `vf`, `var`, or `variable` on either side. An exact slug wins; a loose match must be the only one for that client. Everything else passes through untouched, including the SPA fallback.
+- It reads `src/routes.config.js`, so a new route needs nothing extra.
+- `wrangler pages deploy dist` picks up `functions/` because it runs from the repo root. `public/_routes.json` keeps the Function off `/assets/*`, `/og/*`, and `/icons/*`.
+- Test it with `WORDPROOF_BASE=/ npm run build && npx wrangler@3 pages dev dist`. `vite preview` doesn't run Functions.
+- Don't add `public/_redirects` for spellings; this replaced it.
 
 ## Locked previews
 
