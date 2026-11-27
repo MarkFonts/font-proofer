@@ -1,0 +1,5 @@
+# Cloudflare Pages redirects. Paths are case-sensitive and route folders are lowercase, so a
+# link typed with capitals would fall through to the root page and lose its own title and
+# link-preview image. List the capitalized spellings that are in circulation here.
+/wordmark/aileronVF    /wordmark/aileronvf/    301
+/wordmark/aileronVF/   /wordmark/aileronvf/    301
